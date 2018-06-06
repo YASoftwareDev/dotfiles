@@ -60,3 +60,7 @@ sudo apt-get install fasd
 #setup vim vundle
 
 git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
+
+#install gnu global
+echo "use: https://gist.github.com/y2kr/2ff0d3e1c7f20b0925b2"
+echo "check for never link (6.6.4) and later"
