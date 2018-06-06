@@ -53,3 +53,7 @@ cd nerd-fonts
 sudo add-apt-repository ppa:aacebedo/fasd
 sudo apt-get update
 sudo apt-get install fasd
+
+#setup vim vundle
+
+git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
