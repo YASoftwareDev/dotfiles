@@ -105,6 +105,7 @@ export EDITOR='vim'
 ~/.vocab
 eval "$(fasd --init auto)"
 alias v='f -e vim'
+alias rgm='rg -L --no-filename --no-heading -w'
 alias cheat=~/.local/bin/cheat
 #alias ranger=~/Projects/ranger/ranger.py
 export KEYTIMEOUT=2
