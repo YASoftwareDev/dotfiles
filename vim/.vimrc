@@ -100,6 +100,8 @@ Plugin 'arecarn/vim-fold-cycle'
 Plugin 'rickhowe/diffchar.vim'
 
 "Other Plugins
+Plugin 'junegunn/goyo.vim'
+Plugin 'junegunn/limelight.vim'
 Plugin 'lifepillar/vim-cheat40'
 Plugin 'tpope/vim-pathogen'
 Plugin 'wincent/command-t'
@@ -288,3 +290,6 @@ endfunction
 nmap <Leader>j :call GotoJump()<CR>
 
 so /usr/local/share/gtags/gtags.vim
+
+autocmd! User GoyoEnter Limelight
+autocmd! User GoyoLeave Limelight!
