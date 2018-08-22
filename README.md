@@ -1,6 +1,8 @@
 # dotfiles
 my dotfilles
 
+Please do not use blindly these files. Read and use only what you want. Winter will come if you ignore these warnings intentionally.
+
 # todo
 1. change vundle to vimplug
 2. add Hightlight to installed things
