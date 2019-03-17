@@ -136,8 +136,8 @@ set incsearch       " show search matches as you type
 set infercase       " Smart casing when completing
 set lazyredraw      " don't update the display while executing macros
 set list            " Show invisible characters
+set listchars=tab:\ \             " a tab should display as "  ", trailing whitespace as "."
 set listchars+=trail:.,extends:>,precedes:<
-set listchars=tab:\ \
 set matchpairs+=<:> " specially for html
 set matchtime=2     " show matching bracket for 0.2 seconds
 set mouse=a         " allowing mouse access
