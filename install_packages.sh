@@ -1,6 +1,6 @@
 #!/bin/bash
 
-APT_PACKAGES="stow git vim-gtk3 curl fortune clang cowsay build-essential python3-dev python-pip python3-venv screenfetch tmux compiz-plugins-extra clipit zsh tig ranger cheat"
+APT_PACKAGES="stow git vim-gtk3 curl fortune clang cowsay build-essential cmake python3-dev python-pip python3-venv screenfetch tmux compiz-plugins-extra clipit zsh tig ranger cheat jq"
 
 SNAP_PACKAGES="rg"
 
@@ -68,3 +68,6 @@ echo "check for never link (6.6.4) and later"
 # custom python folding rules for vim
 mkdir ~/.vim/syntax
 wget https://www.vim.org/scripts/download_script.php?src_id=9584
+
+# compiling YCM
+cd ~/.vim/bundle/YouCompleteMe;./install.py --clang-completer
