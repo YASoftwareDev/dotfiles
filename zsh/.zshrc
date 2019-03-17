@@ -1,8 +1,9 @@
 # If you come from bash you might have to change your $PATH.
-export PATH=$HOME/bin:/usr/local/bin:/home/tpedzimaz/.cargo/bin:$PATH
+export PATH=$HOME/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH:$HOME/.gem/ruby/2.5.0/bin:$HOME/Projects/ninja
+export CFLAGS="-I/usr/local/boost_1_67_0/"
 
-HISTSIZE=100000
-SAVEHIST=100000
+HISTSIZE=1000000
+SAVEHIST=1000000
 # Path to your oh-my-zsh installation.
 export ZSH=/home/tpedzimaz/.oh-my-zsh
 
@@ -105,14 +106,38 @@ export EDITOR='vim'
 ~/.vocab
 eval "$(fasd --init auto)"
 alias v='f -e vim'
-alias rgm='rg -L --no-filename --no-heading -w'
+alias rgmw='rg -No -L --no-filename --no-heading -w'
+alias rgm='rg -No -L --no-filename --no-heading'
+alias stats='sort --parallel=6 | uniq -c | sort -n'
+
 alias cheat=~/.local/bin/cheat
 #alias ranger=~/Projects/ranger/ranger.py
 export KEYTIMEOUT=1
 export GTAGSLIBPATH=$HOME/.gtags
-#export BOOST_ROOT=/opt/boost_1_60_0
+
+#export BOOST_ROOT=/usr/local/boost_1_67_0
+export BOOST_ROOT=/opt/boost_1_60_0/
 alias :e=vim
 alias gzcat=zcat
 alias bzcat=zcat
 alias :q=exit
 alias :wq='echo "You are not in vim, dummy"'
+alias la="exa -abghl --git --color=automatic"
+
+# --files: List files that would be searched but do not search
+# --no-ignore: Do not respect .gitignore, etc...
+# --hidden: Search hidden files and folders
+# --follow: Follow symlinks
+# --glob: Additional conditions for search (in this case ignore everything in the .git/ folder)
+
+export FZF_DEFAULT_COMMAND='rg --files --no-ignore --hidden --follow --glob "!.git/*"'
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+#export FZF_DEFAULT_OPTS='--height=70% --preview="cat {}" --preview-window=right:60%:wrap'
+
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+#fpath=(~/.zsh.d/ $fpath) doesn't work... :(
+
+#. ~/Projects/ninja/misc/zsh-completion
+
+# opam configuration
+test -r /home/tpedzimaz/.opam/opam-init/init.zsh && . /home/tpedzimaz/.opam/opam-init/init.zsh > /dev/null 2> /dev/null || true
