@@ -48,7 +48,7 @@ Most important thing for me is an ability to quickly search for 3 things: files,
 # Further readings
 
 - [tmux cheatsheet](https://gist.github.com/MohamedAlaa/2961058)
-- (https://www.youtube.com/results?search_query=zsh+my+shell)
+- https://www.youtube.com/results?search_query=zsh+my+shell
 - [shell configuration hack your zsh](https://blog.apptension.com/2018/08/30/shell-configuration-hack-your-zsh)
 - [10 super powers for your shell](https://www.doppnet.com/10-super-powers-for-your-shell.html)
 
