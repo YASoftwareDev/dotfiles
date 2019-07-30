@@ -4,7 +4,13 @@ Welcome!
 
 Here are my dotfiles.
 
+If you would like to use them go line by line through install_packages.sh file, read comments and run commands.
+
 Please do not use these files blindly! Read and use only what you really really want. Winter will come if you ignore these warnings intentionally.
+
+If you really know what you are doing, stow is ready for you to use.
+
+Good luck!
 
 # A rationale behind this setup
 
