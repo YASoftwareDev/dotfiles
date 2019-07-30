@@ -5,7 +5,7 @@ export CFLAGS="-I/usr/local/boost_1_67_0/"
 HISTSIZE=1000000
 SAVEHIST=1000000
 # Path to your oh-my-zsh installation.
-export ZSH=/home/tpedzimaz/.oh-my-zsh
+export ZSH=/home/${USER}/.oh-my-zsh
 
 # Set name of the theme to load. Optionally, if you set this to "random"
 # it'll load a random theme each time that oh-my-zsh is loaded.
@@ -26,7 +26,7 @@ POWERLEVEL9K_VI_INSERT_MODE_STRING="I"
 POWERLEVEL9K_VI_COMMAND_MODE_STRING="N"
 
 
-ZSH_THEME="powerlevel9k/powerlevel9k"
+ZSH_THEME="powerlevel10k/powerlevel10k"
 #ZSH_THEME="robbyrussell"
 
 # Uncomment the following line to use case-sensitive completion.
@@ -71,11 +71,16 @@ COMPLETION_WAITING_DOTS="true"
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git history history-substring-search dircycle dirhistory fasd vi-mode last-working-dir zsh-autosuggestions zsh-syntax-highlighting)
+plugins=(git history history-substring-search dircycle dirhistory fasd docker vi-mode last-working-dir zsh-autosuggestions zsh-syntax-highlighting you-should-use)
 
 source $ZSH/oh-my-zsh.sh
 
 # User configuration
+
+bindkey "^[[1;5C" forward-word
+bindkey "^[[1;5D" backward-word
+ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+ZSH_AUTOSUGGEST_USE_ASYNC="true"
 
 # export MANPATH="/usr/local/man:$MANPATH"
 
@@ -124,6 +129,8 @@ alias :q=exit
 alias :wq='echo "You are not in vim, dummy"'
 alias la="exa -abghl --git --color=automatic"
 
+alias fd='fd -I -L' # by default fd doesn't search gitignore files
+
 # --files: List files that would be searched but do not search
 # --no-ignore: Do not respect .gitignore, etc...
 # --hidden: Search hidden files and folders
@@ -132,6 +139,7 @@ alias la="exa -abghl --git --color=automatic"
 
 export FZF_DEFAULT_COMMAND='rg --files --no-ignore --hidden --follow --glob "!.git/*"'
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+#export PAGER="most"
 #export FZF_DEFAULT_OPTS='--height=70% --preview="cat {}" --preview-window=right:60%:wrap'
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
@@ -139,5 +147,5 @@ export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 
 #. ~/Projects/ninja/misc/zsh-completion
 
-# opam configuration
-test -r /home/tpedzimaz/.opam/opam-init/init.zsh && . /home/tpedzimaz/.opam/opam-init/init.zsh > /dev/null 2> /dev/null || true
+# opam configuration (normal people seriously don't need it)
+test -r /home/${USER}/.opam/opam-init/init.zsh && . /home/${USER}/.opam/opam-init/init.zsh > /dev/null 2> /dev/null || true

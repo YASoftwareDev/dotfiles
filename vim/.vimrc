@@ -127,7 +127,6 @@ set backspace=indent,eol,start " allow backspacing over everything in insert mod
 set copyindent      " copy the previous indentation on autoindenting
 set cursorcolumn    " highlight current column
 set cursorline      " highlight current line
-set expandtab       " expand tabs
 set hidden          " allowing background buffers without save
 set history=1000    " remember more commands and search history
 set hlsearch        " highlight search terms
@@ -150,19 +149,29 @@ set pastetoggle=<F2>
 set relativenumber  " line numbering relative to current line
 set scrolloff=5     " 5 lines above/below cursor when scrolling
 set shiftround      " use multiple of shiftwidth when indenting with '<' and '>'
-set shiftwidth=2    " number of spaces to use for autoindenting
 set showmatch       " set show matching parenthesis
 set smartcase       " ignore case if search pattern is all lowercase, case-sensitive otherwise
-set smarttab        " insert tabs on the start of a line according to shiftwidth, not tabstop
-set softtabstop=2   " the number of spaces to use when expanding tabs
 set tabstop=2       " a tab are two spaces
+set softtabstop=2   " the number of spaces to use when expanding tabs
+set expandtab       " expand tabs
+set smarttab        " insert tabs on the start of a line according to shiftwidth, not tabstop
+set shiftwidth=2    " number of spaces to use for autoindenting
 set title           " change the terminal's title
 set undolevels=1000 " use many muchos levels of undo
 set visualbell      " don't beep
 set wildignore+=*/.git/*,*/tmp/*,*.swp,*.so,*.o,*.a,*.obj,*.bak,*.zip,*.pyc,*.pyo,*.class,.DS_Store  " MacOSX/Linux
 set wildmenu
-set wildmode=longest,full,full
+"set wildmode=longest,full,full
+"set wildmode=longest,list
+set wildmode=list:longest
+"set wildmode=full,longest:full
+"set wildmode=list:longest,longest:full
 set wrap
+
+set wildcharm=<C-z>
+"nnoremap ,e :e **/*<C-z><S-Tab>
+"nnoremap ,e :e **/*<C-z>
+nnoremap ,e :Files<CR>
 
 nmap <F3> :Buffers<CR>
 nmap <F4> :IndentGuidesToggle<cr>
@@ -282,6 +291,7 @@ let NERDTreeQuitOnOpen = 0
 
 " ctrlp ----------------------------------
 let g:ctrlp_custom_ignore = '\.git$\|\.hg$\|\.svn$'
+nmap <leader>gf :CtrlP<CR><C-\>w
 
 " Syntastic ------------------------------
 
