@@ -3,16 +3,9 @@ my dotfilles
 
 Please do not use blindly these files. Read and use only what you want. Winter will come if you ignore these warnings intentionally.
 
-# todo
-1. change vundle to vimplug
-2. add Hightlight to installed things
-3. add: sudo apt-get install ruby-full (for highlight in fzf in vim)
-3. add fzf from vim 
-4. keep custom vim fzf configuration from vim 
-
 # Most important things from my current CLI/VIM usage
 
-Most important thing for me is an ability to quickly search for 3 things: files, content of a file, commands.
+Most important thing for me is an ability to quickly search for 3 things: files, content of a file and commands.
 
 |  Fast search  |      Terminal       |  Vim   |
 |---------------|---------------------|--------|
@@ -23,3 +16,37 @@ Most important thing for me is an ability to quickly search for 3 things: files,
 | Commands      | CTRL+R              |        |
 |               | CTRL+S              |        |
 |               | zsh-autosuggestions |        |
+
+# BIG batteries included:
+
+- **[zsh with oh-my-zsh setup](https://github.com/robbyrussell/oh-my-zsh)** + [autosuggestions](https://github.com/zsh-users/zsh-autosuggestions) and [syntax highlighting](https://github.com/zsh-users/zsh-syntax-highlighting).
+- **[tmux](https://github.com/gpakosz/.tmux)** - Terminal multiplexer + Oh My Tmux! Pretty & versatile tmux configuration made with heart (imho the best tmux configuration that just works).
+- **[fzf](https://github.com/junegunn/fzf)** - fzf is a general-purpose command-line fuzzy finder.
+- **[ripgrep](https://github.com/BurntSushi/ripgrep)** - Ripgrep recursively searches directories for a regex pattern.
+- **[fasd](https://github.com/clvv/fasd)** - Fasd (pronounced similar to "fast") is a command-line productivity booster.
+- **[GNU parallel](https://www.gnu.org/software/parallel/)** - GNU parallel is a shell tool for executing jobs in parallel using one or more computers.
+- **[vim](http://www.vimgolf.com/)** - Real Vim ninjas count every keystroke - do you?
+
+# small batteries included:
+
+- **[ranger](https://github.com/ranger/ranger)** - A VIM-inspired filemanager for the console.
+- **[tig](https://github.com/jonas/tig)** - Text-mode interface for Git.
+
+# other goodies that you would like to have:
+
+- **[Editing long commands in your shell](https://nuclearsquid.com/writings/edit-long-commands)**
+
+# Further readings
+
+- [tmux cheatsheet](https://gist.github.com/MohamedAlaa/2961058)
+- (https://www.youtube.com/results?search_query=zsh+my+shell)
+- [shell configuration hack your zsh](https://blog.apptension.com/2018/08/30/shell-configuration-hack-your-zsh)
+- [10 super powers for your shell](https://www.doppnet.com/10-super-powers-for-your-shell.html)
+
+
+# todo
+1. change vundle to vimplug
+3. add: sudo apt-get install ruby-full (for highlight in fzf in vim)
+3. add fzf from vim 
+4. keep custom vim fzf configuration from vim 
+

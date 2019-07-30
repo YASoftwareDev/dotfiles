@@ -20,6 +20,12 @@ apt upgrade
 # Install ripgrep (grep on steroids)
 ./install-ripgrep-on-ubuntu.sh
 
+# Install highlight
+# http://www.andre-simon.de/doku/highlight/en/install.php
+
+# Install GNU parallel
+# http://oletange.blogspot.com/2013/04/why-not-install-gnu-parallel.html
+
 echo -e "\e[30;47mInstalling pip packages.\e[0m"
 pip install --upgrade $PIP_PACKAGES
 
