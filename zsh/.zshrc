@@ -116,7 +116,8 @@ alias rgm='rg -No -L --no-filename --no-heading'
 alias stats='sort --parallel=6 | uniq -c | sort -n'
 
 alias cheat=~/.local/bin/cheat
-#alias ranger=~/Projects/ranger/ranger.py
+alias ranger='ranger --choosedir=$HOME/.rangerdir; LASTDIR=`cat $HOME/.rangerdir`; cd "$LASTDIR"'
+
 export KEYTIMEOUT=1
 export GTAGSLIBPATH=$HOME/.gtags
 
