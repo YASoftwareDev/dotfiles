@@ -1,18 +1,11 @@
 #!/bin/bash
 
-APT_PACKAGES="stow git vim-gtk3 curl fortune clang cowsay build-essential cmake python3-dev python-pip python3-venv screenfetch tmux compiz-plugins-extra clipit zsh tig ranger cheat jq"
+APT_PACKAGES="git vim-gtk3 curl clang build-essential cmake python3-dev python3-pip python3-venv tmux clipit zsh tig ranger jq"
 
-SNAP_PACKAGES="rg"
-
-PIP_PACKAGES="pip virtualenv sudocabulary"
+PIP_PACKAGES="pip virtualenv"
 
 # It is possible that you don't need all these packages at the moment
 echo -e "\e[30;47mInstalling apt packages.\e[0m"
-apt update
-apt -y install $APT_PACKAGES
-apt upgrade
-
-echo -e "\e[30;47mInstalling snap packages.\e[0m"
 apt update
 apt -y install $APT_PACKAGES
 apt upgrade
@@ -25,9 +18,6 @@ apt upgrade
 
 # Install GNU parallel
 # http://oletange.blogspot.com/2013/04/why-not-install-gnu-parallel.html
-
-echo -e "\e[30;47mInstalling pip packages.\e[0m"
-pip install --upgrade $PIP_PACKAGES
 
 echo -e "\e[30;47mInstalling pip packages.\e[0m"
 pip install --upgrade $PIP_PACKAGES
