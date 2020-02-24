@@ -9,17 +9,24 @@ apt -yq update
 apt -yq upgrade
 apt -yq install $APT_PACKAGES
 
+pip install --upgrade $PIP_PACKAGES
+
 # Install ripgrep (grep on steroids)
 ./install-ripgrep-on-ubuntu.sh
+
+# fd - from Ubuntu 19.04 you can run: sudo apt install fd-find
+# but, for now:
+cd
+wget https://github.com/sharkdp/fd/releases/download/v7.4.0/fd-musl_7.4.0_amd64.deb
+dpkg -i fd-musl_7.4.0_amd64.deb
+rm fd-musl_7.4.0_amd64.deb
 
 # Install highlight
 # http://www.andre-simon.de/doku/highlight/en/install.php
 
-# Install GNU parallel
+# GNU parallel
 # http://oletange.blogspot.com/2013/04/why-not-install-gnu-parallel.html
-
-echo -e "\e[30;47mInstalling pip packages.\e[0m"
-pip install --upgrade $PIP_PACKAGES
+(wget pi.dk/3 -qO - ||  curl pi.dk/3/) | bash
 
 # zsh and customizations
 sh -c "$(wget https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh -O -)"
