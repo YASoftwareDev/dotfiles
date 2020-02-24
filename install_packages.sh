@@ -59,6 +59,12 @@ cd nerd-fonts
 git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
 ~/.fzf/install
 
+#diff-so-fancy (https://github.com/so-fancy/diff-so-fancy)
+mkdir -p ~/.local/bin
+wget https://raw.githubusercontent.com/so-fancy/diff-so-fancy/master/third_party/build_fatpack/diff-so-fancy -P ~/.local/bin
+git config --global core.pager "diff-so-fancy | less --tabs=4 -RFX"
+
+
 # now compare your ~/.zshrc with dotfiles/zsh/.zshrc and update your configuration with proper things
 echo "now compare your ~/.zshrc with dotfiles/zsh/.zshrc and update your configuration with proper things"
 
