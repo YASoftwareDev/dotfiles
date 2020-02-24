@@ -52,9 +52,9 @@ cd nerd-fonts
 ./install.sh
 
 # fasd (z) (check if current release is supported)
-sudo add-apt-repository ppa:aacebedo/fasd
-sudo apt-get update
-sudo apt-get install fasd
+add-apt-repository -y ppa:aacebedo/fasd
+apt -yq update
+apt -yq install fasd
 
 #fzf (ctrl-R ctrl-T)
 git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
