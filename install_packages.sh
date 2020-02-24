@@ -90,3 +90,4 @@ wget https://www.vim.org/scripts/download_script.php?src_id=9584
 #cd ~/.vim/bundle/YouCompleteMe;./install.py --clang-completer
 
 # now compare your ~/.zshrc with dotfiles/zsh/.zshrc and update your configuration with proper things
+echo "now compare your ~/.zshrc with dotfiles/zsh/.zshrc and update your configuration with proper things"
