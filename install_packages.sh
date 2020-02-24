@@ -1,6 +1,6 @@
 #!/bin/bash
 
-APT_PACKAGES="git vim-gtk3 curl clang build-essential cmake python3-dev python3-pip python3-venv tmux clipit zsh tig ranger jq"
+APT_PACKAGES="git vim-gtk3 curl clang build-essential cmake python3-dev python3-pip python3-venv tmux clipit zsh tig ranger jq wget man-db"
 
 PIP_PACKAGES="pip virtualenv"
 
