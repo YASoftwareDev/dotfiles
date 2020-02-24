@@ -5,10 +5,9 @@ APT_PACKAGES="git vim-gtk3 curl clang build-essential cmake python3-dev python3-
 PIP_PACKAGES="pip virtualenv"
 
 # It is possible that you don't need all these packages at the moment
-echo -e "\e[30;47mInstalling apt packages.\e[0m"
-apt update
-apt -y install $APT_PACKAGES
-apt upgrade
+apt -yq update
+apt -yq upgrade
+apt -yq install $APT_PACKAGES
 
 # Install ripgrep (grep on steroids)
 ./install-ripgrep-on-ubuntu.sh
@@ -26,8 +25,8 @@ pip install --upgrade $PIP_PACKAGES
 sh -c "$(wget https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh -O -)"
 
 
-# setup zsh as default shell (needed logout)
-chsh -s $(which zsh)
+# zsh should be now default shell, if not, run below command
+# chsh -s $(which zsh)
 
 # enable zsh plugins and show full filepath in shell prompt
 git clone git://github.com/zsh-users/zsh-autosuggestions $ZSH_CUSTOM/plugins/zsh-autosuggestions
