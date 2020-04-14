@@ -66,8 +66,14 @@ wget https://raw.githubusercontent.com/so-fancy/diff-so-fancy/master/third_party
 git config --global core.pager "diff-so-fancy | less --tabs=4 -RFX"
 
 
-# now compare your ~/.zshrc with dotfiles/zsh/.zshrc and update your configuration with proper things
-echo "now compare your ~/.zshrc with dotfiles/zsh/.zshrc and update your configuration with proper things"
+# compare your ~/.zshrc with dotfiles/zsh/.zshrc and update your configuration with proper things
+echo "compare your ~/.zshrc with dotfiles/zsh/.zshrc and update your configuration with proper things"
+
+# compare your ~/.tmux.conf with dotfiles/tmux/.tmux.conf and update your configuration with proper things
+echo "compare your ~/.tmux.conf with dotfiles/tmux/.tmux.conf and update your configuration with proper things"
+
+# compare your ~/.tmux.conf.local with dotfiles/tmux/.tmux.conf.local and update your configuration with proper things
+echo "compare your ~/.tmux.conf.local with dotfiles/tmux/.tmux.conf.local and update your configuration with proper things"
 
 # Below are things Vim related. It is possible that you don't want them!
 
