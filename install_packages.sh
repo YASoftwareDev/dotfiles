@@ -23,9 +23,10 @@ cp .tmux/.tmux.conf.local .
 # fd - from Ubuntu 19.04 you can run: sudo apt install fd-find
 # but, for now:
 cd
-wget https://github.com/sharkdp/fd/releases/download/v7.4.0/fd-musl_7.4.0_amd64.deb
-dpkg -i fd-musl_7.4.0_amd64.deb
-rm fd-musl_7.4.0_amd64.deb
+FD_LATEST_URL=$(curl --silent "https://api.github.com/repos/sharkdp/fd/releases/latest" | jq -r '.assets[0].browser_download_url')
+wget "${FD_LATEST_URL}"
+dpkg -i "$(basename ${FD_LATEST_URL})"
+rm "$(basename ${FD_LATEST_URL})"
 
 # Install highlight
 # http://www.andre-simon.de/doku/highlight/en/install.php
