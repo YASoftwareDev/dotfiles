@@ -4,20 +4,22 @@ Welcome!
 
 Here are my dotfiles.
 
-If you would like to use them go line by line through `install-packages.sh` file, read comments and run commands.
+## TL;DR
 
+`install.sh` - for new installations.  
+`update.sh` - for time to time updates.  
 
-Please do not use these files blindly! Read and use only what you really really want. Winter will come if you ignore these warnings intentionally.
+## Summary
 
-If you really know what you are doing, stow is ready for you to use.
+For new setups you can just run `install.sh`.
+From time to time you want to update your environment to more up to date. `update.sh` is your friend then.
+
+If you would like to install only part of possible things there are detailed explanation notes at the top of install.sh file.
 
 Good luck!
 
-PS
 
-From time to time you want to update your environment to more up to date. `update-packages.sh` is your friend then.
-
-# A rationale behind this setup
+## A rationale behind this setup
 
 Most important thing for me is an ability to quickly search for 3 things: files, content of a file and commands.
 
@@ -31,27 +33,30 @@ Most important thing for me is an ability to quickly search for 3 things: files,
 |               | CTRL+S              |        |
 |               | zsh-autosuggestions |        |
 
-# BIG batteries included
+## BIG batteries included
 
 - **[zsh with oh-my-zsh setup](https://github.com/robbyrussell/oh-my-zsh)** + [autosuggestions](https://github.com/zsh-users/zsh-autosuggestions) and [syntax highlighting](https://github.com/zsh-users/zsh-syntax-highlighting).
-- **[tmux](https://github.com/gpakosz/.tmux)** - Terminal multiplexer + Oh My Tmux! Pretty & versatile tmux configuration made with heart (imho the best tmux configuration that just works).
+- **[tmux](https://github.com/tmux/tmux)** - Terminal multiplexer with **[Oh My Tmux! Pretty & versatile tmux configuration made with heart](https://github.com/gpakosz/.tmux)** inspired configuration.
 - **[fzf](https://github.com/junegunn/fzf)** - fzf is a general-purpose command-line fuzzy finder.
 - **[ripgrep](https://github.com/BurntSushi/ripgrep)** - Ripgrep recursively searches directories for a regex pattern.
 - **[fasd](https://github.com/clvv/fasd)** - Fasd (pronounced similar to "fast") is a command-line productivity booster.
 - **[GNU parallel](https://www.gnu.org/software/parallel/)** - GNU parallel is a shell tool for executing jobs in parallel using one or more computers.
 - **[vim](http://www.vimgolf.com/)** - Real Vim ninjas count every keystroke - do you?
 
-# Small batteries included
+## Small batteries included
 
+- **[nerd-fonts](https://github.com/ryanoasis/nerd-fonts)** - Nerd Fonts takes popular programming fonts and adds a bunch of Glyphs.
 - **[fd](https://github.com/sharkdp/fd)** - fd is a simple, fast and user-friendly alternative to find.
 - **[ranger](https://github.com/ranger/ranger)** - A VIM-inspired filemanager for the console.
 - **[tig](https://github.com/jonas/tig)** - Text-mode interface for Git.
+- **[jq](https://github.com/stedolan/jq)** - jq is a lightweight and flexible command-line JSON processor.
 
-# Other goodies that you would like to have
+
+## Other goodies that you would like to have
 
 - **[Editing long commands in your shell](https://nuclearsquid.com/writings/edit-long-commands)**
 
-# Further readings
+## Further readings
 
 - [tmux cheatsheet](https://gist.github.com/MohamedAlaa/2961058)
 - https://www.youtube.com/results?search_query=zsh+my+shell
@@ -59,7 +64,7 @@ Most important thing for me is an ability to quickly search for 3 things: files,
 - [10 super powers for your shell](https://www.doppnet.com/10-super-powers-for-your-shell.html)
 
 
-# Todo
+## Todo
 1. Change vundle to vimplug or internal plugin manager from modern Vim.
 3. Add: sudo apt-get install ruby-full (for highlight in fzf in vim).
 3. Add fzf installation from vim.
