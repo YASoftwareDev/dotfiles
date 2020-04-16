@@ -69,6 +69,8 @@ mkdir -p ~/.local/bin
 wget https://raw.githubusercontent.com/so-fancy/diff-so-fancy/master/third_party/build_fatpack/diff-so-fancy -P ~/.local/bin
 git config --global core.pager "diff-so-fancy | less --tabs=4 -RFX"
 
+# you also need to run p10k configure
+p10k configure
 
 # compare your ~/.zshrc with dotfiles/zsh/.zshrc and update your configuration with proper things
 echo "compare your ~/.zshrc with dotfiles/zsh/.zshrc and update your configuration with proper things"
