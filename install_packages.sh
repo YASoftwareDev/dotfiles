@@ -1,14 +1,18 @@
 #!/bin/bash
 
-APT_PACKAGES="git vim-gtk3 curl clang build-essential cmake python3-dev python3-pip python3-venv tmux clipit zsh tig ranger jq wget man-db fasd"
-
-PIP_PACKAGES="pip virtualenv"
-
 # It is possible that you don't need all these packages at the moment
+APT_PACKAGES_DEVELOPER_KIT="git clang build-essential cmake python3-dev python3-pip python3-venv curl wget man-db"
+APT_PACKAGES_TERMINAL_ENHANCEMENTS="vim-gtk3 tmux clipit zsh tig ranger jq fasd"
+
+
 apt -yq update
 apt -yq upgrade
-apt -yq install $APT_PACKAGES
 
+apt -yq install "${APT_PACKAGES_DEVELOPER_KIT}"
+apt -yq install "${APT_PACKAGES_TERMINAL_ENHANCEMENTS}"
+
+# Should it be installed globally?"
+PIP_PACKAGES="pip virtualenv"
 pip install --upgrade $PIP_PACKAGES
 
 # Install ripgrep (grep on steroids)
