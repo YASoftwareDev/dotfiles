@@ -18,6 +18,10 @@ pip install --upgrade $PIP_PACKAGES
 # Install ripgrep (grep on steroids)
 ./install-ripgrep-on-ubuntu.sh
 
+# Custom colors (this is not obligatory step)
+mkdir -p ~/.config/ripgrep
+ln -s -f ripgrep/rc ~/.config/ripgrep/rc
+
 # tmux with sane configuration. You can further adjust it later with dotfiles/tmux/ files
 cd
 git clone https://github.com/gpakosz/.tmux.git
@@ -50,7 +54,7 @@ git clone git://github.com/zsh-users/zsh-autosuggestions $ZSH_CUSTOM/plugins/zsh
 git clone https://github.com/zsh-users/zsh-syntax-highlighting.git $ZSH_CUSTOM/plugins/zsh-syntax-highlighting
 
 sed -i "s/%c/%d/g" ~/.oh-my-zsh/themes/robbyrussell.zsh-theme
-sed -i "s/^plugins=.*$/plugins=(git history history-substring-search dircycle dirhistory fasd vi-mode last-working-dir zsh-autosuggestions zsh-syntax-highlighting)/g" ~/.zshrc
+sed -i "s/^plugins=.*$/plugins=(git history history-substring-search dircycle dirhistory docker fasd vi-mode last-working-dir zsh-autosuggestions zsh-syntax-highlighting)/g" ~/.zshrc
 
 # powerlevel10k (faster than powerlevel9k) and nerd fonts
 git clone --depth=1 https://github.com/romkatv/powerlevel10k.git $ZSH_CUSTOM/themes/powerlevel10k
@@ -68,6 +72,7 @@ git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
 mkdir -p ~/.local/bin
 wget https://raw.githubusercontent.com/so-fancy/diff-so-fancy/master/third_party/build_fatpack/diff-so-fancy -P ~/.local/bin
 git config --global core.pager "diff-so-fancy | less --tabs=4 -RFX"
+# update PATH with ~/.local/bin
 
 # you also need to run p10k configure
 p10k configure
@@ -100,5 +105,4 @@ wget https://www.vim.org/scripts/download_script.php?src_id=9584
 
 # compiling YCM (obsolete, we have better things now, will be updated soon)
 #cd ~/.vim/bundle/YouCompleteMe;./install.py --clang-completer
-
 

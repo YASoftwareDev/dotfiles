@@ -1,6 +1,7 @@
 # If you come from bash you might have to change your $PATH.
-export PATH=$HOME/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH:$HOME/.gem/ruby/2.5.0/bin:$HOME/Projects/ninja
+export PATH=$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH:$HOME/.gem/ruby/2.5.0/bin:$HOME/Projects/ninja:$HOME/.dotnet:$HOME/.poetry/bin
 export CFLAGS="-I/usr/local/boost_1_67_0/"
+export RIPGREP_CONFIG_PATH=$HOME/.config/ripgrep/rc
 
 HISTSIZE=1000000
 SAVEHIST=1000000
@@ -149,4 +150,7 @@ export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 #. ~/Projects/ninja/misc/zsh-completion
 
 # opam configuration (normal people seriously don't need it)
-test -r /home/${USER}/.opam/opam-init/init.zsh && . /home/${USER}/.opam/opam-init/init.zsh > /dev/null 2> /dev/null || true
+#test -r /home/${USER}/.opam/opam-init/init.zsh && . /home/${USER}/.opam/opam-init/init.zsh > /dev/null 2> /dev/null || true
+
+# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+[[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
