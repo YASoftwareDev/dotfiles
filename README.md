@@ -4,13 +4,18 @@ Welcome!
 
 Here are my dotfiles.
 
-If you would like to use them go line by line through install_packages.sh file, read comments and run commands.
+If you would like to use them go line by line through `install-packages.sh` file, read comments and run commands.
+
 
 Please do not use these files blindly! Read and use only what you really really want. Winter will come if you ignore these warnings intentionally.
 
 If you really know what you are doing, stow is ready for you to use.
 
 Good luck!
+
+PS
+
+From time to time you want to update your environment to more up to date. `update-packages.sh` is your friend then.
 
 # A rationale behind this setup
 
@@ -38,6 +43,7 @@ Most important thing for me is an ability to quickly search for 3 things: files,
 
 # Small batteries included
 
+- **[fd](https://github.com/sharkdp/fd)** - fd is a simple, fast and user-friendly alternative to find.
 - **[ranger](https://github.com/ranger/ranger)** - A VIM-inspired filemanager for the console.
 - **[tig](https://github.com/jonas/tig)** - Text-mode interface for Git.
 
