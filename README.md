@@ -6,17 +6,34 @@ Here are my dotfiles.
 
 ## TL;DR
 
-`install.sh` - for new installations.  
-`update.sh` - for time to time updates.  
+```
+git clone https://github.com/YASoftwareDev/dotfiles.git ~/.dotfiles
+```
+
+`~/.dotfiles/install.sh` - new installation  
+`~/.dotfiles/update.sh` - update from time to time  
+
+## TL;DR - Docker
+
+```
+git clone https://github.com/YASoftwareDev/dotfiles.git ~/.dotfiles
+docker run -it -e "TERM=xterm-256color" -v /home/${USER}/.dotfiles:/dotfiles ubuntu:18.04 bash -l
+```
+and from inside docker
+
+```
+./dotfiles/install.sh 
+```
 
 ## Summary
 
 For new setups you can just run `install.sh`.
+
 From time to time you want to update your environment to more up to date. `update.sh` is your friend then.
 
 If you would like to install only part of possible things there are detailed explanation notes at the top of install.sh file.
 
-Good luck!
+Good luck and enjoy!
 
 
 ## A rationale behind this setup
