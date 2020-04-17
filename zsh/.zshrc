@@ -5,8 +5,10 @@ export RIPGREP_CONFIG_PATH=$HOME/.config/ripgrep/rc
 
 HISTSIZE=1000000
 SAVEHIST=1000000
-# Path to your oh-my-zsh installation.
-export ZSH=/home/${USER}/.oh-my-zsh
+
+# Path to your oh-my-zsh installation (first assume that we start from docker)
+[ -d /root/.oh-my-zsh ] && export ZSH=/root/.oh-my-zsh
+[ -d /home/${USER}/.oh-my-zsh ] && export ZSH=/home/${USER}/.oh-my-zsh
 
 # Set name of the theme to load. Optionally, if you set this to "random"
 # it'll load a random theme each time that oh-my-zsh is loaded.
@@ -72,7 +74,7 @@ COMPLETION_WAITING_DOTS="true"
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git history history-substring-search dircycle dirhistory fasd docker vi-mode last-working-dir zsh-autosuggestions zsh-syntax-highlighting you-should-use)
+plugins=(git history history-substring-search dircycle dirhistory fasd docker vi-mode last-working-dir zsh-autosuggestions fast-syntax-highlighting)
 
 source $ZSH/oh-my-zsh.sh
 
@@ -109,7 +111,7 @@ export EDITOR='vim'
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
-~/.vocab
+[ -f ~/.vocab ] && ~/.vocab
 eval "$(fasd --init auto)"
 alias v='f -e vim'
 alias rgmw='rg -No -L --no-filename --no-heading -w'
@@ -154,3 +156,6 @@ export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
+
+# run extra shell command from RUN variable (a bit of kludge)
+eval "${RUN_EXTRA_COMMAND_IN_THE_END}"

@@ -44,10 +44,10 @@ echo "would you also like to update:"
 echo "ripgrep fd parallel"
 echo ""
 
-echo "Would you like to perform p10k configure?"
+echo "Would you like to perform \"p10k configure?\""
 echo ""
 
-echo "Would you like to update vim plugins?"
+echo "Would you like to update vim plugins by \"vim +PluginUpdate +qall\""
 echo ""
 
 echo "Would you like to run upgrade_oh_my_zsh?"

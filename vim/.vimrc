@@ -2,6 +2,11 @@ set encoding=utf-8
 set nocompatible              " be iMproved, required
 filetype off                  " required
 
+" The :syntax enable command will keep your current color settings.
+if !exists("g:syntax_on")
+  syntax enable
+endif
+
 " set the runtime path to include Vundle and initialize
 set rtp+=~/.vim/bundle/Vundle.vim
 call vundle#begin()
@@ -107,7 +112,10 @@ syntax on
 "set background=dark
 ":set t_Co=256
 "let g:solarized_termcolors=256
-colorscheme wombat256
+try
+  colorscheme wombat256
+catch
+endtry
 "colorscheme bclear
 let g:indent_guides_start_level = 2
 let g:indent_guides_guide_size = 1
@@ -353,7 +361,7 @@ endfunction
 
 nmap <Leader>j :call GotoJump()<CR>
 
-so /usr/local/share/gtags/gtags.vim
+"so /usr/local/share/gtags/gtags.vim
 
 autocmd! User GoyoEnter Limelight
 autocmd! User GoyoLeave Limelight!

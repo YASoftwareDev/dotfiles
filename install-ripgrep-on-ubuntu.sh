@@ -9,6 +9,10 @@ TMPDIR=$(mktemp -d)
 cd $TMPDIR
 wget -O - ${REPO}${RELEASE} | tar zxf - --strip-component=1
 mv rg /usr/local/bin/
-mv rg.1 /usr/local/share/man/man1/
-mv complete/rg.bash-completion /usr/share/bash-completion/completions/rg
+[ -d /usr/local/share/man/man1 ] && cp doc/rg.1 /usr/local/share/man/man1/
+[ -d /usr/share/man/man1 ] && cp doc/rg.1 /usr/share/man/man1/
+mv complete/rg.bash /usr/share/bash-completion/completions/rg
+chmod g-w,o-w complete/_rg
+chown root:root complete/_rg
+mv complete/_rg  /usr/share/zsh/functions/Completion
 mandb
