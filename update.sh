@@ -41,7 +41,7 @@ git pull && ./install
 # how to update vim
 
 echo "would you also like to update:"
-echo "ripgrep fd parallel"
+echo "ripgrep fd parallel cheat"
 echo ""
 
 echo "Would you like to perform \"p10k configure?\""

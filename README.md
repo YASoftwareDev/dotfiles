@@ -2,7 +2,7 @@
 
 Welcome!
 
-Here are my dotfiles.
+Here are my dotfiles tested and used on Ubuntu 18.04.
 
 ## TL;DR
 
@@ -13,7 +13,7 @@ git clone https://github.com/YASoftwareDev/dotfiles.git ~/.dotfiles
 `~/.dotfiles/install.sh` - new installation  
 `~/.dotfiles/update.sh` - update from time to time  
 
-## TL;DR - Docker
+## TL;DR - Ubuntu 18.04 Docker
 
 ```
 git clone https://github.com/YASoftwareDev/dotfiles.git ~/.dotfiles
@@ -66,7 +66,8 @@ Most important thing for me is an ability to quickly search for 3 things: files,
 - **[fd](https://github.com/sharkdp/fd)** - fd is a simple, fast and user-friendly alternative to find.
 - **[ranger](https://github.com/ranger/ranger)** - A VIM-inspired filemanager for the console.
 - **[tig](https://github.com/jonas/tig)** - Text-mode interface for Git.
-- **[jq](https://github.com/stedolan/jq)** - jq is a lightweight and flexible command-line JSON processor.
+- **[jq](https://github.com/stedolan/jq)** - lightweight and flexible command-line JSON processor.
+- **[cheat](https://github.com/cheat/cheat)** - allows you to create and view interactive cheatsheets on the command-line
 
 
 ## Other goodies that you would like to have

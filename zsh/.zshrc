@@ -74,6 +74,7 @@ COMPLETION_WAITING_DOTS="true"
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
+#plugins=(git history history-substring-search dircycle dirhistory fasd docker vi-mode last-working-dir fzf-tab zsh-autosuggestions fast-syntax-highlighting)
 plugins=(git history history-substring-search dircycle dirhistory fasd docker vi-mode last-working-dir zsh-autosuggestions fast-syntax-highlighting)
 
 source $ZSH/oh-my-zsh.sh
