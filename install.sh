@@ -17,6 +17,7 @@
 #		TMUX_PACKAGE 				- install tmux 														(default: yes)
 #		FD_PACKAGE 					- install fd 															(default: yes)
 #		PARALLEL_PACKAGE 		- install parallel 												(default: yes)
+#		CHEAT_PACKAGE 		  - install cheat 												  (default: yes)
 #		OH_MY_ZSH_PACKAGE 	- install oh-my-zsh 											(default: yes)
 #		ZSH_CUSTOMIZATIONS 	- use this repo config + custom plugins 	(default: yes)
 #		FZF_PACKAGE 				- install fzf 														(default: yes)
@@ -29,11 +30,12 @@
 #   --no-docker-setup:  sets DOCKER_SETUP to 'no'
 #   --pip: 							sets PIP_PACKAGES to 'yes'
 #   --nerd: 						sets NERD_FONTS to 'yes'
-#		--no-update:				set UPDATE_PACKAGES to 'no'
+#		--no-update:				set  UPDATE_PACKAGES to 'no'
 #   --no-rg: 						sets RG_PACKAGE to 'no'
 #		--no-tmux: 					sets TMUX_PACKAGE to 'no'
 #		--no-fd: 						sets FD_PACKAGE to 'no'
 #		--no-parallel: 			sets PARALLEL_PACKAGE to 'no'
+#   --no-cheat:         set  CHEAT_PACKAGE to 'no'
 #		--no-oh-my: 				sets OH_MY_ZSH_PACKAGE to 'no'
 #		--no-custom-zsh: 		sets ZSH_CUSTOMIZATIONS to 'no'
 #		--no-fzf: 					sets FZF_PACKAGE to 'no'
@@ -57,6 +59,7 @@ RG_PACKAGE=${RG_PACKAGE:-yes}
 TMUX_PACKAGE=${TMUX_PACKAGE:-yes}
 FD_PACKAGE=${FD_PACKAGE:-yes}
 PARALLEL_PACKAGE=${PARALLEL_PACKAGE:-yes}
+CHEAT_PACKAGE=${CHEAT_PACKAGE:-yes}
 OH_MY_ZSH_PACKAGE=${OH_MY_ZSH_PACKAGE:-yes}
 ZSH_CUSTOMIZATIONS=${ZSH_CUSTOMIZATIONS:-yes}
 FZF_PACKAGE=${FZF_PACKAGE:-yes}
@@ -76,6 +79,7 @@ while [ $# -gt 0 ]; do
 		--no-tmux) TMUX_PACKAGE=no ;;
 		--no-fd) FD_PACKAGE=no ;;
 		--no-parallel) PARALLEL_PACKAGE=no ;;
+		--no-cheat) CHEAT_PACKAGE=no ;;
 		--no-oh-my) OH_MY_ZSH_PACKAGE=no ;;
 		--no-custom-zsh) ZSH_CUSTOMIZATIONS=no ;;
 		--no-fzf) FZF_PACKAGE=no ;;
@@ -162,6 +166,13 @@ if [ ${PARALLEL_PACKAGE} = yes ]; then
 	(wget pi.dk/3 -qO - ||  curl pi.dk/3/) | bash
 fi
 
+# cheat - allows you to create and view interactive cheatsheets on the command-line
+# https://github.com/cheat/cheat
+if [ ${CHEAT_PACKAGE} = yes ]; then
+  ./install-cheat.sh
+fi
+
+
 
 # oh-my-zsh
 if [ ${OH_MY_ZSH_PACKAGE} = yes ]; then
@@ -176,6 +187,7 @@ if [ ${ZSH_CUSTOMIZATIONS} = yes ]; then
 	ZSH_CUSTOM=~/.oh-my-zsh/custom
 	git clone git://github.com/zsh-users/zsh-autosuggestions $ZSH_CUSTOM/plugins/zsh-autosuggestions
 	git clone https://github.com/zdharma/fast-syntax-highlighting.git $ZSH_CUSTOM/plugins/fast-syntax-highlighting
+	git clone https://github.com/Aloxaf/fzf-tab.git $ZSH_CUSTOM/plugins/fzf-tab
 	# There is also zsh-syntax-highlighting. At the moment I'm not sure which one is a winner
 	#git clone https://github.com/zsh-users/zsh-syntax-highlighting.git $ZSH_CUSTOM/plugins/zsh-syntax-highlighting
 
