@@ -1,114 +1,110 @@
 set encoding=utf-8
 set nocompatible              " be iMproved, required
-filetype off                  " required
 
 " The :syntax enable command will keep your current color settings.
 if !exists("g:syntax_on")
   syntax enable
 endif
 
-" set the runtime path to include Vundle and initialize
-set rtp+=~/.vim/bundle/Vundle.vim
-call vundle#begin()
-" alternatively, pass a path where Vundle should install plugins
-"call vundle#begin('~/some/path/here')
+" vim-plug first use installer
+if empty(glob('~/.vim/autoload/plug.vim'))
+  silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs
+    \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+  autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
+endif
 
-" let Vundle manage Vundle, required
-Plugin 'gmarik/Vundle.vim'
+call plug#begin('~/.vim/bundle')
+Plug 'gmarik/Vundle.vim'
 " Colors
-Plugin 'vim-scripts/Colour-Sampler-Pack'
-Plugin 'altercation/vim-colors-solarized'
-Plugin 'tpope/vim-vividchalk'
-Plugin 'vim-scripts/molokai'
-Plugin 'vim-scripts/pyte'
-Plugin 'telamon/vim-color-github'
-Plugin 'larssmit/vim-getafe'
-Plugin 'TechnoGate/janus-colors'
-Plugin 'chriskempson/vim-tomorrow-theme'
-Plugin 'chriskempson/base16-vim'
-Plugin 'railscasts'
+Plug 'vim-scripts/Colour-Sampler-Pack'
+Plug 'altercation/vim-colors-solarized'
+Plug 'tpope/vim-vividchalk'
+Plug 'vim-scripts/molokai'
+Plug 'vim-scripts/pyte'
+Plug 'telamon/vim-color-github'
+Plug 'larssmit/vim-getafe'
+Plug 'TechnoGate/janus-colors'
+Plug 'chriskempson/vim-tomorrow-theme'
+Plug 'chriskempson/base16-vim'
+Plug 'carakan/new-railscasts-theme'
 
 " Langs
-Plugin 'pangloss/vim-javascript'
-"Plugin 'tpope/vim-markdown'
-Plugin 'tpope/vim-git'
-Plugin 'cakebaker/scss-syntax.vim'
-Plugin 'chrisbra/csv.vim'
+Plug 'pangloss/vim-javascript'
+"Plug 'tpope/vim-markdown'
+Plug 'tpope/vim-git'
+Plug 'cakebaker/scss-syntax.vim'
+Plug 'chrisbra/csv.vim'
 
 " Tools
-Plugin 'tpope/vim-unimpaired'
-"Plugin 'broesler/jupyter-vim'
-Plugin 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
-Plugin 'junegunn/fzf.vim'
-"Plugin 'gabrielelana/vim-markdown'
-"Plugin 'shime/vim-livedown'
-Plugin 'scrooloose/nerdcommenter'
-Plugin 'andymass/vim-matchup'
-Plugin 'itspriddle/ZoomWin'
-Plugin 'tpope/vim-fugitive'
-Plugin 'tpope/vim-rhubarb'
-Plugin 'sjl/gundo.vim'
-Plugin 'tpope/vim-surround'
-Plugin 'MarcWeber/vim-addon-mw-utils'
-Plugin 'w0rp/ale'
-Plugin 'RRethy/vim-illuminate'
-"Plugin 'scrooloose/syntastic'
-Plugin 'majutsushi/tagbar'
-Plugin 'scrooloose/nerdtree'
-Plugin 'Xuyuanp/nerdtree-git-plugin'
-Plugin 'michaeljsmith/vim-indent-object'
-Plugin 'tpope/vim-endwise'
-Plugin 'mattn/webapi-vim'
-Plugin 'mattn/gist-vim'
-Plugin 'nathanaelkane/vim-indent-guides'
-Plugin 'ap/vim-css-color'
-Plugin 'Lokaltog/vim-easymotion'
-Plugin 'justinmk/vim-sneak'
-Plugin 'chrisbra/NrrwRgn'
-Plugin 'jeetsukumaran/vim-buffergator'
-Plugin 'airblade/vim-gitgutter'
-Plugin 'rgarver/Kwbd.vim'
-Plugin 'tpope/vim-eunuch'
-Plugin 'romainl/vim-qlist'
+Plug 'tpope/vim-unimpaired'
+"Plug 'broesler/jupyter-vim'
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
+Plug 'junegunn/fzf.vim'
+"Plug 'gabrielelana/vim-markdown'
+"Plug 'shime/vim-livedown'
+Plug 'scrooloose/nerdcommenter'
+Plug 'andymass/vim-matchup'
+Plug 'itspriddle/ZoomWin'
+Plug 'tpope/vim-fugitive'
+Plug 'tpope/vim-rhubarb'
+Plug 'sjl/gundo.vim'
+Plug 'tpope/vim-surround'
+Plug 'MarcWeber/vim-addon-mw-utils'
+Plug 'w0rp/ale'
+Plug 'RRethy/vim-illuminate'
+"Plug 'scrooloose/syntastic'
+Plug 'majutsushi/tagbar'
+Plug 'scrooloose/nerdtree'
+Plug 'Xuyuanp/nerdtree-git-plugin'
+Plug 'michaeljsmith/vim-indent-object'
+Plug 'tpope/vim-endwise'
+Plug 'mattn/webapi-vim'
+Plug 'mattn/gist-vim'
+Plug 'Yggdroot/indentLine'
+"Plug 'nathanaelkane/vim-indent-guides'
+Plug 'ap/vim-css-color'
+Plug 'Lokaltog/vim-easymotion'
+Plug 'justinmk/vim-sneak'
+Plug 'chrisbra/NrrwRgn'
+Plug 'jeetsukumaran/vim-buffergator'
+Plug 'airblade/vim-gitgutter'
+Plug 'rgarver/Kwbd.vim'
+Plug 'tpope/vim-eunuch'
+Plug 'romainl/vim-qlist'
 " I don't really know if I need below plugin
-Plugin 'tpope/vim-repeat'
+Plug 'tpope/vim-repeat'
 " the same with below one
-Plugin 'SirVer/ultisnips'
-Plugin 'honza/vim-snippets'
-Plugin 'tpope/vim-dispatch'
-Plugin 'thinca/vim-visualstar'
-Plugin 'bronson/vim-trailing-whitespace'
-"Plugin 'Valloric/YouCompleteMe'
+Plug 'SirVer/ultisnips'
+Plug 'honza/vim-snippets'
+Plug 'tpope/vim-dispatch'
+Plug 'thinca/vim-visualstar'
+Plug 'bronson/vim-trailing-whitespace'
+"Plug 'Valloric/YouCompleteMe'
 "lugin 'davidhalter/jedi-vim'
-Plugin 'tpope/vim-obsession'
-Plugin 'vim-airline/vim-airline'
-Plugin 'pseewald/vim-anyfold'
-Plugin 'arecarn/vim-fold-cycle'
-Plugin 'rickhowe/diffchar.vim'
-Plugin 'ctrlpvim/ctrlp.vim'
-Plugin 'tiagofumo/vim-nerdtree-syntax-highlight'
-Plugin 'prabirshrestha/async.vim'
-Plugin 'prabirshrestha/vim-lsp'
+Plug 'tpope/vim-obsession'
+Plug 'vim-airline/vim-airline'
+Plug 'pseewald/vim-anyfold'
+Plug 'arecarn/vim-fold-cycle'
+Plug 'rickhowe/diffchar.vim'
+Plug 'tiagofumo/vim-nerdtree-syntax-highlight'
+Plug 'prabirshrestha/async.vim'
+Plug 'prabirshrestha/vim-lsp'
 
-"Other Plugins
-Plugin 'mhinz/vim-startify'
-Plugin 'junegunn/goyo.vim'
-Plugin 'junegunn/limelight.vim'
-Plugin 'lifepillar/vim-cheat40'
-Plugin 'dbeniamine/cheat.sh-vim'
-Plugin 'wincent/command-t'
-Plugin 'rafi/awesome-vim-colorschemes'
-Plugin 'ryanoasis/vim-devicons'
-Plugin 'tpope/vim-characterize'
+"Other Plugs
+Plug 'mhinz/vim-startify'
+Plug 'junegunn/goyo.vim'
+Plug 'junegunn/limelight.vim'
+Plug 'lifepillar/vim-cheat40'
+Plug 'dbeniamine/cheat.sh-vim'
+Plug 'wincent/command-t'
+Plug 'rafi/awesome-vim-colorschemes'
+Plug 'ryanoasis/vim-devicons'
+Plug 'tpope/vim-characterize'
 "Create code snippets like ~/.vim/snippets/foo.snippet
-"Plugin 'msanders/snipmate.vim'
+"Plug 'msanders/snipmate.vim'
 
-" All of your Plugins must be added before the following line
-call vundle#end()            " required
-filetype plugin indent on    " required
-" To ignore plugin indent changes, instead use:
+call plug#end()
 
-syntax on
 "set background=dark
 ":set t_Co=256
 "let g:solarized_termcolors=256
@@ -301,6 +297,10 @@ let NERDTreeQuitOnOpen = 0
 let g:ctrlp_custom_ignore = '\.git$\|\.hg$\|\.svn$'
 nmap <leader>gf :CtrlP<CR><C-\>w
 
+" indentline
+
+let g:indentLine_char_list = ['|', '¦', '┆', '┊']
+
 " Syntastic ------------------------------
 
 
@@ -402,6 +402,12 @@ if executable('clangd')
     augroup end
 endif
 
+" fzf ------------------------------
+
+nnoremap <silent> <C-p> :Files<CR>
+nmap <Leader>f :GFiles<CR>
+nmap <Leader>F :Files<CR>
+
 "below lines taken from:
 "https://github.com/junegunn/fzf.vim
 
@@ -410,7 +416,7 @@ endif
 command! -bang -nargs=* GGrep
   \ call fzf#vim#grep(
   \   'git grep --line-number '.shellescape(<q-args>), 0,
-  \   { 'dir': systemlist('git rev-parse --show-toplevel')[0] }, <bang>0)
+  \   fzf#vim#with_preview({'dir': systemlist('git rev-parse --show-toplevel')[0]}), <bang>0)
 
 " Override Colors command. You can safely do this in your .vimrc as fzf.vim
 " will not override existing commands.
@@ -429,18 +435,6 @@ command! -bang Colors
 " --color: Search color options
 
 command! -bang -nargs=* Find call fzf#vim#grep('rg --column --line-number --no-heading --fixed-strings --ignore-case --no-ignore --hidden --follow --glob "!.git/*" --color "always" '.shellescape(<q-args>), 1, <bang>0)
-
-" Similarly, we can apply it to fzf#vim#grep. To use ripgrep instead of ag:
-command! -bang -nargs=* Rg
-  \ call fzf#vim#grep(
-  \   'rg --column --line-number --no-heading --color=always --smart-case '.shellescape(<q-args>), 1,
-  \   <bang>0 ? fzf#vim#with_preview('up:60%')
-  \           : fzf#vim#with_preview('right:50%:hidden', '?'),
-  \   <bang>0)
-
-" Likewise, Files command with preview window
-command! -bang -nargs=? -complete=dir Files
-  \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(), <bang>0)
 
 " vim-markdown configuration
 let g:markdown_enable_folding = 1
