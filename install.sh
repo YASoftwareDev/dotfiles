@@ -10,6 +10,7 @@
 # Respects the following environment variables:
 #   DEV_PACKAGES 				- install additional developer packages 	(default: no)
 #   DOCKER_SETUP 		    - install packages for docker run         (default: yes)
+#   DOTFILES_PACKAGES   - install packages for this dotfiles      (default: yes)
 #   PIP_PACKAGES 				- install pip and virtualenv 							(default: no)
 #   NERD_FONTS   				- clone and install nerdfonts 						(default: no)
 #		UPDATE_PACKAGES			- ubuntu apt update & upgrade							(default: yes)
@@ -52,6 +53,7 @@ set -e
 # set input variables
 DEV_PACKAGES=${DEV_PACKAGES:-no}
 DOCKER_SETUP=${DOCKER_SETUP:-yes}
+DOTFILES_PACKAGES=${DOTFILES_PACKAGES:-yes}
 PIP_PACKAGES=${PIP_PACKAGES:-no}
 NERD_FONTS=${NERD_FONTS:-no}
 UPDATE_PACKAGES=${UPDATE_PACKAGES:-yes}
@@ -72,6 +74,7 @@ while [ $# -gt 0 ]; do
 	case $1 in
 		--dev) DEV_PACKAGES=yes ;;
     --no-docker-setup) DOCKER_SETUP=no ;;
+    --no-dotfiles) DOTFILES_PACKAGES=no ;;
 		--pip) PIP_PACKAGES=yes ;;
 		--nerd) NERD_FONTS=yes ;;
 		--no-update) UPDATE_PACKAGES=no ;;
@@ -93,6 +96,17 @@ done
 
 # Let's go to business!
 
+if [ ${UID} -ne 0 ]; then
+  echo "Current run as non privileged user means that some packages will not be installed!"
+  echo "Also remember to run from directory where you have write access."
+  hash curl 2>/dev/null || hash wget 2>/dev/null || { echo >&2 "Without curl or wget this run rather doesn't make sense..."; }
+  UPDATE_PACKAGES=no
+  DEV_PACKAGES=no
+  DOCKER_ENV_SETUP=no
+  DOTFILES_PACKAGES=no
+  RG_PACKAGE=no
+  FD_PACKAGE=no
+fi
 
 # to enable execution from other directories
 BASE_DIR="$(dirname $(readlink -f $0))"
@@ -120,9 +134,10 @@ if [ ${DOCKER_ENV_SETUP} = yes ]; then
 fi
 
 # packages used by me (man for manuals, gnupg for confirm authenticity of parallel)
-APT_PACKAGES_TERMINAL_ENHANCEMENTS="git curl wget vim-gtk3 tmux clipit zsh tig ranger jq fasd man gnupg"
-DEBIAN_FRONTEND=noninteractive apt -yq install ${APT_PACKAGES_TERMINAL_ENHANCEMENTS}
-
+if [ ${DOTFILES_PACKAGES} = yes ]; then
+  APT_PACKAGES_TERMINAL_ENHANCEMENTS="git curl wget vim-gtk3 tmux clipit zsh tig ranger jq fasd man gnupg"
+  DEBIAN_FRONTEND=noninteractive apt -yq install ${APT_PACKAGES_TERMINAL_ENHANCEMENTS}
+fi
 
 # I'm not certain if these should be installed globally, so I leave you with choice based on script input argument
 if [ ${PIP_PACKAGES} = yes ]; then
@@ -163,21 +178,28 @@ fi
 # GNU parallel
 # http://oletange.blogspot.com/2013/04/why-not-install-gnu-parallel.html
 if [ ${PARALLEL_PACKAGE} = yes ]; then
+  pushd ~
 	(wget pi.dk/3 -qO - ||  curl pi.dk/3/) | bash
+	popd
 fi
 
 # cheat - allows you to create and view interactive cheatsheets on the command-line
 # https://github.com/cheat/cheat
 if [ ${CHEAT_PACKAGE} = yes ]; then
+  cp install-cheat.sh ~
+  pushd ~
   ./install-cheat.sh
+  popd
 fi
 
 
 
 # oh-my-zsh
 if [ ${OH_MY_ZSH_PACKAGE} = yes ]; then
+  pushd ~
   wget https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh -qO install_oh_my_zsh.sh
 	sh install_oh_my_zsh.sh --unattended
+	popd
 
 fi
 
@@ -198,7 +220,7 @@ if [ ${ZSH_CUSTOMIZATIONS} = yes ]; then
 fi
 
 
-# I'm not certain that you should be forced to install nerd fonts, so I leave you with choice based on script input argument
+# TODO - refactor (whole nerd font suite is too heavy, we need to only patch these fonts that we are using)
 if [ ${NERD_FONTS} = yes ]; then
 	git clone --depth=1 https://github.com/ryanoasis/nerd-fonts.git ~/.nerd_fonts
 	pushd ~/.nerd-fonts
@@ -228,8 +250,6 @@ if [ ${VIM_CUSTOMIZATIONS} = yes ]; then
 	ln -s -f ${BASE_DIR}/vim/.vimrc ~
 	ln -s -f ${BASE_DIR}/vim/vimrc_minimal.vim ~
 
-	# Setup vim vundle (I know that in 2020+ we have internal plugin system, but... I still didn't upgrade... )
-	git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
 	vim +PluginInstall +qall
 
 # custom python folding rules for vim
