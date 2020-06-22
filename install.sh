@@ -250,7 +250,7 @@ if [ ${VIM_CUSTOMIZATIONS} = yes ]; then
 	ln -s -f ${BASE_DIR}/vim/.vimrc ~
 	ln -s -f ${BASE_DIR}/vim/vimrc_minimal.vim ~
 
-	vim +PluginInstall +qall
+	vim +PlugInstall +qall
 
 # custom python folding rules for vim
 #mkdir ~/.vim/syntax
