@@ -47,7 +47,7 @@ echo ""
 echo "Would you like to perform \"p10k configure?\""
 echo ""
 
-echo "Would you like to update vim plugins by \"vim +PluginUpdate +qall\""
+echo "Would you like to update vim plugins by \"vim +PlugUpdate +qall\""
 echo ""
 
 echo "Would you like to run upgrade_oh_my_zsh?"
