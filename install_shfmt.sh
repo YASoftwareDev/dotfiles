@@ -14,11 +14,8 @@ docker build -t shfmt -f cmd/shfmt/Dockerfile .
 
 cat - <<'EOF' > /tmp/shfmt
 #!/bin/sh
-docker run -i --rm -v "$(pwd)":/sh -w /sh shfmt "$@"
+docker run -i --rm -v "$(pwd)":/sh --user $(id -u):$(id -g) -w /sh shfmt "$@"
 EOF
-
-#docker run -i --rm -v "$(pwd)":/sh -w /sh shfmt -i 6 -ci -bn -sr -s -f -w "$@"
-
 
 sudo chmod +x /tmp/shfmt
 sudo install /tmp/shfmt /usr/local/bin/
