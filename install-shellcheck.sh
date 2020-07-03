@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# shellcheck - ShellCheck, a static analysis tool for shell scripts
+# https://github.com/koalaman/shellcheck
+
 set -euo pipefail
 
 #scversion="stable" # or "v0.4.7", or "latest"

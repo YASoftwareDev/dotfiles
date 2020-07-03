@@ -113,7 +113,7 @@ if [ ${UID} -ne 0 ]; then
 fi
 
 # to enable execution from other directories
-BASE_DIR="$(dirname $(readlink -f $0))"
+BASE_DIR="$(dirname "$(readlink -f "$0")")"
 cd "${BASE_DIR}"
 
 # Let's start with getting newest stuff from apt.
@@ -127,26 +127,26 @@ fi
 # Because not all setups need them I leave you with choice based on script input argument.
 if [ ${DEV_PACKAGES} = yes ]; then
 	APT_PACKAGES_DEVELOPER_KIT="clang build-essential cmake python3-dev python3-pip python3-venv man-db"
-	DEBIAN_FRONTEND=noninteractive apt -yq install ${APT_PACKAGES_DEVELOPER_KIT}
+	DEBIAN_FRONTEND=noninteractive apt -yq install "${APT_PACKAGES_DEVELOPER_KIT}"
 fi
 
 # Install missing packages if script is run in base docker container
 if [ ${DOCKER_ENV_SETUP} = yes ]; then
   APT_PACKAGES_MISSING_IN_DOCKER="locales"
-	DEBIAN_FRONTEND=noninteractive apt -yq install ${APT_PACKAGES_MISSING_IN_DOCKER}
+	DEBIAN_FRONTEND=noninteractive apt -yq install "${APT_PACKAGES_MISSING_IN_DOCKER}"
 	update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
 fi
 
 # packages used by me (man for manuals, gnupg for confirm authenticity of parallel)
 if [ ${DOTFILES_PACKAGES} = yes ]; then
   APT_PACKAGES_TERMINAL_ENHANCEMENTS="git curl wget vim-gtk3 tmux clipit zsh tig ranger jq fasd man gnupg"
-  DEBIAN_FRONTEND=noninteractive apt -yq install ${APT_PACKAGES_TERMINAL_ENHANCEMENTS}
+  DEBIAN_FRONTEND=noninteractive apt -yq install "${APT_PACKAGES_TERMINAL_ENHANCEMENTS}"
 fi
 
 # I'm not certain if these should be installed globally, so I leave you with choice based on script input argument
 if [ ${PIP_PACKAGES} = yes ]; then
 	PIP_PACKAGES_LIST="pip virtualenv"
-	pip install --upgrade ${PIP_PACKAGES_LIST}
+	pip install --upgrade "${PIP_PACKAGES_LIST}"
 fi
 
 
@@ -154,14 +154,14 @@ fi
 if [ ${RG_PACKAGE} = yes ]; then
 	./install-ripgrep-on-ubuntu.sh
 	mkdir -p ~/.config/ripgrep
-	ln -s -f ${BASE_DIR}/ripgrep/rc ~/.config/ripgrep/rc
+	ln -s -f "${BASE_DIR}/ripgrep/rc" ~/.config/ripgrep/rc
 fi
 
 
 # https://github.com/gpakosz/.tmux.git inspired tmux configuration. You can further adjust it later with dotfiles/tmux/ files
 if [ ${TMUX_PACKAGE} = yes ]; then
-	ln -s -f ${BASE_DIR}/tmux/.tmux.conf ~
-	ln -s -f ${BASE_DIR}/tmux/.tmux.conf.local ~
+	ln -s -f "${BASE_DIR}/tmux/.tmux.conf" ~
+	ln -s -f "${BASE_DIR}/tmux/.tmux.conf.local" ~
 fi
 
 
@@ -170,8 +170,8 @@ fi
 if [ ${FD_PACKAGE} = yes ]; then
 	FD_LATEST_URL=$(curl --silent "https://api.github.com/repos/sharkdp/fd/releases/latest" | jq -r '.assets[0].browser_download_url')
 	wget "${FD_LATEST_URL}"
-	dpkg -i "$(basename ${FD_LATEST_URL})"
-	rm "$(basename ${FD_LATEST_URL})"
+	dpkg -i "$(basename "${FD_LATEST_URL}")"
+	rm "$(basename "${FD_LATEST_URL}")"
 fi
 
 
@@ -181,7 +181,7 @@ fi
 
 # GNU parallel
 # http://oletange.blogspot.com/2013/04/why-not-install-gnu-parallel.html
-if [ ${PARALLEL_PACKAGE} = yes ]; then
+if [ "${PARALLEL_PACKAGE}" = yes ]; then
   pushd ~
 	(wget pi.dk/3 -qO - ||  curl pi.dk/3/) | bash
 	popd
@@ -189,24 +189,29 @@ fi
 
 # cheat - allows you to create and view interactive cheatsheets on the command-line
 # https://github.com/cheat/cheat
-if [ ${CHEAT_PACKAGE} = yes ]; then
+if [ "${CHEAT_PACKAGE}" = yes ]; then
   cp install-cheat.sh ~
   pushd ~
   ./install-cheat.sh
   popd
 fi
 
-# shellcheck - ShellCheck, a static analysis tool for shell scripts
+# ShellCheck - a static analysis tool for shell scripts
 # https://github.com/koalaman/shellcheck
-if [ ${SHELLCHECK_PACKAGE} = yes ]; then
-  ./install-cheat.sh
+if [ "${SHELLCHECK_PACKAGE}" = yes ]; then
+  ./install-shellcheck.sh
 fi
 
 
+# shfmt - A shell parser, formatter, and interpreter. Supports POSIX Shell, Bash, and mksh. Requires Go 1.13 or later.
+# https://github.com/mvdan/sh
+if [ "${SHELLCHECK_PACKAGE}" = yes ]; then
+  ./install-shfmt.sh
+fi
 
 
 # oh-my-zsh
-if [ ${OH_MY_ZSH_PACKAGE} = yes ]; then
+if [ "${OH_MY_ZSH_PACKAGE}" = yes ]; then
   pushd ~
   wget https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh -qO install_oh_my_zsh.sh
 	sh install_oh_my_zsh.sh --unattended
@@ -216,7 +221,7 @@ fi
 
 
 # enable zsh plugins and show full filepath in shell prompt
-if [ ${ZSH_CUSTOMIZATIONS} = yes ]; then
+if [ "${ZSH_CUSTOMIZATIONS}" = yes ]; then
 	ZSH_CUSTOM=~/.oh-my-zsh/custom
 	git clone git://github.com/zsh-users/zsh-autosuggestions $ZSH_CUSTOM/plugins/zsh-autosuggestions
 	git clone https://github.com/zdharma/fast-syntax-highlighting.git $ZSH_CUSTOM/plugins/fast-syntax-highlighting
@@ -227,12 +232,12 @@ if [ ${ZSH_CUSTOMIZATIONS} = yes ]; then
 	# powerlevel10k (faster than powerlevel9k) and nerd fonts
 	git clone --depth=1 https://github.com/romkatv/powerlevel10k.git $ZSH_CUSTOM/themes/powerlevel10k
 
-	ln -s -f ${BASE_DIR}/zsh/.zshrc ~
+	ln -s -f "${BASE_DIR}/zsh/.zshrc" ~
 fi
 
 
 # TODO - refactor (whole nerd font suite is too heavy, we need to only patch these fonts that we are using)
-if [ ${NERD_FONTS} = yes ]; then
+if [ "${NERD_FONTS}" = yes ]; then
 	git clone --depth=1 https://github.com/ryanoasis/nerd-fonts.git ~/.nerd_fonts
 	pushd ~/.nerd-fonts
 	./install.sh
@@ -255,11 +260,12 @@ if [ ${DIFF_SO_FANCY} = yes ]; then
 	# update PATH with ~/.local/bin
 fi
 
+# TODO: add an option to install custom vim: install-custom-built-vim.sh
 
 # Below are things Vim related. It is possible that you don't want them!
 if [ ${VIM_CUSTOMIZATIONS} = yes ]; then
-	ln -s -f ${BASE_DIR}/vim/.vimrc ~
-	ln -s -f ${BASE_DIR}/vim/vimrc_minimal.vim ~
+	ln -s -f "${BASE_DIR}/vim/.vimrc" ~
+	ln -s -f "${BASE_DIR}/vim/vimrc_minimal.vim" ~
 
 	vim +PlugInstall +qall
 
@@ -272,7 +278,7 @@ fi
 
 if [ ${CHANGE_SHELL} = yes ]; then
 	# zsh should be now default shell, if not, run below command
-	chsh -s $(which zsh)
+	chsh -s "$(which zsh)"
 	RUN_EXTRA_COMMAND_IN_THE_END="p10k configure" zsh -i
 fi
 
