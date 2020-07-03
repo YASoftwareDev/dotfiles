@@ -14,7 +14,6 @@ if empty(glob('~/.vim/autoload/plug.vim'))
 endif
 
 call plug#begin('~/.vim/bundle')
-Plug 'gmarik/Vundle.vim'
 " Colors
 Plug 'vim-scripts/Colour-Sampler-Pack'
 Plug 'altercation/vim-colors-solarized'
@@ -50,7 +49,7 @@ Plug 'tpope/vim-rhubarb'
 Plug 'sjl/gundo.vim'
 Plug 'tpope/vim-surround'
 Plug 'MarcWeber/vim-addon-mw-utils'
-Plug 'w0rp/ale'
+Plug 'dense-analysis/ale'
 Plug 'RRethy/vim-illuminate'
 "Plug 'scrooloose/syntastic'
 Plug 'majutsushi/tagbar'
@@ -380,9 +379,14 @@ let g:ale_sign_column_always = 1
 let g:ale_sign_error = '✗'
 let g:ale_sign_warning = '⚠'
 let g:airline#extensions#ale#enabled = 1
+
+let g:ale_set_loclist = 0
 let g:ale_set_quickfix = 1
+
 let g:ale_open_list = 1
-let g:ale_echo_cursor = 0 " there is an issue with ale cursor visibility in my vim version. You need to uprade vim to newer version.
+
+let g:ale_list_window_size = 5
+"let g:ale_echo_cursor = 0 " there is an issue with ale cursor visibility in my vim version. You need to uprade vim to newer version.
 
 nmap <silent> <leader>aj :ALENext<cr>
 nmap <silent> <leader>ak :ALEPrevious<cr>
@@ -438,3 +442,9 @@ command! -bang -nargs=* Find call fzf#vim#grep('rg --column --line-number --no-h
 
 " vim-markdown configuration
 let g:markdown_enable_folding = 1
+
+
+" https://stackoverflow.com/questions/62148994/strange-character-since-last-update-42m-in-vim
+" It was a problem of modifyOtherKeys. After looking at the doc, putting
+let &t_TI = ""
+let &t_TE = ""
