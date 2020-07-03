@@ -18,6 +18,9 @@ python3-dev ruby-dev lua5.1 liblua5.1-dev libperl-dev git
 cd ~
 git clone https://github.com/vim/vim.git --depth=1
 cd vim
+
+# TODO: Add home directory prefix path when you may don't want to install globally or you don't have sudo.
+
 ./configure --prefix=/usr/local \
             --with-features=huge \
             --enable-multibyte \

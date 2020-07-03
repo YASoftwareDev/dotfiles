@@ -22,7 +22,7 @@ docker run -it -e "TERM=xterm-256color" -v /home/${USER}/.dotfiles:/dotfiles ubu
 and from inside docker
 
 ```
-./dotfiles/install.sh 
+./dotfiles/install.sh
 ```
 
 ## Summary
@@ -83,8 +83,8 @@ Most important thing for me is an ability to quickly search for 3 things: files,
 
 
 ## Todo
-1. Change vundle to vimplug or internal plugin manager from modern Vim.
-3. Add: sudo apt-get install ruby-full (for highlight in fzf in vim).
-3. Add fzf installation from vim.
-4. Keep custom vim fzf configuration from vim.
-
+1. Add: sudo apt-get install ruby-full (for highlight in fzf in vim).
+2. Keep custom vim fzf configuration from vim.
+3. Streamline thinking about installation version by providing dedicated versions for: local installation (with sudo), docker installation, installation without sudo
+4. Nerd-fonts are too heavy in current script version, do something with it!
+5. There are other tools like: exa. But they are not needed for everyone, what to do about it?
