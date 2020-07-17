@@ -37,8 +37,7 @@ Plug 'chrisbra/csv.vim'
 " Tools
 Plug 'tpope/vim-unimpaired'
 "Plug 'broesler/jupyter-vim'
-Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
-Plug 'junegunn/fzf.vim'
+Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install -all' }
 "Plug 'gabrielelana/vim-markdown'
 "Plug 'shime/vim-livedown'
 Plug 'scrooloose/nerdcommenter'
@@ -88,6 +87,7 @@ Plug 'rickhowe/diffchar.vim'
 Plug 'tiagofumo/vim-nerdtree-syntax-highlight'
 Plug 'prabirshrestha/async.vim'
 Plug 'prabirshrestha/vim-lsp'
+Plug 'jez/vim-superman'
 
 "Other Plugs
 Plug 'mhinz/vim-startify'
@@ -443,8 +443,11 @@ command! -bang -nargs=* Find call fzf#vim#grep('rg --column --line-number --no-h
 " vim-markdown configuration
 let g:markdown_enable_folding = 1
 
-
 " https://stackoverflow.com/questions/62148994/strange-character-since-last-update-42m-in-vim
 " It was a problem of modifyOtherKeys. After looking at the doc, putting
-let &t_TI = ""
-let &t_TE = ""
+if exists("&t_TI")
+  let &t_TI = ""
+endif
+if exists("&t_TE")
+  let &t_TE = ""
+endif
