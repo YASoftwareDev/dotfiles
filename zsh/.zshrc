@@ -1,5 +1,8 @@
 # If you come from bash you might have to change your $PATH.
-export PATH=$HOME/.npm-global/bin:$HOME/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH:$HOME/.gem/ruby/2.5.0/bin:$HOME/Projects/ninja:$HOME/.dotnet:$HOME/.poetry/bin
+export PATH=$HOME/.npm-global/bin:$HOME/bin:/usr/local/cuda/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH:$HOME/.gem/ruby/2.5.0/bin:$HOME/Projects/ninja:$HOME/.dotnet:$HOME/.poetry/bin
+export PATH="$PATH:$HOME/.vim/bundle/vim-superman/bin"
+export PATH="$PATH:$HOME/.utils"
+export LD_LIBRARY_PATH=/usr/local/boost_1_67_0/libs:/usr/local/cuda/lib64:$LD_LIBRARY_PATH
 export CFLAGS="-I/usr/local/boost_1_67_0/"
 export RIPGREP_CONFIG_PATH=$HOME/.config/ripgrep/rc
 
@@ -75,7 +78,7 @@ COMPLETION_WAITING_DOTS="true"
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 #plugins=(git history history-substring-search dircycle dirhistory fasd docker vi-mode last-working-dir fzf-tab zsh-autosuggestions fast-syntax-highlighting)
-plugins=(git history history-substring-search dircycle dirhistory fasd docker vi-mode last-working-dir zsh-autosuggestions fast-syntax-highlighting)
+plugins=(git command-not-found history history-substring-search dircycle dirhistory fasd docker vi-mode last-working-dir zsh-autosuggestions fast-syntax-highlighting)
 
 source $ZSH/oh-my-zsh.sh
 
@@ -125,8 +128,8 @@ alias ranger='ranger --choosedir=$HOME/.rangerdir; LASTDIR=`cat $HOME/.rangerdir
 export KEYTIMEOUT=1
 export GTAGSLIBPATH=$HOME/.gtags
 
-#export BOOST_ROOT=/usr/local/boost_1_67_0
-export BOOST_ROOT=/opt/boost_1_60_0/
+export BOOST_ROOT=/usr/local/boost_1_67_0
+#export BOOST_ROOT=/opt/boost_1_60_0/
 alias :e=vim
 alias gzcat=zcat
 alias bzcat=zcat
@@ -150,6 +153,21 @@ export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 #fpath=(~/.zsh.d/ $fpath) doesn't work... :(
 
+# Open man pages in vim using the vim-superman plugin
+#
+#     https://github.com/jez/vim-superman
+#
+
+# zsh completion if in zsh
+which compdef &> /dev/null && compdef vman="man"
+vman() {
+  vim -c "SuperMan $*"
+
+  if [ "$?" != "0" ]; then
+    echo "No manual entry for $*"
+  fi
+}
+
 #. ~/Projects/ninja/misc/zsh-completion
 
 # opam configuration (normal people seriously don't need it)
@@ -157,6 +175,8 @@ export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
+
+[[ $TMUX = "" ]] && export TERM="xterm-256color"
 
 # run extra shell command from RUN variable (a bit of kludge)
 eval "${RUN_EXTRA_COMMAND_IN_THE_END}"
