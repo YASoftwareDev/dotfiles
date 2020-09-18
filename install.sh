@@ -256,6 +256,7 @@ fi
 if [ ${DIFF_SO_FANCY} = yes ]; then
 	mkdir -p ~/.local/bin
 	wget https://raw.githubusercontent.com/so-fancy/diff-so-fancy/master/third_party/build_fatpack/diff-so-fancy -P ~/.local/bin
+	chmod u+x ~/.local/bin/diff-so-fancy
 	git config --global core.pager "diff-so-fancy | less --tabs=4 -RFX"
 	# update PATH with ~/.local/bin
 fi
