@@ -26,6 +26,7 @@ Plug 'TechnoGate/janus-colors'
 Plug 'chriskempson/vim-tomorrow-theme'
 Plug 'chriskempson/base16-vim'
 Plug 'carakan/new-railscasts-theme'
+Plug 'jacoborus/tender.vim'
 
 " Langs
 Plug 'pangloss/vim-javascript'
@@ -107,10 +108,22 @@ call plug#end()
 "set background=dark
 ":set t_Co=256
 "let g:solarized_termcolors=256
-try
-  colorscheme wombat256
-catch
-endtry
+
+" If you have vim >=8.0 or Neovim >= 0.1.5
+if (has("termguicolors"))
+ set termguicolors
+endif
+
+" Theme
+syntax enable
+colorscheme tender
+
+let g:airline_theme = 'tender'
+
+"try
+"  colorscheme wombat256
+"catch
+"endtry
 "colorscheme bclear
 let g:indent_guides_start_level = 2
 let g:indent_guides_guide_size = 1

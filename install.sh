@@ -225,13 +225,14 @@ if [ "${ZSH_CUSTOMIZATIONS}" = yes ]; then
 	ln -s -f "${BASE_DIR}/zsh/.zshrc" ~
 fi
 
-# TODO - refactor (whole nerd font suite is too heavy, we need to only patch these fonts that we are using)
-if [ "${NERD_FONTS}" = yes ]; then
-	git clone --depth=1 https://github.com/ryanoasis/nerd-fonts.git ~/.nerd_fonts
-	pushd ~/.nerd-fonts
-	./install.sh
-	popd
-fi
+echo "Whole Nerd-fonts project is too heavy to download - you should rather path individual font that you are using."
+echo "Use instructions from: https://kifarunix.com/install-and-setup-zsh-and-oh-my-zsh-on-ubuntu-20-04"
+#f [ "${NERD_FONTS}" = yes ]; then
+#git clone --depth=1 https://github.com/ryanoasis/nerd-fonts.git ~/.nerd_fonts
+#pushd ~/.nerd-fonts
+#./install.sh
+#popd
+#i
 
 #fzf (ctrl-R ctrl-T)
 if [ ${FZF_PACKAGE} = yes ]; then
