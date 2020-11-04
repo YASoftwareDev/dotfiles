@@ -86,5 +86,5 @@ Most important thing for me is an ability to quickly search for 3 things: files,
 1. Add: sudo apt-get install ruby-full (for highlight in fzf in vim).
 2. Keep custom vim fzf configuration from vim.
 3. Streamline thinking about installation version by providing dedicated versions for: local installation (with sudo), docker installation, installation without sudo
-4. Nerd-fonts are too heavy in current script version, do something with it!
+4. Nerd-fonts are too heavy in current script version - you should rather path individual font that you are using (https://kifarunix.com/install-and-setup-zsh-and-oh-my-zsh-on-ubuntu-20-04 for inspiration).
 5. There are other tools like: exa. But they are not needed for everyone, what to do about it?
