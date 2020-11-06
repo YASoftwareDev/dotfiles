@@ -1,3 +1,10 @@
+# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+# Initialization code that may require console input (password prompts, [y/n]
+# confirmations, etc.) must go above this block; everything else may go below.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
 # If you come from bash you might have to change your $PATH.
 export PATH=$HOME/.npm-global/bin:$HOME/bin:/usr/local/cuda/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH:$HOME/.gem/ruby/2.5.0/bin:$HOME/Projects/ninja:$HOME/.dotnet:$HOME/.poetry/bin
 export PATH="$PATH:$HOME/.vim/bundle/vim-superman/bin"
@@ -128,8 +135,8 @@ alias ranger='ranger --choosedir=$HOME/.rangerdir; LASTDIR=`cat $HOME/.rangerdir
 export KEYTIMEOUT=1
 export GTAGSLIBPATH=$HOME/.gtags
 
-export BOOST_ROOT=/usr/local/boost_1_67_0
-#export BOOST_ROOT=/opt/boost_1_60_0/
+#export BOOST_ROOT=/usr/local/boost_1_67_0
+export BOOST_ROOT=/opt/boost_1_60_0/
 alias :e=vim
 alias gzcat=zcat
 alias bzcat=zcat
