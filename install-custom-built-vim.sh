@@ -10,10 +10,10 @@
 
 set -euo pipefail
 
-sudo apt install -y libncurses5-dev libgnome2-dev libgnomeui-dev \
-libgtk2.0-dev libatk1.0-dev libbonoboui2-dev \
+sudo apt install -y libncurses5-dev \
+libgtk2.0-dev libatk1.0-dev \
 libcairo2-dev libx11-dev libxpm-dev libxt-dev python3-distutils \
-python3-dev ruby-dev lua5.1 liblua5.1-dev libperl-dev git
+python3-dev ruby-dev lua5.1 liblua5.1-0-dev libperl-dev git
 
 cd ~
 git clone https://github.com/vim/vim.git --depth=1
@@ -30,6 +30,7 @@ cd vim
             --enable-perlinterp \
             --enable-luainterp \
             --enable-gui=gtk2 \
+	    --enable-fail-if-missing \
             --enable-cscope
 
 make VIMRUNTIMEDIR=/usr/local/share/vim/vim82
