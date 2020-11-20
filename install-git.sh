@@ -2,15 +2,10 @@
 
 set -euo pipefail
 
-if ! [ $(id -u) = 0 ]; then
-    echo "sudo required! - run with sudoer privileges: 'sudo $0'"
-    exit 1
-fi
+sudo apt-get install make autoconf libcurl4-gnutls-dev gettext gcc zlib1g-dev
 
 wget -O - https://github.com/git/git/archive/v2.29.2.tar.gz | tar xz
-cd git-*
-
-sudo apt-get install make autoconf libcurl4-gnutls-dev gettext gcc zlib1g-dev
+cd v2.29.2
 
 make configure
 ./configure --prefix=/usr --without-tcltk
@@ -22,4 +17,7 @@ sudo make install
 #git clone git://github.com/gitster/git-manpages.git
 #cd -
 #sudo make quick-install-man
+
+#cd ..
+#rm -rf v2.29.2
 
