@@ -4,8 +4,8 @@ set -euo pipefail
 
 sudo apt-get install make autoconf libcurl4-gnutls-dev gettext gcc zlib1g-dev
 
-wget -O - https://github.com/git/git/archive/v2.29.2.tar.gz | tar xz
-cd v2.29.2
+wget -O - https://github.com/git/git/archive/v2.31.1.tar.gz | tar xz
+cd v2.31.1
 
 make configure
 ./configure --prefix=/usr --without-tcltk
@@ -19,5 +19,5 @@ sudo make install
 #sudo make quick-install-man
 
 #cd ..
-#rm -rf v2.29.2
+#rm -rf v2.31.1
 
