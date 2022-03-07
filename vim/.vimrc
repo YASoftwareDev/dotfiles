@@ -38,7 +38,8 @@ Plug 'chrisbra/csv.vim'
 " Tools
 Plug 'tpope/vim-unimpaired'
 "Plug 'broesler/jupyter-vim'
-Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install -all' }
+Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': { -> fzf#install() } }
+Plug 'junegunn/fzf.vim'
 "Plug 'gabrielelana/vim-markdown'
 "Plug 'shime/vim-livedown'
 Plug 'scrooloose/nerdcommenter'
@@ -100,6 +101,13 @@ Plug 'wincent/command-t'
 Plug 'rafi/awesome-vim-colorschemes'
 Plug 'ryanoasis/vim-devicons'
 Plug 'tpope/vim-characterize'
+
+" Better JSON syntax support {{{2
+Plug 'elzr/vim-json', { 'for': ['javascript','json'] }
+
+"""""""""""""""""""""""""""""""""""""" Json, show quotes (don't conceal) {{{3
+let g:vim_json_syntax_conceal = 0
+
 "Create code snippets like ~/.vim/snippets/foo.snippet
 "Plug 'msanders/snipmate.vim'
 
