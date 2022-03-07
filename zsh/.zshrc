@@ -9,6 +9,7 @@ fi
 export PATH=$HOME/.npm-global/bin:$HOME/bin:/usr/local/cuda/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH:$HOME/.gem/ruby/2.5.0/bin:$HOME/Projects/ninja:$HOME/.dotnet:$HOME/.poetry/bin
 export PATH="$PATH:$HOME/.vim/bundle/vim-superman/bin"
 export PATH="$PATH:$HOME/.utils"
+export PATH="$PATH:/usr/local/go/bin"
 export LD_LIBRARY_PATH=/usr/local/boost_1_67_0/libs:/usr/local/cuda/lib64:$LD_LIBRARY_PATH
 export CFLAGS="-I/usr/local/boost_1_67_0/"
 export RIPGREP_CONFIG_PATH=$HOME/.config/ripgrep/rc
@@ -93,14 +94,20 @@ source $ZSH/oh-my-zsh.sh
 
 bindkey "^[[1;5C" forward-word
 bindkey "^[[1;5D" backward-word
+bindkey -a 'V' edit-command-line
 ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 ZSH_AUTOSUGGEST_USE_ASYNC="true"
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=180'
+setopt inc_append_history
+setopt hist_ignore_dups
+setopt hist_ignore_space
 
 # export MANPATH="/usr/local/man:$MANPATH"
 
 # You may need to manually set your language environment
 export LANG=en_US.UTF-8
 export EDITOR='vim'
+export VISUAL='vim'
 # Preferred editor for local and remote sessions
 # if [[ -n $SSH_CONNECTION ]]; then
 #   export EDITOR='vim'
@@ -143,6 +150,8 @@ alias bzcat=zcat
 alias :q=exit
 alias :wq='echo "You are not in vim, dummy"'
 alias la="exa -abghl --git --color=automatic"
+alias ls="exa -F --time-style=long-iso --group-directories-first --color=always --sort=Name --group --git"
+alias ccat='pygmentize -O style=monokai -f terminal -g'
 
 alias fd='fd -I -L' # by default fd doesn't search gitignore files
 
@@ -187,3 +196,5 @@ vman() {
 
 # run extra shell command from RUN variable (a bit of kludge)
 eval "${RUN_EXTRA_COMMAND_IN_THE_END}"
+
+export PATH="$HOME/.poetry/bin:$PATH"

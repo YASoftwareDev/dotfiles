@@ -139,7 +139,7 @@ fi
 
 # packages used by me (man for manuals, gnupg for confirm authenticity of parallel)
 if [ ${DOTFILES_PACKAGES} = yes ]; then
-  APT_PACKAGES_TERMINAL_ENHANCEMENTS="git curl wget vim-gtk3 tmux clipit zsh tig ranger jq fasd man gnupg"
+  APT_PACKAGES_TERMINAL_ENHANCEMENTS="git curl wget vim-gtk3 tmux clipit zsh ranger jq fasd man gnupg"
   DEBIAN_FRONTEND=noninteractive apt -yq install "${APT_PACKAGES_TERMINAL_ENHANCEMENTS}"
 fi
 
@@ -148,6 +148,8 @@ if [ ${PIP_PACKAGES} = yes ]; then
 	PIP_PACKAGES_LIST="pip virtualenv"
 	pip install --upgrade "${PIP_PACKAGES_LIST}"
 fi
+
+./install-tig.sh
 
 
 # Install ripgrep (grep on steroids) and customizations
