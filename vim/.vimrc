@@ -90,6 +90,7 @@ Plug 'tiagofumo/vim-nerdtree-syntax-highlight'
 Plug 'prabirshrestha/async.vim'
 Plug 'prabirshrestha/vim-lsp'
 Plug 'jez/vim-superman'
+Plug 'qpkorr/vim-bufkill'
 
 "Other Plugs
 Plug 'mhinz/vim-startify'
