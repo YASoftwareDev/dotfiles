@@ -25,7 +25,7 @@ tmux_conf_new_window_retain_current_path=true
 # new pane retains current path, possible values are:
 #   - true (default)
 #   - false
-tmux_conf_new_pane_retain_current_path=false
+tmux_conf_new_pane_retain_current_path=true
 
 # new pane tries to reconnect ssh sessions (experimental), possible values are:
 #   - true
@@ -90,7 +90,7 @@ tmux_conf_theme_window_bg="default"
 # highlight focused pane (tmux >= 2.1), possible values are:
 #   - true
 #   - false (default)
-tmux_conf_theme_highlight_focused_pane=false
+tmux_conf_theme_highlight_focused_pane=true
 
 # focused pane colours:
 tmux_conf_theme_focused_pane_bg="$tmux_conf_theme_colour_2"
@@ -190,14 +190,14 @@ tmux_conf_theme_window_status_last_bg="$tmux_conf_theme_colour_2"
 tmux_conf_theme_window_status_last_attr="none"
 
 # status left/right sections separators
-tmux_conf_theme_left_separator_main=""
-tmux_conf_theme_left_separator_sub="|"
-tmux_conf_theme_right_separator_main=""
-tmux_conf_theme_right_separator_sub="|"
-#tmux_conf_theme_left_separator_main='\uE0B0'  # /!\ you don't need to install Powerline
-#tmux_conf_theme_left_separator_sub='\uE0B1'   #   you only need fonts patched with
-#tmux_conf_theme_right_separator_main='\uE0B2' #   Powerline symbols or the standalone
-#tmux_conf_theme_right_separator_sub='\uE0B3'  #   PowerlineSymbols.otf font, see README.md
+#tmux_conf_theme_left_separator_main=""
+#tmux_conf_theme_left_separator_sub="|"
+#tmux_conf_theme_right_separator_main=""
+#tmux_conf_theme_right_separator_sub="|"
+tmux_conf_theme_left_separator_main='\uE0B0'  # /!\ you don't need to install Powerline
+tmux_conf_theme_left_separator_sub='\uE0B1'   #   you only need fonts patched with
+tmux_conf_theme_right_separator_main='\uE0B2' #   Powerline symbols or the standalone
+tmux_conf_theme_right_separator_sub='\uE0B3'  #   PowerlineSymbols.otf font, see README.md
 
 # status left/right content:
 #   - separate main sections with "|"
@@ -227,7 +227,7 @@ tmux_conf_theme_right_separator_sub="|"
 #     - #{username}
 #     - #{username_ssh}
 tmux_conf_theme_status_left=" ❐ #S | ↑#{?uptime_y, #{uptime_y}y,}#{?uptime_d, #{uptime_d}d,}#{?uptime_h, #{uptime_h}h,}#{?uptime_m, #{uptime_m}m,} "
-tmux_conf_theme_status_right=" #{prefix}#{pairing}#{synchronized}#{?battery_status,#{battery_status},}#{?battery_bar, #{battery_bar},}#{?battery_percentage, #{battery_percentage},} , %R , %d %b | #{username}#{root} | #{hostname} "
+tmux_conf_theme_status_right=" #{prefix}#{pairing}#{synchronized}#{?battery_status,#{battery_status},}#{?battery_bar, #{battery_bar},}#{?battery_percentage, #{battery_percentage},} , %R , %d %b | #{loadavg} #(~/.tmux/plugins/tmux-cpu/scripts/cpu_percentage.sh) | #{username}#{root} | #{hostname} "
 
 # status left style
 tmux_conf_theme_status_left_fg="$tmux_conf_theme_colour_6,$tmux_conf_theme_colour_7,$tmux_conf_theme_colour_8"
@@ -332,10 +332,33 @@ set -g history-limit 1000000
 # start with mouse mode enabled
 set -g mouse on
 
-# force Vi mode
-#   really you should export VISUAL or EDITOR environment variable, see manual
-#set -g status-keys vi
-#set -g mode-keys vi
+# vi copy mode keys (tmux defaults to emacs; set explicitly)
+set -g mode-keys vi
+
+# modern terminal: use tmux-256color for proper $TERM identity (tmux >= 3.2)
+# terminal-overrides adds Tc (24-bit color) for the outer xterm-256color terminal
+set -g default-terminal "tmux-256color"
+set -ga terminal-overrides ",xterm-256color:Tc"
+
+# modern tmux features
+set -g extended-keys on        # proper Ctrl+Shift+key sequences
+set -g detach-on-destroy off   # switch to next session instead of exiting tmux
+
+# -- fzf session/window switcher -----------------------------------------------
+
+# fuzzy session switcher (requires fzf)
+bind C-j display-popup -E "tmux list-sessions -F '#{session_name}' | fzf --reverse --prompt='session> ' | xargs -r tmux switch-client -t"
+
+# fuzzy window switcher across all sessions (requires fzf)
+bind C-w display-popup -E "tmux list-windows -a -F '#{session_name}:#{window_index}  #{window_name}  [#{pane_current_command}]' | fzf --reverse --prompt='window> ' | cut -d' ' -f1 | xargs -r tmux switch-client -t"
+
+# -- zoxide directory jump (requires zoxide + fzf) ----------------------------
+
+# open new window in a zoxide frecency-ranked directory
+bind g display-popup -E "zoxide query -l | fzf --reverse --prompt='dir> ' | xargs -r tmux new-window -c"
+
+# open new pane in a zoxide frecency-ranked directory
+bind C-z display-popup -E "zoxide query -l | fzf --reverse --prompt='dir> ' | xargs -r tmux split-window -c"
 
 # replace C-b by C-a instead of using both prefixes
 # set -gu prefix2
@@ -360,18 +383,18 @@ bind-key P command-prompt -p 'save history to filename:' -I '~/tmux.history' 'ca
 # by default, launching tmux will update tpm and all plugins
 #   - true (default)
 #   - false
-tmux_conf_update_plugins_on_launch=true
+tmux_conf_update_plugins_on_launch=false
 
 # by default, reloading the configuration will update tpm and all plugins
 #   - true (default)
 #   - false
-tmux_conf_update_plugins_on_reload=true
+tmux_conf_update_plugins_on_reload=false
 
 # by default, reloading the configuration will uninstall tpm and plugins when no
 # plugins are enabled
 #   - true (default)
 #   - false
-tmux_conf_uninstall_plugins_on_reload=true
+tmux_conf_uninstall_plugins_on_reload=false
 
 # /!\ the tpm bindings differ slightly from upstream:
 #   - installing plugins: <prefix> + I
@@ -381,13 +404,27 @@ tmux_conf_uninstall_plugins_on_reload=true
 # /!\ do not add set -g @plugin 'tmux-plugins/tpm'
 # /!\ do not add run '~/.tmux/plugins/tpm/tpm'
 
-# to enable a plugin, use the 'set -g @plugin' syntax:
-# visit https://github.com/tmux-plugins for available plugins
-#set -g @plugin 'tmux-plugins/tmux-copycat'
-#set -g @plugin 'tmux-plugins/tmux-cpu'
-#set -g @plugin 'tmux-plugins/tmux-resurrect'
-#set -g @plugin 'tmux-plugins/tmux-continuum'
-#set -g @continuum-restore 'on'
+# -- plugins -------------------------------------------------------------------
+#
+# NOTE: gpakosz's framework uses 'if ... source' syntax which TPM's source
+# follower cannot parse. Auto-install/update is therefore disabled. Plugins
+# are sourced directly below via run-shell.
+#
+# On a fresh machine, install plugins once with:
+#   cd ~/.tmux/plugins
+#   git clone --depth 1 https://github.com/tmux-plugins/tmux-resurrect
+#   git clone --depth 1 https://github.com/tmux-plugins/tmux-continuum
+#   git clone --depth 1 https://github.com/sainnhe/tmux-fzf
+#   git clone --depth 1 https://github.com/tmux-plugins/tmux-cpu
+#
+# To update: cd into each plugin dir and run: git pull
+#
+set -g @continuum-restore 'on'
+
+run '~/.tmux/plugins/tmux-resurrect/resurrect.tmux'
+run '~/.tmux/plugins/tmux-continuum/continuum.tmux'
+run '~/.tmux/plugins/tmux-fzf/main.tmux'
+run '~/.tmux/plugins/tmux-cpu/cpu.tmux'
 
 
 # -- custom variables ----------------------------------------------------------

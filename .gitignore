@@ -1,0 +1,5 @@
+# Downloaded packages — never commit these, download at install time
+parallel-*/
+*.tar.bz2
+*.tar.bz2.sig
+*.deb
