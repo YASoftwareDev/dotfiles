@@ -40,18 +40,19 @@ cd ~/.dotfiles
 
 **Search** (the core philosophy: find anything fast)
 
-| What | Terminal | Vim |
-|---|---|---|
-| Files | `Ctrl+T`, `z <dir>` | `:Files`, `Ctrl+P` |
-| Content | `rg <pattern>` | `:Rg` |
-| Commands | `Ctrl+R`, zsh-autosuggestions | |
+| What | Command |
+|---|---|
+| Files | `Ctrl+T`, `z <dir>` |
+| Content | `rg <pattern>` |
+| Commands | `Ctrl+R`, zsh-autosuggestions |
 
 - [ripgrep](https://github.com/BurntSushi/ripgrep) — fast content search
 - [fd](https://github.com/sharkdp/fd) — fast file finder
 - [fzf](https://github.com/junegunn/fzf) — interactive fuzzy selection
+- [zoxide](https://github.com/ajeetdsouza/zoxide) — smart directory jumper (`z`)
 
 **Editor & tools**
-- [vim](https://www.vim.org/) with plugin stack (LSP, completion, treesitter, telescope)
+- [neovim](https://neovim.io/) — editor (config in progress)
 - [ranger](https://github.com/ranger/ranger) — terminal file manager
 - [tig](https://github.com/jonas/tig) — git UI
 - [diff-so-fancy](https://github.com/so-fancy/diff-so-fancy) — better git diffs
