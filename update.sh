@@ -34,7 +34,7 @@ fi
 _update_plugin() {
     local name="$1" path="$2"
     if [ -d "$path" ]; then
-        git -C "$path" pull --quiet --ff-only
+        git -C "$path" pull --quiet --rebase
         log_ok "$name updated"
     else
         log_warn "$name not found at $path — skipping"
@@ -66,8 +66,8 @@ fi
 # ── cheat ─────────────────────────────────────────────────────────────────────
 log_step "cheat"
 if [ -f ~/.local/bin/cheat ]; then
-    local api="https://api.github.com/repos/cheat/cheat/releases/latest"
-    local url=""
+    api="https://api.github.com/repos/cheat/cheat/releases/latest"
+    url=""
     if has curl; then
         url=$(curl -sfL "$api" \
             | grep -o '"browser_download_url": *"[^"]*linux-amd64"' \
