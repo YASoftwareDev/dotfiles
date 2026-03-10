@@ -1,16 +1,77 @@
 #!/usr/bin/env bash
-# Extra tools: fzf, diff-so-fancy, cheat, ripgrep config, ranger config
+# Extra tools: uv, diff-so-fancy, cheat, ripgrep config, ranger config
 # Most tools are now installed via apt in base.sh — this handles:
-#   • fzf shell integration (key bindings, completion)
+#   • uv (Python package manager / venv tool, not in apt)
 #   • diff-so-fancy (not in apt)
 #   • cheat (not in standard apt)
 #   • Config file symlinks for ripgrep and ranger
 
 install_tools() {
+    _install_uv
     _install_diff_so_fancy
     _install_cheat
     _link_ripgrep_config
     _link_ranger_config
+}
+
+_install_uv() {
+    log_step "uv"
+    if has uv; then
+        log_ok "uv already installed — skipping"
+        return
+    fi
+
+    local arch
+    arch=$(uname -m)
+    local uv_arch
+    case "$arch" in
+        x86_64)  uv_arch="x86_64-unknown-linux-musl"  ;;
+        aarch64) uv_arch="aarch64-unknown-linux-musl" ;;
+        *)
+            log_warn "uv: unsupported arch $arch — skipping"
+            return
+            ;;
+    esac
+
+    local api="https://api.github.com/repos/astral-sh/uv/releases/latest"
+    local url
+    if has curl; then
+        url=$(curl -sfL "$api" \
+            | grep -o '"browser_download_url": *"[^"]*uv-'"${uv_arch}"'\.tar\.gz"' \
+            | grep -o 'https://[^"]*' | head -1)
+    else
+        url=$(wget -qO- "$api" \
+            | grep -o '"browser_download_url": *"[^"]*uv-'"${uv_arch}"'\.tar\.gz"' \
+            | grep -o 'https://[^"]*' | head -1)
+    fi
+
+    if [ -z "$url" ]; then
+        log_warn "uv: could not fetch release URL — skipping"
+        return
+    fi
+
+    mkdir -p ~/.local/bin
+    local tmp
+    tmp=$(mktemp -d)
+    # shellcheck disable=SC2064
+    trap "rm -rf '$tmp'" RETURN
+    if has curl; then
+        curl -sfL "$url" | tar -xz -C "$tmp"
+    else
+        wget -qO- "$url" | tar -xz -C "$tmp"
+    fi
+    # Tarball contains uv and uvx binaries
+    for bin in uv uvx; do
+        local found
+        found=$(find "$tmp" -name "$bin" -type f | head -1)
+        [ -n "$found" ] && mv "$found" ~/.local/bin/"$bin" && chmod +x ~/.local/bin/"$bin"
+    done
+
+    if ! has uv; then
+        log_warn "uv: binary not found in archive — install may have failed"
+        return
+    fi
+    log_ok "uv installed → ~/.local/bin ($(uv --version 2>/dev/null))"
 }
 
 _install_diff_so_fancy() {

@@ -55,12 +55,12 @@ _run_minimal() {
 }
 
 _run_workstation() {
-    source modules/base.sh  && install_base
-    source modules/zsh.sh   && install_zsh
-    source modules/tmux.sh  && install_tmux
-    source modules/tools.sh && install_tools
+    source modules/base.sh   && install_base
+    source modules/zsh.sh    && install_zsh
+    source modules/tmux.sh   && install_tmux
+    source modules/tools.sh  && install_tools
+    source modules/neovim.sh && install_neovim && link_nvim_config
     _link_git_config
-    # nvim config is a work in progress — will be added to this repo when ready
 }
 
 _run_docker() {
