@@ -57,7 +57,7 @@ _run_minimal() {
 _run_workstation() {
     source modules/base.sh   && install_base
     source modules/zsh.sh    && install_zsh
-    source modules/tmux.sh   && install_tmux
+    source modules/tmux.sh   && install_tmux && _install_tmux_plugins
     source modules/tools.sh  && install_tools
     source modules/neovim.sh && install_neovim && link_nvim_config
     _link_git_config

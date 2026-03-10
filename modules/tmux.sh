@@ -16,8 +16,6 @@ install_tmux() {
     symlink "${DOTFILES_DIR}/tmux/.tmux.conf"       ~/.tmux.conf
     symlink "${DOTFILES_DIR}/tmux/.tmux.conf.local"  ~/.tmux.conf.local
     log_ok "tmux config linked"
-
-    _install_tmux_plugins
 }
 
 _install_tmux_plugins() {
