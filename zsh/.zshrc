@@ -63,6 +63,14 @@ export FZF_DEFAULT_COMMAND='rg --files --no-ignore --hidden --follow --glob "!.g
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
+# ── fzf-tab completion ────────────────────────────────────────────────────────
+zstyle ':completion:*:git-checkout:*' sort false
+zstyle ':completion:*:descriptions' format '[%d]'
+zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+zstyle ':completion:*' menu no
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color=always -1 $realpath 2>/dev/null'
+zstyle ':fzf-tab:*' switch-group '<' '>'
+
 # ── Aliases ───────────────────────────────────────────────────────────────────
 # fd: search everything including gitignored and hidden by default
 alias fd='fd -I -L'
@@ -77,7 +85,28 @@ alias stats='sort --parallel=6 | uniq -c | sort -n'
 # ranger: return to last visited directory on exit
 alias ranger='ranger --choosedir="$HOME/.rangerdir"; cd "$(cat "$HOME/.rangerdir")"'
 
+# serve current directory over HTTP
+alias serve='python3 -m http.server'
+
+# eza: modern ls (only if installed)
+if command -v eza &>/dev/null; then
+  alias la='eza -abghl --color=automatic'
+  alias tree='eza --tree --level=3 --color=always --group-directories-first'
+fi
+
+# ── Functions ─────────────────────────────────────────────────────────────────
+mkcd() { mkdir -p "$1" && cd "$1"; }
+
+fgl() {
+  git log --oneline --color=always \
+    | fzf --ansi --preview 'git show --color=always {1}' \
+    | awk '{print $1}'
+}
+
 # ── Powerlevel10k ─────────────────────────────────────────────────────────────
 [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
 
 [[ $TMUX == "" ]] && export TERM="xterm-256color"
+
+# ── Local overrides (machine-specific, not tracked) ───────────────────────────
+[[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
