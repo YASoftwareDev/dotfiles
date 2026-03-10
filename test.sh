@@ -215,10 +215,13 @@ fi
 # ── 12. Profile-specific: workstation ─────────────────────────────────────────
 if [ "$PROFILE" = "workstation" ]; then
     _hdr "Workstation tools"
-    check_cmd diff-so-fancy
+    check_cmd nvim
+    check_cmd delta
+    check_cmd uv
     check_cmd cheat
 
     _hdr "Workstation config symlinks"
+    check_link ~/.config/nvim
     check_link ~/.config/ripgrep/rc
     check_link ~/.config/ranger/rc.conf
     check_link ~/.config/ranger/rifle.conf
