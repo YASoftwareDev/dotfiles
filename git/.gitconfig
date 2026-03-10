@@ -1,6 +1,6 @@
 [core]
     attributesFile = ~/.gitattributes
-	pager = diff-so-fancy | less --tabs=4 -RFX
+	pager = delta
 [diff "zip"]
     textconv = unzip -p
       binary = true
@@ -37,20 +37,16 @@
 	defaultBranch = main
 [color]
 	ui = true
-[color "diff-highlight"]
-	oldNormal = red bold
-	oldHighlight = red bold 52
-	newNormal = green bold
-	newHighlight = green bold 22
-[color "diff"]
-	meta = yellow
-	frag = magenta bold
-	commit = yellow bold
-	old = red bold
-	new = green bold
-	whitespace = red reverse
-[diff-so-fancy]
-	first-run = false
+
+[interactive]
+	diffFilter = delta --color-only
+
+[delta]
+	navigate = true
+	line-numbers = true
+
+[merge]
+	conflictstyle = zdiff3
 
 [include]
 	path = ~/.gitconfig.local
