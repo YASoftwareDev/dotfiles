@@ -32,12 +32,14 @@ require('lazy').setup({
   -- ── Colorschemes ─────────────────────────────────────────────────────────
   -- Switch live with <leader>cs (Telescope picker).
   -- To change default: update the colorscheme name in the ACTIVE block below.
+  { 'rebelot/kanagawa.nvim', event = 'VeryLazy' },
   {
-    'rebelot/kanagawa.nvim',         -- ACTIVE
+    'bluz71/vim-nightfly-colors',    -- ACTIVE
+    name     = 'nightfly',
     lazy     = false,
     priority = 1000,
     config   = function()
-      vim.cmd.colorscheme('kanagawa-wave')
+      vim.cmd.colorscheme('nightfly')
     end,
   },
   -- Installed (available via <leader>cs — all load at VeryLazy):
@@ -63,7 +65,6 @@ require('lazy').setup({
   { 'sainnhe/sonokai',                event = 'VeryLazy' },                                    -- default/atlantis/andromeda/shusia/maia/espresso
   { 'Mofiqul/dracula.nvim',           event = 'VeryLazy' },                                    -- classic dracula
   { 'scottmckendry/cyberdream.nvim',  event = 'VeryLazy' },                                    -- neon cyberpunk
-  { 'bluz71/vim-nightfly-colors',     name = 'nightfly',    event = 'VeryLazy' },              -- midnight blue
   { 'bluz71/vim-moonfly-colors',      name = 'moonfly',     event = 'VeryLazy' },              -- cool dark moonlit
   -- ── IDE-familiar ────────────────────────────────────────────────────────
   { 'projekt0n/github-nvim-theme',    event = 'VeryLazy' },                                    -- github_dark/dark_dimmed/dark_colorblind/dark_high_contrast
