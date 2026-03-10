@@ -500,7 +500,8 @@ require('lazy').setup({
       })
     end,
   },
-  { 'mbbill/undotree',         cmd = 'UndotreeToggle' },
+  { 'mbbill/undotree',         cmd = 'UndotreeToggle',
+    keys = { { '<leader>u', '<cmd>UndotreeToggle<CR>', desc = 'Undo tree' } } },
   { 'tpope/vim-eunuch',        cmd = { 'Move', 'Rename', 'Delete', 'SudoWrite', 'Chmod' } },
   { 'rickhowe/diffchar.vim',   cmd = { 'DiffCharOn', 'DiffCharOff', 'DiffCharToggle' } },
 
@@ -673,6 +674,9 @@ map('n', '<F4>', '<cmd>IBLToggle<CR>', { desc = 'Toggle indent guides' })
 
 -- Jump list
 map('n', '<leader>j', '<cmd>Telescope jumplist<CR>', { desc = 'Jump list' })
+
+-- Plugin manager UI
+map('n', '<leader>L', '<cmd>Lazy<CR>', { desc = 'Lazy UI' })
 
 -- ══════════════════════════════════════════════════════════════════════════════
 -- Commands
