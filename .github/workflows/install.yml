@@ -1,0 +1,261 @@
+name: Install
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  install:
+    name: "${{ matrix.profile }} @ Ubuntu ${{ matrix.ubuntu }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    container:
+      image: "ubuntu:${{ matrix.ubuntu }}"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Ubuntu 20.04 (focal) omitted: 'zoxide' is not in focal's apt repos.
+        # The install scripts call `apt install zoxide` unconditionally, which
+        # aborts the install on focal. Fix the scripts first, then add 20.04.
+        ubuntu: ["22.04", "24.04"]
+        profile: [docker, minimal, workstation]
+
+    steps:
+      - name: Bootstrap system tools
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get -yq update
+          apt-get -yq install apt-utils git sudo curl ca-certificates
+
+      - name: Create non-root test user with passwordless sudo
+        run: |
+          useradd -m -s /bin/bash testuser
+          echo 'testuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+      - name: Checkout dotfiles
+        uses: actions/checkout@v4
+
+      - name: Copy dotfiles to test user home
+        run: |
+          cp -r . /home/testuser/dotfiles
+          chown -R testuser:testuser /home/testuser/dotfiles
+
+      - name: Configure curl auth (workstation — avoids GitHub API rate limit in _install_cheat)
+        if: matrix.profile == 'workstation'
+        run: |
+          printf 'header = "Authorization: Bearer %s"\n' "${{ secrets.GITHUB_TOKEN }}" \
+            > /home/testuser/.curlrc
+          chown testuser:testuser /home/testuser/.curlrc
+          chmod 600 /home/testuser/.curlrc
+
+      - name: Install (${{ matrix.profile }})
+        run: su -s /bin/bash -c 'HOME=/home/testuser; export HOME; cd ~/dotfiles && bash install.sh ${{ matrix.profile }}' testuser
+
+      - name: Idempotency — re-run install.sh
+        run: su -s /bin/bash -c 'HOME=/home/testuser; export HOME; cd ~/dotfiles && bash install.sh ${{ matrix.profile }}' testuser
+
+      - name: Verify symlinks
+        run: |
+          cat > /tmp/verify_links.sh << 'EOF'
+          #!/bin/bash
+          set -euo pipefail
+          fail=0
+          check_link() {
+            if [ -L "$1" ]; then
+              echo "  OK  $1 -> $(readlink "$1")"
+            else
+              echo "  FAIL  $1 is not a symlink" >&2
+              fail=1
+            fi
+          }
+          check_link ~/.zshrc
+          check_link ~/.tmux.conf
+          check_link ~/.tmux.conf.local
+          check_link ~/.gitconfig
+          check_link ~/.gitattributes
+          exit $fail
+          EOF
+          chmod +x /tmp/verify_links.sh
+          su -s /bin/bash -c /tmp/verify_links.sh testuser
+
+      - name: Verify tools on PATH
+        run: |
+          cat > /tmp/verify_tools.sh << 'EOF'
+          #!/bin/bash
+          set -euo pipefail
+          export PATH="$HOME/.local/bin:$PATH"
+          fail=0
+          check_cmd() {
+            if command -v "$1" &>/dev/null; then
+              echo "  OK  $1 ($(command -v "$1"))"
+            else
+              echo "  FAIL  $1 not found" >&2
+              fail=1
+            fi
+          }
+          check_cmd zsh
+          check_cmd tmux
+          check_cmd git
+          check_cmd fzf
+          check_cmd rg
+          check_cmd zoxide
+          exit $fail
+          EOF
+          chmod +x /tmp/verify_tools.sh
+          su -s /bin/bash -c /tmp/verify_tools.sh testuser
+
+      - name: Verify minimal-only tools
+        if: matrix.profile == 'minimal'
+        run: |
+          cat > /tmp/verify_minimal.sh << 'EOF'
+          #!/bin/bash
+          set -euo pipefail
+          fail=0
+          check_cmd() {
+            if command -v "$1" &>/dev/null; then
+              echo "  OK  $1 ($(command -v "$1"))"
+            else
+              echo "  FAIL  $1 not found" >&2
+              fail=1
+            fi
+          }
+          check_cmd ranger
+          check_cmd tig
+          check_cmd parallel
+          exit $fail
+          EOF
+          chmod +x /tmp/verify_minimal.sh
+          su -s /bin/bash -c /tmp/verify_minimal.sh testuser
+
+      - name: Verify workstation-only tools and configs
+        if: matrix.profile == 'workstation'
+        run: |
+          cat > /tmp/verify_workstation.sh << 'EOF'
+          #!/bin/bash
+          set -euo pipefail
+          export PATH="$HOME/.local/bin:$PATH"
+          fail=0
+          check_cmd() {
+            if command -v "$1" &>/dev/null; then
+              echo "  OK  $1 ($(command -v "$1"))"
+            else
+              echo "  FAIL  $1 not found" >&2
+              fail=1
+            fi
+          }
+          check_file() {
+            if [ -f "$1" ]; then
+              echo "  OK  $1"
+            else
+              echo "  FAIL  $1 not found" >&2
+              fail=1
+            fi
+          }
+          check_link() {
+            if [ -L "$1" ]; then
+              echo "  OK  $1 -> $(readlink "$1")"
+            else
+              echo "  FAIL  $1 is not a symlink" >&2
+              fail=1
+            fi
+          }
+          check_cmd diff-so-fancy
+          check_cmd cheat
+          check_link ~/.config/ripgrep/rc
+          check_link ~/.config/ranger/rc.conf
+          check_link ~/.config/ranger/rifle.conf
+          check_link ~/.config/ranger/scope.sh
+          exit $fail
+          EOF
+          chmod +x /tmp/verify_workstation.sh
+          su -s /bin/bash -c /tmp/verify_workstation.sh testuser
+
+      - name: Verify oh-my-zsh and plugins
+        run: |
+          cat > /tmp/verify_zsh.sh << 'EOF'
+          #!/bin/bash
+          set -euo pipefail
+          fail=0
+          check_dir() {
+            if [ -d "$1" ]; then
+              echo "  OK  $1"
+            else
+              echo "  FAIL  $1 not found" >&2
+              fail=1
+            fi
+          }
+          if [ -d ~/.oh-my-zsh ]; then
+            echo "  OK  ~/.oh-my-zsh"
+          else
+            echo "  FAIL  ~/.oh-my-zsh not found" >&2
+            fail=1
+          fi
+          custom="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+          check_dir "$custom/plugins/zsh-autosuggestions"
+          check_dir "$custom/plugins/fast-syntax-highlighting"
+          check_dir "$custom/plugins/fzf-tab"
+          check_dir "$custom/themes/powerlevel10k"
+          exit $fail
+          EOF
+          chmod +x /tmp/verify_zsh.sh
+          su -s /bin/bash -c /tmp/verify_zsh.sh testuser
+
+      - name: Smoke-test configs
+        run: |
+          cat > /tmp/smoke_test.sh << 'EOF'
+          #!/bin/bash
+          set -euo pipefail
+          export PATH="$HOME/.local/bin:$PATH"
+          export TERM=xterm-256color   # tmux client needs TERM even in detached mode
+
+          # zsh: syntax check only — p10k needs a real terminal so we don't source
+          zsh -n ~/.zshrc && echo "  OK  ~/.zshrc syntax valid"
+
+          # tmux: load config in detached session (no tty required)
+          tmux -f ~/.tmux.conf new-session -d -s ci_smoke
+          tmux kill-session -t ci_smoke
+          echo "  OK  tmux config loads"
+
+          # git: verify our specific config was applied (not just git defaults)
+          git config --global diff.zip.textconv | grep -q 'unzip' && echo "  OK  git config: dotfiles settings applied"
+
+          # tool versions confirm binaries are functional
+          zsh --version
+          tmux -V
+          rg --version | head -1
+          fzf --version
+          zoxide --version
+          EOF
+          chmod +x /tmp/smoke_test.sh
+          su -s /bin/bash -c /tmp/smoke_test.sh testuser
+
+      - name: Run update.sh
+        run: su -s /bin/bash -c 'HOME=/home/testuser; export HOME; cd ~/dotfiles && bash update.sh' testuser
+
+      - name: Verify tool versions after update
+        run: |
+          cat > /tmp/verify_versions.sh << 'EOF'
+          #!/bin/bash
+          set -euo pipefail
+          export PATH="$HOME/.local/bin:$PATH"
+          echo "── Tool versions after update ──"
+          fzf --version
+          rg --version | head -1
+          fd --version 2>/dev/null || fdfind --version | head -1
+          shellcheck --version | grep version:
+          zoxide --version
+          tmux -V
+          zsh --version
+          echo "── fzf shell integration ──"
+          test -f /usr/share/doc/fzf/examples/key-bindings.zsh && echo "  OK  key-bindings.zsh present"
+          test -f /usr/share/doc/fzf/examples/completion.zsh   && echo "  OK  completion.zsh present"
+          EOF
+          chmod +x /tmp/verify_versions.sh
+          su -s /bin/bash -c /tmp/verify_versions.sh testuser
