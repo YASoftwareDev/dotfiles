@@ -82,8 +82,8 @@ alias rgmw='rg -No -L --no-filename --no-heading -w'
 # quick frequency count: cmd | stats
 alias stats='sort --parallel=6 | uniq -c | sort -n'
 
-# ranger: return to last visited directory on exit
-alias ranger='ranger --choosedir="$HOME/.rangerdir"; cd "$(cat "$HOME/.rangerdir")"'
+# ranger: return to last visited directory on exit (graceful fallback if ranger crashes)
+alias ranger='ranger --choosedir="$HOME/.rangerdir"; cd "$(cat "$HOME/.rangerdir" 2>/dev/null || echo .)"'
 
 # serve current directory over HTTP
 alias serve='python3 -m http.server'
