@@ -1,15 +1,31 @@
 #!/usr/bin/env bash
-# Extra tools: uv, cheat, ripgrep config, ranger config
+# Extra tools: uv, ruff, cheat, ripgrep config, ranger config
 # Most tools are now installed via apt in base.sh — this handles:
 #   • uv (Python package manager / venv tool, not in apt)
+#   • ruff (Python linter/formatter, installed via uv tool)
 #   • cheat (not in standard apt)
 #   • Config file symlinks for ripgrep and ranger
 
 install_tools() {
     _install_uv
+    _install_ruff
     _install_cheat
     _link_ripgrep_config
     _link_ranger_config
+}
+
+_install_ruff() {
+    log_step "ruff"
+    if has ruff; then
+        log_ok "ruff already installed — skipping"
+        return
+    fi
+    if ! has uv; then
+        log_warn "uv not found — skipping ruff install"
+        return
+    fi
+    uv tool install ruff
+    log_ok "ruff installed ($(ruff --version 2>/dev/null))"
 }
 
 _install_uv() {
