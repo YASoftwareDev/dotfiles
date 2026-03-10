@@ -20,7 +20,7 @@ has() { command -v "$1" &>/dev/null; }
 
 # Run apt-get quietly with noninteractive frontend
 apt_install() {
-    $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -yq "$@"
+    $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -yq "$@"
 }
 
 # Check if we can use sudo (sets globals SUDO and CAN_SUDO)
