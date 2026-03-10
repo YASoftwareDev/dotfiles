@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
-# Extra tools: uv, diff-so-fancy, cheat, ripgrep config, ranger config
+# Extra tools: uv, cheat, ripgrep config, ranger config
 # Most tools are now installed via apt in base.sh — this handles:
 #   • uv (Python package manager / venv tool, not in apt)
-#   • diff-so-fancy (not in apt)
 #   • cheat (not in standard apt)
 #   • Config file symlinks for ripgrep and ranger
 
 install_tools() {
     _install_uv
-    _install_diff_so_fancy
     _install_cheat
     _link_ripgrep_config
     _link_ranger_config
@@ -74,32 +72,6 @@ _install_uv() {
     log_ok "uv installed → ~/.local/bin ($(uv --version 2>/dev/null))"
 }
 
-_install_diff_so_fancy() {
-    log_step "diff-so-fancy"
-    if has diff-so-fancy; then
-        log_ok "diff-so-fancy already installed — skipping"
-        return
-    fi
-
-    mkdir -p ~/.local/bin
-    if has curl; then
-        curl -sfLo ~/.local/bin/diff-so-fancy \
-            https://raw.githubusercontent.com/so-fancy/diff-so-fancy/master/third_party/build_fatpack/diff-so-fancy
-    else
-        wget -qO ~/.local/bin/diff-so-fancy \
-            https://raw.githubusercontent.com/so-fancy/diff-so-fancy/master/third_party/build_fatpack/diff-so-fancy
-    fi
-    chmod +x ~/.local/bin/diff-so-fancy
-
-    # Only set pager if the user hasn't configured one already
-    if [ -z "$(git config --global core.pager)" ]; then
-        git config --global core.pager "diff-so-fancy | less --tabs=4 -RFX"
-    else
-        log_warn "git core.pager already set — skipping. To use diff-so-fancy run:"
-        log_warn "  git config --global core.pager \"diff-so-fancy | less --tabs=4 -RFX\""
-    fi
-    log_ok "diff-so-fancy installed → ~/.local/bin"
-}
 
 _install_cheat() {
     log_step "cheat"
