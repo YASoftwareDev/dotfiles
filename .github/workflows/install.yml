@@ -166,8 +166,11 @@ jobs:
               fail=1
             fi
           }
-          check_cmd diff-so-fancy
+          check_cmd nvim
+          check_cmd delta
+          check_cmd uv
           check_cmd cheat
+          check_link ~/.config/nvim
           check_link ~/.config/ripgrep/rc
           check_link ~/.config/ranger/rc.conf
           check_link ~/.config/ranger/rifle.conf
