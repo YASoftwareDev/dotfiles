@@ -13,6 +13,8 @@ setopt inc_append_history
 setopt share_history
 setopt hist_ignore_dups
 setopt hist_ignore_space
+setopt hist_expire_dups_first  # when trimming, remove dups before unique entries
+setopt hist_find_no_dups       # Ctrl+R / history search skips duplicate entries
 
 # ── oh-my-zsh ─────────────────────────────────────────────────────────────────
 export ZSH="$HOME/.oh-my-zsh"
@@ -68,7 +70,7 @@ zstyle ':completion:*:git-checkout:*' sort false
 zstyle ':completion:*:descriptions' format '[%d]'
 zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
 zstyle ':completion:*' menu no
-zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color=always -1 $realpath 2>/dev/null'
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza --color=always -1 $realpath 2>/dev/null || ls --color=always -1 $realpath 2>/dev/null'
 zstyle ':fzf-tab:*' switch-group '<' '>'
 
 # ── Aliases ───────────────────────────────────────────────────────────────────
