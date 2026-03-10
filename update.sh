@@ -338,22 +338,6 @@ else
     log_warn "neovim: unsupported arch $ARCH — skipping GitHub update"
 fi
 
-# ── diff-so-fancy ─────────────────────────────────────────────────────────────
-log_step "diff-so-fancy"
-if [ -f ~/.local/bin/diff-so-fancy ]; then
-    if has curl; then
-        curl -sfLo ~/.local/bin/diff-so-fancy \
-            https://raw.githubusercontent.com/so-fancy/diff-so-fancy/master/third_party/build_fatpack/diff-so-fancy
-    else
-        wget -qO ~/.local/bin/diff-so-fancy \
-            https://raw.githubusercontent.com/so-fancy/diff-so-fancy/master/third_party/build_fatpack/diff-so-fancy
-    fi
-    chmod +x ~/.local/bin/diff-so-fancy
-    log_ok "diff-so-fancy updated"
-else
-    log_warn "diff-so-fancy not installed — run install.sh workstation first"
-fi
-
 # ── cheat ─────────────────────────────────────────────────────────────────────
 log_step "cheat"
 if [ -f ~/.local/bin/cheat ]; then

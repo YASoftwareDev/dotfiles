@@ -18,7 +18,7 @@ install_base() {
         python3 python3-venv \
         ripgrep fd-find tig \
         fzf parallel shellcheck \
-        zoxide
+        zoxide git-delta
 
     # fd is installed as 'fdfind' on Debian/Ubuntu — add a shim if fd is missing
     if ! has fd && has fdfind; then
@@ -50,7 +50,7 @@ install_base_docker() {
         jq \
         ripgrep fd-find \
         fzf shellcheck \
-        zoxide
+        zoxide git-delta
 
     if ! has fd && has fdfind; then
         mkdir -p ~/.local/bin
