@@ -88,6 +88,13 @@ _update_plugin() {
     fi
 }
 
+# ── tmux plugins ──────────────────────────────────────────────────────────────
+log_step "tmux plugins"
+for _tmux_plugin in tmux-resurrect tmux-continuum tmux-fzf tmux-cpu; do
+    _update_plugin "$_tmux_plugin" "$HOME/.tmux/plugins/$_tmux_plugin"
+done
+
+# ── zsh plugins ───────────────────────────────────────────────────────────────
 log_step "zsh plugins"
 _update_plugin "powerlevel10k"            "$ZSH_CUSTOM/themes/powerlevel10k"
 _update_plugin "zsh-autosuggestions"      "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
