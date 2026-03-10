@@ -10,6 +10,7 @@ export PATH="$HOME/.local/bin:$HOME/bin:/usr/local/bin:$PATH"
 HISTSIZE=1000000
 SAVEHIST=1000000
 setopt inc_append_history
+setopt share_history
 setopt hist_ignore_dups
 setopt hist_ignore_space
 
@@ -61,7 +62,6 @@ command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"
 # ── fzf ───────────────────────────────────────────────────────────────────────
 export FZF_DEFAULT_COMMAND='rg --files --no-ignore --hidden --follow --glob "!.git/*"'
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
 # ── fzf-tab completion ────────────────────────────────────────────────────────
 zstyle ':completion:*:git-checkout:*' sort false
