@@ -9,8 +9,8 @@ export PATH="$HOME/.local/bin:$HOME/bin:/usr/local/bin:$PATH"
 # ── History ───────────────────────────────────────────────────────────────────
 HISTSIZE=1000000
 SAVEHIST=1000000
-setopt inc_append_history
-setopt share_history
+setopt share_history        # append after each cmd + import from other sessions
+                            # mutually exclusive with inc_append_history — do NOT set both
 setopt hist_ignore_dups
 setopt hist_ignore_space
 setopt hist_expire_dups_first  # when trimming, remove dups before unique entries
