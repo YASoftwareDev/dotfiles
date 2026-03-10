@@ -30,18 +30,6 @@ _gh_latest_release() {
         | head -1
 }
 
-# Download URL → dest path, then chmod +x
-_download_bin() {
-    local url="$1" dest="$2"
-    mkdir -p "$(dirname "$dest")"
-    if has curl; then
-        curl -sfL "$url" -o "$dest"
-    else
-        wget -qO "$dest" "$url"
-    fi
-    chmod +x "$dest"
-}
-
 # Download a .tar.gz from URL and extract a single binary by name.
 # Usage: _download_tar_bin URL BINARY_NAME DEST
 _download_tar_bin() {
