@@ -4,8 +4,30 @@ Development environment setup for Ubuntu 20.04+.
 
 ## Quick start
 
+### One-liner (recommended)
+
 ```bash
-git clone <repo-url> ~/.dotfiles
+# workstation — full setup, interactive wizard
+curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash
+
+# minimal — zsh + tmux + git config only
+curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash -s -- minimal
+
+# docker — headless, CI-friendly, no shell change
+curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash -s -- docker
+```
+
+Prefer to inspect before running?
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh -o get.sh
+bash get.sh [minimal|workstation|docker]
+```
+
+### Manual
+
+```bash
+git clone https://github.com/YASoftwareDev/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
 ./install.sh
 ```
