@@ -29,6 +29,8 @@ jobs:
         run: |
           export DEBIAN_FRONTEND=noninteractive
           apt-get -yq update
+          # Prevent resolvconf post-install from failing on Docker-bound /etc/resolv.conf
+          echo "resolvconf resolvconf/linkify-resolvconf boolean false" | debconf-set-selections
           apt-get -yq install apt-utils git sudo curl ca-certificates
 
       - name: Create non-root test user with passwordless sudo
