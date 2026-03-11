@@ -1,0 +1,15 @@
+# Git history — not needed inside the image
+.git
+
+# Local dev artifacts — must not pollute the build context or break layer caching
+.test-results
+test-logs
+
+# Claude Code session data
+.claude
+
+# Downloaded install artifacts (gitignored; stale files from old runs)
+parallel-*/
+*.tar.bz2
+*.tar.bz2.sig
+*.deb

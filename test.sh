@@ -12,17 +12,14 @@
 
 export PATH="$HOME/.local/bin:$PATH"
 
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/utils.sh
+source "${DOTFILES_DIR}/lib/utils.sh"
+
 PROFILE="${1:-docker}"
 PASS=0
 FAIL=0
 SKIP=0
-
-# ── Colours ───────────────────────────────────────────────────────────────────
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-BOLD='\033[1m'
-NC='\033[0m'
 
 _ok()   { echo -e "  ${GREEN}✓${NC}  $*"; PASS=$((PASS+1)); }
 _fail() { echo -e "  ${RED}✗${NC}  $*" >&2; FAIL=$((FAIL+1)); }
@@ -127,31 +124,12 @@ fi
 
 # ── 4. fzf shell integration ───────────────────────────────────────────────────
 _hdr "fzf shell integration"
-FZF_SI_DIR="/usr/share/doc/fzf/examples"
+# fzf is installed via git clone to ~/.fzf; the installer generates ~/.fzf.zsh
+check_dir ~/.fzf "~/.fzf (git clone)"
+check_file ~/.fzf.zsh "~/.fzf.zsh (shell integration)"
 
-check_file "$FZF_SI_DIR/key-bindings.zsh"
-check_file "$FZF_SI_DIR/completion.zsh"
-
-# Version-mismatch guard: "20+" syntax requires fzf ≥ 0.50
-if [ -f "$FZF_SI_DIR/key-bindings.zsh" ]; then
-    if grep -q -- '--height [0-9]*+' "$FZF_SI_DIR/key-bindings.zsh" 2>/dev/null; then
-        fzf_ver=$(fzf --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+' | head -1)
-        major=$(echo "$fzf_ver" | cut -d. -f1)
-        minor=$(echo "$fzf_ver" | cut -d. -f2)
-        if [ "$major" -eq 0 ] && [ "$minor" -lt 50 ]; then
-            _fail "key-bindings.zsh uses '--height N+' syntax but fzf $fzf_ver doesn't support it"
-        else
-            _ok "key-bindings.zsh '--height N+' syntax — fzf $fzf_ver supports it"
-        fi
-    else
-        _ok "key-bindings.zsh syntax compatible with installed fzf"
-    fi
-fi
-
-# Source key-bindings.zsh in a non-interactive zsh; no terminal needed for this check
-if [ -f "$FZF_SI_DIR/key-bindings.zsh" ]; then
-    check_run "key-bindings.zsh sources without error" \
-        zsh -c "source $FZF_SI_DIR/key-bindings.zsh"
+if [ -f ~/.fzf.zsh ]; then
+    check_run "~/.fzf.zsh sources without error" zsh -c "source ~/.fzf.zsh"
 fi
 
 # ── 5. fzf functional ─────────────────────────────────────────────────────────

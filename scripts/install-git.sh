@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
 # Build and install git from source.
 #
-# Usage:
-#   ./install-git.sh              # uses GIT_SOURCE_VERSION from versions.env
-#   ./install-git.sh 2.48.1       # install specific version
+# Usage (run from dotfiles root):
+#   ./scripts/install-git.sh              # uses default version 2.53.0
+#   ./scripts/install-git.sh 2.48.1       # install specific version
 #
 # Installs to /usr/local (with sudo) or $HOME/.local (without sudo).
 
 set -euo pipefail
 
-DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "${DOTFILES_DIR}/lib/utils.sh"
-source "${DOTFILES_DIR}/versions.env"
 
-GIT_VERSION="${1:-${GIT_SOURCE_VERSION}}"
+GIT_VERSION="${1:-2.53.0}"
 
 log_step "git from source (${GIT_VERSION})"
 

@@ -3,3 +3,6 @@ parallel-*/
 *.tar.bz2
 *.tar.bz2.sig
 *.deb
+
+# Local test run artifacts
+.test-results/
