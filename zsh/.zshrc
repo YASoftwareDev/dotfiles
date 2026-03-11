@@ -20,6 +20,11 @@ setopt hist_find_no_dups       # Ctrl+R / history search skips duplicate entries
 export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="powerlevel10k/powerlevel10k"
 
+# Disable url-quote-magic / bracketed-paste-magic — both are buggy in zsh 5.9
+# inside tmux (zsh/parameter module collision on the `options` param).
+# Modern terminals handle pasting correctly without them.
+DISABLE_MAGIC_FUNCTIONS=true
+
 # zsh-autosuggestions config must be set before oh-my-zsh loads the plugin
 ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 ZSH_AUTOSUGGEST_USE_ASYNC="true"
@@ -36,7 +41,6 @@ plugins=(
   dirhistory
   vi-mode
   last-working-dir
-  fzf
   fzf-tab
   zsh-autosuggestions
   fast-syntax-highlighting
@@ -62,6 +66,8 @@ export KEYTIMEOUT=1
 command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"
 
 # ── fzf ───────────────────────────────────────────────────────────────────────
+# Shell integration: adds ~/.fzf/bin to PATH and loads key bindings / completion
+[[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh
 export FZF_DEFAULT_COMMAND='rg --files --no-ignore --hidden --follow --glob "!.git/*"'
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 
@@ -108,7 +114,8 @@ fgl() {
 # ── Powerlevel10k ─────────────────────────────────────────────────────────────
 [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
 
-[[ $TMUX == "" ]] && export TERM="xterm-256color"
+# Set a fallback TERM only when the environment provides nothing useful
+[[ -z $TMUX && ( -z $TERM || $TERM == "dumb" ) ]] && export TERM="xterm-256color"
 
 # ── Local overrides (machine-specific, not tracked) ───────────────────────────
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local

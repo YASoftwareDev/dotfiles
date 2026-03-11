@@ -3,10 +3,6 @@
 # Falls back to apt if GitHub is unreachable or arch is unsupported.
 # Idempotent: skips install when the installed version already matches latest.
 
-install_neovim() {
-    _install_neovim_from_gh
-}
-
 # Link nvim config from dotfiles repo
 link_nvim_config() {
     log_step "nvim config"
@@ -27,8 +23,11 @@ link_nvim_config() {
     log_ok "~/.config/nvim → dotfiles/nvim/.config/nvim"
 }
 
-_install_neovim_from_gh() {
+install_neovim() {
     log_step "neovim (GitHub releases)"
+    # Fetches the API response once and extracts both download URL and tag from
+    # it — avoids the two HTTP round-trips that separate _gh_latest_release +
+    # _gh_latest_tag calls would require.
 
     local arch
     arch=$(uname -m)
@@ -38,7 +37,7 @@ _install_neovim_from_gh() {
         aarch64) nvim_arch="linux-arm64"  ;;
         *)
             log_warn "neovim: unsupported arch $arch — falling back to apt"
-            _install_neovim_apt
+            _neovim_apt
             return
             ;;
     esac
@@ -59,7 +58,7 @@ _install_neovim_from_gh() {
 
     if [ -z "$url" ]; then
         log_warn "neovim: could not fetch release URL — falling back to apt"
-        _install_neovim_apt
+        _neovim_apt
         return
     fi
 
@@ -120,7 +119,7 @@ _install_neovim_from_gh() {
     log_ok "neovim installed → $prefix ($(nvim --version 2>/dev/null | head -1))"
 }
 
-_install_neovim_apt() {
+_neovim_apt() {
     if ! $CAN_SUDO; then
         log_warn "neovim: no sudo — cannot install via apt"
         return

@@ -90,9 +90,9 @@ tmux_conf_theme_window_bg="default"
 # highlight focused pane (tmux >= 2.1), possible values are:
 #   - true
 #   - false (default)
-tmux_conf_theme_highlight_focused_pane=true
+tmux_conf_theme_highlight_focused_pane=false
 
-# focused pane colours:
+# focused pane colours (only used when highlight_focused_pane=true):
 tmux_conf_theme_focused_pane_bg="#0d0d0d"  # very subtle: tiny step above #080808
 
 # pane border style, possible values are:
@@ -410,14 +410,8 @@ tmux_conf_uninstall_plugins_on_reload=false
 # follower cannot parse. Auto-install/update is therefore disabled. Plugins
 # are sourced directly below via run-shell.
 #
-# On a fresh machine, install plugins once with:
-#   cd ~/.tmux/plugins
-#   git clone --depth 1 https://github.com/tmux-plugins/tmux-resurrect
-#   git clone --depth 1 https://github.com/tmux-plugins/tmux-continuum
-#   git clone --depth 1 https://github.com/sainnhe/tmux-fzf
-#   git clone --depth 1 https://github.com/tmux-plugins/tmux-cpu
-#
-# To update: cd into each plugin dir and run: git pull
+# Fresh install:  ./install.sh workstation
+# Update plugins: ./update.sh tmux-plugins
 #
 set -g @continuum-restore 'on'
 

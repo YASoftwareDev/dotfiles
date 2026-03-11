@@ -15,8 +15,6 @@ cd "$DOTFILES_DIR"
 
 # shellcheck source=lib/utils.sh
 source lib/utils.sh
-# shellcheck source=lib/check.sh
-source lib/check.sh
 
 # ── Banner ────────────────────────────────────────────────────────────────────
 _banner() {
@@ -65,7 +63,7 @@ _run_workstation() {
 
 _run_docker() {
     source modules/base.sh  && install_base_docker
-    source modules/zsh.sh   && install_zsh_no_shell_change
+    source modules/zsh.sh   && install_zsh no
     source modules/tmux.sh  && install_tmux
     _link_git_config
 }
@@ -92,7 +90,7 @@ log_info "Profile: ${BOLD}${PROFILE}${NC}"
 echo ""
 
 # Preconditions
-run_checks "$PROFILE"
+run_checks
 
 # Run
 case "$PROFILE" in

@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
 # Install cmake using the official pre-built installer from cmake.org.
 #
-# Usage:
-#   ./install-cmake.sh              # uses CMAKE_SOURCE_VERSION from versions.env
-#   ./install-cmake.sh 3.31.7       # install specific version
+# Usage (run from dotfiles root):
+#   ./scripts/install-cmake.sh              # uses default version 4.2.3
+#   ./scripts/install-cmake.sh 3.31.7       # install specific version
 #
 # Installs to /usr/local (with sudo) or $HOME/.local (without sudo).
 
 set -euo pipefail
 
-DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "${DOTFILES_DIR}/lib/utils.sh"
-source "${DOTFILES_DIR}/versions.env"
 
-CMAKE_VERSION="${1:-${CMAKE_SOURCE_VERSION}}"
+CMAKE_VERSION="${1:-4.2.3}"
 
 log_step "cmake ${CMAKE_VERSION}"
 

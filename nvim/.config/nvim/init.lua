@@ -2,7 +2,7 @@
 -- Bootstrap lazy.nvim
 -- ══════════════════════════════════════════════════════════════════════════════
 local lazypath = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
-if not vim.uv.fs_stat(lazypath) then
+if not (vim.uv or vim.loop).fs_stat(lazypath) then
   vim.fn.system({
     'git', 'clone', '--filter=blob:none',
     'https://github.com/folke/lazy.nvim.git',
@@ -242,7 +242,6 @@ require('lazy').setup({
     cmd          = 'Telescope',
     keys         = {
       { '<C-p>',      '<cmd>Telescope find_files<CR>',                      desc = 'Find files' },
-      { ',e',         '<cmd>Telescope find_files<CR>',                      desc = 'Find files' },
       { '<F3>',       '<cmd>Telescope buffers<CR>',                         desc = 'Buffers' },
       { '<leader>f',  '<cmd>Telescope git_files<CR>',                       desc = 'Git files' },
       { '<leader>F',  '<cmd>Telescope find_files<CR>',                      desc = 'Find files' },
@@ -347,7 +346,6 @@ require('lazy').setup({
     'nvim-tree/nvim-tree.lua',
     lazy         = true,
     keys         = { { '<F6>', '<cmd>NvimTreeToggle<CR>', desc = 'File tree' } },
-    dependencies = { 'nvim-tree/nvim-web-devicons' },
     config       = function()
       require('nvim-tree').setup({
         hijack_netrw       = false,              -- let netrw handle :e /dir
@@ -558,7 +556,6 @@ opt.relativenumber = true
 opt.scrolloff      = 5
 opt.signcolumn     = 'yes'
 opt.shiftround     = true
-opt.showmatch      = false -- vim-matchup supersedes this
 opt.smartcase      = true
 opt.tabstop        = 2
 opt.softtabstop    = -1 -- follow shiftwidth

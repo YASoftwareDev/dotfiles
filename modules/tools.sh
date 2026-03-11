@@ -20,12 +20,14 @@ _install_ruff() {
         log_ok "ruff already installed — skipping"
         return
     fi
-    if ! has uv; then
+    local uv_bin
+    uv_bin=$(command -v uv 2>/dev/null || echo ~/.local/bin/uv)
+    if [ ! -x "$uv_bin" ]; then
         log_warn "uv not found — skipping ruff install"
         return
     fi
-    uv tool install ruff
-    log_ok "ruff installed ($(ruff --version 2>/dev/null))"
+    "$uv_bin" tool install ruff
+    log_ok "ruff installed ($(command -v ruff >/dev/null 2>&1 && ruff --version 2>/dev/null || echo "run: source ~/.zshrc to activate"))"
 }
 
 _install_uv() {
@@ -47,32 +49,23 @@ _install_uv() {
             ;;
     esac
 
-    local api="https://api.github.com/repos/astral-sh/uv/releases/latest"
-    local url
-    if has curl; then
-        url=$(curl -sfL "$api" \
-            | grep -o '"browser_download_url": *"[^"]*uv-'"${uv_arch}"'\.tar\.gz"' \
-            | grep -o 'https://[^"]*' | head -1)
-    else
-        url=$(wget -qO- "$api" \
-            | grep -o '"browser_download_url": *"[^"]*uv-'"${uv_arch}"'\.tar\.gz"' \
-            | grep -o 'https://[^"]*' | head -1)
-    fi
-
-    if [ -z "$url" ]; then
-        log_warn "uv: could not fetch release URL — skipping"
-        return
-    fi
+    # uv uses stable asset names (no version in filename) — use direct URL, no API needed
+    local url="https://github.com/astral-sh/uv/releases/latest/download/uv-${uv_arch}.tar.gz"
 
     mkdir -p ~/.local/bin
     local tmp
     tmp=$(mktemp -d)
     # shellcheck disable=SC2064
     trap "rm -rf '$tmp'" RETURN
+    local download_ok=true
     if has curl; then
-        curl -sfL "$url" | tar -xz -C "$tmp"
+        curl -sfL "$url" | tar -xz -C "$tmp" || download_ok=false
     else
-        wget -qO- "$url" | tar -xz -C "$tmp"
+        wget -qO- "$url" | tar -xz -C "$tmp" || download_ok=false
+    fi
+    if ! $download_ok; then
+        log_warn "uv: download or extraction failed — skipping (network issue?)"
+        return
     fi
     # Tarball contains uv and uvx binaries
     for bin in uv uvx; do
@@ -81,11 +74,11 @@ _install_uv() {
         [ -n "$found" ] && mv "$found" ~/.local/bin/"$bin" && chmod +x ~/.local/bin/"$bin"
     done
 
-    if ! has uv; then
-        log_warn "uv: binary not found in archive — install may have failed"
+    if [ ! -f ~/.local/bin/uv ]; then
+        log_warn "uv: binary not found in archive — archive structure may have changed"
         return
     fi
-    log_ok "uv installed → ~/.local/bin ($(uv --version 2>/dev/null))"
+    log_ok "uv installed → ~/.local/bin ($(~/.local/bin/uv --version 2>/dev/null))"
 }
 
 
@@ -96,29 +89,32 @@ _install_cheat() {
         return
     fi
 
-    # Fetch latest release URL for linux-amd64
-    local url
-    local api="https://api.github.com/repos/cheat/cheat/releases/latest"
-    if has curl; then
-        url=$(curl -sfL "$api" \
-            | grep -o '"browser_download_url": *"[^"]*linux-amd64"' \
-            | grep -o 'https://[^"]*')
-    elif has wget; then
-        url=$(wget -qO- "$api" \
-            | grep -o '"browser_download_url": *"[^"]*linux-amd64"' \
-            | grep -o 'https://[^"]*')
-    fi
+    local arch
+    arch=$(uname -m)
+    local cheat_arch
+    case "$arch" in
+        x86_64)  cheat_arch="amd64" ;;
+        aarch64) cheat_arch="arm64" ;;
+        *)
+            log_warn "cheat: unsupported arch $arch — skipping"
+            return
+            ;;
+    esac
 
-    if [ -z "$url" ]; then
-        log_warn "Could not fetch cheat release URL — skipping"
-        return
-    fi
+    # cheat uses stable asset names (no version in filename) — use direct URL, no API needed
+    local url="https://github.com/cheat/cheat/releases/latest/download/cheat-linux-${cheat_arch}.gz"
 
     mkdir -p ~/.local/bin
+    local ok=true
     if has curl; then
-        curl -sfL "$url" | gunzip > ~/.local/bin/cheat
+        curl -sfL "$url" | gunzip > ~/.local/bin/cheat || ok=false
     else
-        wget -qO- "$url" | gunzip > ~/.local/bin/cheat
+        wget -qO- "$url" | gunzip > ~/.local/bin/cheat || ok=false
+    fi
+    if ! $ok; then
+        log_warn "cheat: download or decompression failed — skipping"
+        rm -f ~/.local/bin/cheat
+        return
     fi
     chmod +x ~/.local/bin/cheat
     log_ok "cheat installed → ~/.local/bin"

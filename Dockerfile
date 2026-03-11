@@ -1,15 +1,16 @@
 # Test dotfiles install in a clean Ubuntu environment.
 #
 # Build & run (installs during build, then drops to shell):
-#   docker build -t dotfiles-test .
-#   docker run --rm -it dotfiles-test
+#   docker build -t dotfiles-test:24.04-docker .
+#   docker run --rm -it dotfiles-test:24.04-docker
 #
 # Choose Ubuntu version or install profile:
-#   docker build --build-arg UBUNTU=22.04 --build-arg PROFILE=minimal -t dotfiles-test .
-#   docker build --build-arg PROFILE=workstation -t dotfiles-test .
+#   docker build --build-arg UBUNTU=22.04 --build-arg PROFILE=minimal -t dotfiles-test:22.04-minimal .
+#   docker build --build-arg PROFILE=workstation -t dotfiles-test:24.04-workstation .
 #
 # Iterative mode — mount live source, skip the build-time install:
-#   docker run --rm -it -v "$PWD":/root/dotfiles dotfiles-test bash
+#   docker build --build-arg PROFILE=docker -t dotfiles-test:24.04-docker .
+#   docker run --rm -it -v "$PWD":/root/dotfiles dotfiles-test:24.04-docker bash
 #   # then inside: cd ~/dotfiles && bash install.sh docker
 
 ARG UBUNTU=24.04

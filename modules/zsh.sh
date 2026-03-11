@@ -3,16 +3,13 @@
 # Idempotent: skips steps that are already done
 
 install_zsh() {
+    local change_shell="${1:-yes}"
     _install_ohmyzsh
     _install_zsh_plugins
     _link_zshrc
-    if [ "${CHANGE_SHELL:-yes}" = "yes" ]; then
+    if [ "$change_shell" = "yes" ]; then
         _set_default_shell
     fi
-}
-
-install_zsh_no_shell_change() {
-    CHANGE_SHELL=no install_zsh
 }
 
 _install_ohmyzsh() {
@@ -81,12 +78,13 @@ _set_default_shell() {
 }
 
 _git_clone_if_missing() {
-    local url="$1" dest="$2" name="$3" extra_flags="${4:-}"
+    local url="$1" dest="$2" name="$3"
+    local -a extra_flags=()
+    [ -n "${4:-}" ] && extra_flags=("$4")
     if [ -d "$dest" ]; then
         log_ok "$name already installed — skipping"
         return
     fi
-    # shellcheck disable=SC2086
-    git clone $extra_flags "$url" "$dest" --quiet
+    git clone "${extra_flags[@]}" "$url" "$dest" --quiet
     log_ok "$name installed"
 }
