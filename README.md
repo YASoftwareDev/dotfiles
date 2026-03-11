@@ -6,9 +6,12 @@ Development environment setup for Ubuntu 20.04+.
 
 ### One-liner (recommended)
 
+A profile argument is required when piping — stdin is not a terminal so the
+interactive wizard cannot run.
+
 ```bash
-# workstation — full setup, interactive wizard
-curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash
+# workstation — full setup
+curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash -s -- workstation
 
 # minimal — zsh + tmux + git config only
 curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash -s -- minimal
@@ -17,11 +20,12 @@ curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.s
 curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash -s -- docker
 ```
 
-Prefer to inspect before running?
+Prefer to inspect before running (also enables the interactive wizard):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh -o get.sh
-bash get.sh [minimal|workstation|docker]
+bash get.sh                          # launches profile wizard
+bash get.sh workstation              # or pass a profile directly
 ```
 
 ### Manual
