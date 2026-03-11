@@ -44,7 +44,7 @@ if [ -z "$PROFILE" ] && [ ! -t 0 ]; then
     _die "Profile required when piping. Use: bash -s -- <minimal|workstation|docker>"
 fi
 
-# ── Require curl or wget ───────────────────────────────────────────────────────
+# ── Require git ────────────────────────────────────────────────────────────────
 if ! command -v git &>/dev/null; then
     _die "git is required but not found.\n  Install it first: sudo apt install git"
 fi
@@ -52,16 +52,16 @@ fi
 # ── Clone or update ────────────────────────────────────────────────────────────
 if [ -d "$DEST/.git" ]; then
     _info "Dotfiles found at $DEST — pulling latest…"
-    if ! git -C "$DEST" pull --quiet --rebase 2>/dev/null; then
-        _warn "git pull failed (local changes?). Continuing with existing clone."
+    if ! git -C "$DEST" pull --ff-only 2>&1; then
+        _warn "git pull failed — continuing with existing clone."
     else
         _ok "Updated"
     fi
 elif [ -e "$DEST" ]; then
-    _die "$DEST already exists but is not a dotfiles repo.\n  Remove it or set DOTFILES_DIR to a different path:\n  DOTFILES_DIR=~/my-dotfiles bash get.sh $PROFILE"
+    _die "$DEST already exists but is not a dotfiles repo.\n  Remove it or set DOTFILES_DIR to a different path:\n  DOTFILES_DIR=~/my-dotfiles bash get.sh ${PROFILE:-}"
 else
     _info "Cloning dotfiles to $DEST…"
-    git clone --quiet "$REPO" "$DEST"
+    git clone "$REPO" "$DEST"
     _ok "Cloned"
 fi
 
