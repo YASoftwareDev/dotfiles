@@ -69,8 +69,11 @@ _set_default_shell() {
         log_ok "zsh is already the default shell"
         return
     fi
-    if $CAN_SUDO || chsh --help &>/dev/null; then
-        chsh -s "$zsh_path"
+    if $CAN_SUDO; then
+        # usermod edits /etc/passwd directly — no PAM required (works in containers/CI)
+        sudo usermod -s "$zsh_path" "$USER"
+        log_ok "Default shell set to zsh (restart your session)"
+    elif chsh -s "$zsh_path" 2>/dev/null; then
         log_ok "Default shell set to zsh (restart your session)"
     else
         log_warn "Could not change shell — run: chsh -s $zsh_path"
