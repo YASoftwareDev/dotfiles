@@ -44,9 +44,77 @@ if [ -z "$PROFILE" ] && [ ! -t 0 ]; then
     _die "Profile required when piping. Use: bash -s -- <minimal|workstation|docker>"
 fi
 
-# ── Require git ────────────────────────────────────────────────────────────────
-if ! command -v git &>/dev/null; then
-    _die "git is required but not found.\n  Install it first: sudo apt install git"
+# ── Pre-flight checks ──────────────────────────────────────────────────────────
+echo -e "${BOLD}── Pre-flight checks ──${NC}"
+_preflight_ok=true
+
+# git (hard requirement — needed to clone)
+if command -v git &>/dev/null; then
+    _ok "git $(git --version | awk '{print $3}')"
+else
+    echo -e "${RED}  ✗${NC} git — not found  →  sudo apt install git" >&2
+    _preflight_ok=false
+fi
+
+# transfer tool (curl or wget — needed by install.sh to fetch binaries)
+if command -v curl &>/dev/null; then
+    _ok "curl $(curl --version | awk 'NR==1{print $2}')"
+elif command -v wget &>/dev/null; then
+    _ok "wget $(wget --version 2>&1 | awk 'NR==1{print $3}')"
+else
+    echo -e "${RED}  ✗${NC} curl/wget — neither found  →  sudo apt install curl" >&2
+    _preflight_ok=false
+fi
+
+# sudo (soft — apt packages will be skipped without it)
+if command -v sudo &>/dev/null && sudo -n true 2>/dev/null; then
+    _ok "sudo (passwordless)"
+elif command -v sudo &>/dev/null; then
+    _warn "sudo present but requires a password — apt packages may prompt"
+else
+    _warn "sudo not found — apt package installs will be skipped"
+fi
+
+# OS (soft — scripts are written for Ubuntu/Debian)
+if [ -f /etc/os-release ]; then
+    # shellcheck source=/dev/null
+    . /etc/os-release
+    case "${ID:-}" in
+        ubuntu) _ok "OS: Ubuntu ${VERSION_ID:-}" ;;
+        debian) _warn "OS: Debian ${VERSION_ID:-} — supported but not tested" ;;
+        *)      _warn "OS: ${PRETTY_NAME:-unknown} — scripts are written for Ubuntu; proceed with caution" ;;
+    esac
+else
+    _warn "OS: unknown — /etc/os-release not found"
+fi
+
+# disk space (2 GB required in $HOME)
+_avail_mb=$(df -m "$HOME" 2>/dev/null | awk 'NR==2{print $4}')
+if [ -n "$_avail_mb" ]; then
+    if [ "$_avail_mb" -ge 2048 ]; then
+        _ok "Disk: ${_avail_mb} MB free in \$HOME"
+    else
+        _warn "Disk: only ${_avail_mb} MB free in \$HOME (2048 MB recommended)"
+    fi
+fi
+
+# network
+if command -v curl &>/dev/null; then
+    _net_ok=$(curl -sSf --max-time 5 https://github.com &>/dev/null && echo yes || echo no)
+elif command -v wget &>/dev/null; then
+    _net_ok=$(wget -q --spider --timeout=5 https://github.com &>/dev/null && echo yes || echo no)
+else
+    _net_ok=no
+fi
+if [ "$_net_ok" = "yes" ]; then
+    _ok "Network: github.com reachable"
+else
+    _warn "Network: github.com unreachable — install may fail on download steps"
+fi
+
+echo ""
+if ! $_preflight_ok; then
+    _die "Fix the errors above and re-run."
 fi
 
 # ── Clone or update ────────────────────────────────────────────────────────────
