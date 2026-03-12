@@ -4,15 +4,23 @@ Ubuntu 20.04+ development environment — zsh, neovim, tmux, search tools, Pytho
 
 ## Install
 
+**workstation** — full setup: zsh, neovim, tmux, search tools, CLI utilities (~15 min)
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash -s -- workstation
 ```
 
-| Profile | Installs | Time |
-|---|---|---|
-| `workstation` | zsh, neovim, tmux, search tools, CLI utilities | ~15 min |
-| `minimal` | zsh + tmux + git config | ~5 min |
-| `docker` | headless, CI-friendly, no shell change | ~3 min |
+**minimal** — zsh + tmux + git config (~5 min)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash -s -- minimal
+```
+
+**docker** — headless, CI-friendly, no shell change (~3 min)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash -s -- docker
+```
 
 <details>
 <summary>Other install methods</summary>
