@@ -2,36 +2,7 @@
 
 Ubuntu 20.04+ development environment — zsh, tmux, search tools, Python tooling.
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                                                                     │
-│  ~/projects/app  main ✔ ❯ eza -l                                   │
-│  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄   │
-│   api/   src/   tests/   README.md   pyproject.toml                │
-│                                                                     │
-│  ~/projects/app  main ✔ ❯ rg "TODO"                               │
-│  src/server.py:45  # TODO: add rate limiting                       │
-│  src/worker.py:12  # TODO: retry logic                             │
-│                                                                     │
-│  ~/projects/app  main ✚2 ❯ git diff                               │
-│  ─── src/server.py ──────────────────────────────────────────      │
-│   + │ async def handle(req: Request) -> Response:                  │
-│   + │     return await process(req)                                │
-│   - │ def handle(req):                                             │
-│   - │     return process(req)                                      │
-│                                                                     │
-│  ~/projects/app  main ✔ ❯ vim <Ctrl+T>                            │
-│  ┌─────────────────────────────────────────────────────────┐       │
-│  │ > _                                         12/1048     │       │
-│  │   src/server.py                                         │       │
-│  │   src/worker.py                                         │       │
-│  │   tests/test_server.py                                  │       │
-│  └─────────────────────────────────────────────────────────┘       │
-│                                                                     │
-├─────────────────────────────────────────────────────────────────────┤
-│  0:zsh*  1:nvim  2:server               ⎪  CPU 6%  2026-03-12      │
-└─────────────────────────────────────────────────────────────────────┘
-```
+![demo](demo.svg)
 
 ## Install
 
