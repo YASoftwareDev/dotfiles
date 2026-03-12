@@ -10,6 +10,17 @@ install_zsh() {
     if [ "$change_shell" = "yes" ]; then
         _set_default_shell
     fi
+    _patch_bashrc_for_docker
+}
+
+_patch_bashrc_for_docker() {
+    # In Docker, `docker exec` starts bash directly regardless of /etc/passwd.
+    # Patch ~/.bashrc so interactive bash sessions auto-switch to zsh.
+    [ -f /.dockerenv ] || return 0
+    grep -q 'exec zsh' "${HOME}/.bashrc" 2>/dev/null && return 0
+    printf '\n# Switch to zsh for interactive sessions (added by dotfiles)\n' >> "${HOME}/.bashrc"
+    printf '[ -z "$ZSH_VERSION" ] && [ -t 0 ] && exec zsh\n' >> "${HOME}/.bashrc"
+    log_ok "~/.bashrc patched: interactive bash sessions will auto-switch to zsh"
 }
 
 _install_ohmyzsh() {
@@ -65,13 +76,17 @@ _set_default_shell() {
     log_step "Default shell"
     local zsh_path
     zsh_path="$(command -v zsh)"
-    if [ "$SHELL" = "$zsh_path" ]; then
+    if [ -z "$zsh_path" ]; then
+        log_warn "zsh not found in PATH — cannot set default shell"
+        return 0
+    fi
+    if [ "${SHELL:-}" = "$zsh_path" ]; then
         log_ok "zsh is already the default shell"
         return
     fi
     if $CAN_SUDO; then
         # usermod edits /etc/passwd directly — no PAM required (works in containers/CI)
-        sudo usermod -s "$zsh_path" "$USER"
+        $SUDO usermod -s "$zsh_path" "$(id -un)"
         log_ok "Default shell set to zsh (restart your session)"
     elif chsh -s "$zsh_path" 2>/dev/null; then
         log_ok "Default shell set to zsh (restart your session)"

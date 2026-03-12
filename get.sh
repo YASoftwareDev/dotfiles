@@ -16,6 +16,15 @@
 #   curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh -o get.sh
 #   bash get.sh [minimal|workstation|docker]
 #
+# Docker (clean ubuntu:20.04):
+#   Option A — single copy-paste command (installs curl, then runs get.sh):
+#     apt-get update -qq && apt-get install -yq curl && \
+#       curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash -s -- workstation
+#
+#   Option B — if you already have get.sh locally (auto-installs git+curl inside container):
+#     docker cp get.sh <container>:/get.sh
+#     docker exec <container> bash /get.sh workstation
+#
 # Note: the interactive profile wizard requires a real terminal (stdin = tty).
 #       When piping through bash, a profile argument is required.
 #
@@ -48,9 +57,25 @@ fi
 echo -e "${BOLD}── Pre-flight checks ──${NC}"
 _preflight_ok=true
 
+# auto-bootstrap missing tools when running as root on apt-based systems
+_apt_updated=false
+_apt_bootstrap() {
+    local pkg="$1"
+    if [ "$(id -u)" -ne 0 ] || ! command -v apt-get &>/dev/null; then
+        return 1
+    fi
+    if ! $_apt_updated; then
+        apt-get update -qq >/dev/null
+        _apt_updated=true
+    fi
+    DEBIAN_FRONTEND=noninteractive apt-get install -yq "$pkg" >/dev/null
+}
+
 # git (hard requirement — needed to clone)
 if command -v git &>/dev/null; then
     _ok "git $(git --version | awk '{print $3}')"
+elif _apt_bootstrap git; then
+    _ok "git $(git --version | awk '{print $3}') (just installed)"
 else
     echo -e "${RED}  ✗${NC} git — not found  →  sudo apt install git" >&2
     _preflight_ok=false
@@ -61,13 +86,17 @@ if command -v curl &>/dev/null; then
     _ok "curl $(curl --version | awk 'NR==1{print $2}')"
 elif command -v wget &>/dev/null; then
     _ok "wget $(wget --version 2>&1 | awk 'NR==1{print $3}')"
+elif _apt_bootstrap curl; then
+    _ok "curl $(curl --version | awk 'NR==1{print $2}') (just installed)"
 else
     echo -e "${RED}  ✗${NC} curl/wget — neither found  →  sudo apt install curl" >&2
     _preflight_ok=false
 fi
 
-# sudo (soft — apt packages will be skipped without it)
-if command -v sudo &>/dev/null && sudo -n true 2>/dev/null; then
+# sudo (soft — not needed when already root)
+if [ "$(id -u)" -eq 0 ]; then
+    _ok "running as root (sudo not required)"
+elif command -v sudo &>/dev/null && sudo -n true 2>/dev/null; then
     _ok "sudo (passwordless)"
 elif command -v sudo &>/dev/null; then
     _warn "sudo present but requires a password — apt packages may prompt"
