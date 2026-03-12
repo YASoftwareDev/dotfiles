@@ -2,11 +2,24 @@
 # Asciinema demo script — showcases the dotfiles environment
 #
 # Usage:
-#   asciinema rec demo.cast --overwrite --command "bash demo.sh" --cols 80 --rows 24
+#   1. Start recording:
+#        asciinema rec demo.cast --overwrite --cols 80 --rows 24
+#   2. Inside the recording run:
+#        bash ~/.dotfiles/demo.sh
+#   3. Stop recording: Ctrl+D
+#
+# Convert to GIF (recommended — no npm needed):
+#   agg demo.cast demo.gif
+#
+# Convert to SVG (requires svg-term-cli):
+#   svg-term --in demo.cast --out demo.svg --window --width 80 --height 24
 
 export TERM=xterm-256color
 
-# ── Colours (p10k-like palette) ───────────────────────────────────────────────
+# Ensure dotfiles binaries are on PATH (inherited when run from zsh, but safe to repeat)
+export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/v24.14.0/bin:$PATH"
+
+# ── Colours (p10k lean palette) ───────────────────────────────────────────────
 BOLD='\033[1m'
 RESET='\033[0m'
 GREEN='\033[38;5;76m'
@@ -19,7 +32,6 @@ BLUE='\033[38;5;33m'
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-# Simulate keyboard typing
 _type() {
     local text="$1" delay="${2:-0.05}"
     for (( i=0; i<${#text}; i++ )); do
@@ -28,27 +40,22 @@ _type() {
     done
 }
 
-# Print a p10k-style lean prompt
 _prompt() {
     local dir="$1" branch="${2:-}" status="${3:-clean}"
     printf "\n${CYAN}${BOLD} %s${RESET}" "$dir"
     if [[ -n "$branch" ]]; then
         printf "  ${MAGENTA} %s${RESET}" "$branch"
-        if [[ "$status" == "clean" ]]; then
-            printf " ${GREEN}✔${RESET}"
-        elif [[ "$status" == "staged" ]]; then
-            printf " ${YELLOW}●1${RESET}"
-        elif [[ "$status" == "dirty" ]]; then
-            printf " ${RED}✚2${RESET}"
-        fi
+        case "$status" in
+            clean)  printf " ${GREEN}✔${RESET}" ;;
+            staged) printf " ${YELLOW}●1${RESET}" ;;
+            dirty)  printf " ${RED}✚2${RESET}" ;;
+        esac
     fi
     printf "\n${BOLD}${BLUE}❯${RESET} "
 }
 
-# Type a command and run it
 _run() {
-    local cmd="$1"
-    local pause_after="${2:-1.2}"
+    local cmd="$1" pause_after="${2:-1.2}"
     _type "$cmd"
     sleep 0.25
     echo
@@ -57,10 +64,9 @@ _run() {
     sleep "$pause_after"
 }
 
-# Print a section comment
 _comment() {
     printf "\n${GREY}# %s${RESET}\n" "$1"
-    sleep 0.6
+    sleep 0.5
 }
 
 # ── Build demo project ────────────────────────────────────────────────────────
@@ -139,43 +145,43 @@ git add src/server.py
 clear
 sleep 1.2
 
-# ── Scene 1: directory listing with eza ───────────────────────────────────────
+# ── Scene 1: directory listing ────────────────────────────────────────────────
 _comment "modern ls — eza"
 _prompt "~/projects/app" "main" "staged"
-_run "eza -l --group-directories-first"
+_run "eza -l --sort=type"
 
-# ── Scene 2: ripgrep search ───────────────────────────────────────────────────
+# ── Scene 2: content search ───────────────────────────────────────────────────
 _comment "search across files — ripgrep"
 _prompt "~/projects/app" "main" "staged"
 _run "rg 'TODO'"
 
-# ── Scene 3: fd file finder ───────────────────────────────────────────────────
+# ── Scene 3: file finder ──────────────────────────────────────────────────────
 _comment "find files — fd"
 _prompt "~/projects/app" "main" "staged"
 _run "fd -e py"
 
-# ── Scene 4: git log ─────────────────────────────────────────────────────────
+# ── Scene 4: git log ──────────────────────────────────────────────────────────
 _comment "git log"
 _prompt "~/projects/app" "main" "staged"
 _run "git log --oneline" 1.0
 
-# ── Scene 5: git diff with delta ─────────────────────────────────────────────
+# ── Scene 5: git diff (rendered by delta) ────────────────────────────────────
 _comment "git diff — rendered by delta"
 _prompt "~/projects/app" "main" "staged"
 _run "git diff --staged" 2.0
 
-# ── Scene 6: zoxide ──────────────────────────────────────────────────────────
-_comment "jump anywhere — zoxide"
-_prompt "~/projects/app" "main" "staged"
+# ── Scene 6: zoxide smart jump (simulated — z is a zsh function) ─────────────
+_comment "smart directory jump — zoxide"
+_prompt "~" "" ""
 _type "z app"
-sleep 0.25
+sleep 0.3
 echo
-printf "${GREY}  ~/projects/app${RESET}\n"
+sleep 0.3
+printf "${GREY}  → ~/projects/app${RESET}\n"
 sleep 1.5
 
-# ── End ──────────────────────────────────────────────────────────────────────
+# ── End ───────────────────────────────────────────────────────────────────────
 _prompt "~/projects/app" "main" "staged"
-sleep 2.5
+sleep 2.0
 
-# Cleanup
 rm -rf "$DEMO_ROOT"
