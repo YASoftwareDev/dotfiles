@@ -472,7 +472,6 @@ require('lazy').setup({
   },
 
   -- ── Syntax ───────────────────────────────────────────────────────────────
-  { 'chrisbra/csv.vim',                ft = 'csv' },
   {
     'catgoose/nvim-colorizer.lua',
     event  = 'BufReadPost',
