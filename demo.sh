@@ -65,16 +65,16 @@ _comment() {
 # Args: query  selected_line  line2  line3  line4  count
 _fzf_popup() {
     local query="$1" sel="$2" l2="$3" l3="$4" l4="$5" count="$6"
-    local w=76
+    local w=78
     local border="${CYAN}"
     printf "${border}╭$(printf '─%.0s' $(seq 1 $w))╮${RESET}\n"
-    printf "${border}│${RESET} ${BOLD}> %s${RESET}%-$((w - ${#query} - 4))s${GREY}%s${RESET} ${border}│${RESET}\n" \
+    printf "${border}│${RESET} ${BOLD}> %s${RESET}%-$((w - ${#query} - ${#count} - 4))s${GREY}%s${RESET} ${border}│${RESET}\n" \
         "$query" "" "$count"
     printf "${border}├$(printf '─%.0s' $(seq 1 $w))┤${RESET}\n"
-    printf "${border}│${RESET} ${GREEN}${BOLD}❯ %-$((w - 2))s${RESET}${border}│${RESET}\n" "$sel"
-    printf "${border}│${RESET}   %-$((w - 2))s${border}│${RESET}\n" "$l2"
-    printf "${border}│${RESET}   %-$((w - 2))s${border}│${RESET}\n" "$l3"
-    printf "${border}│${RESET}   %-$((w - 2))s${border}│${RESET}\n" "$l4"
+    printf "${border}│${RESET} ${GREEN}${BOLD}❯ %-$((w - 3))s${RESET}${border}│${RESET}\n" "$sel"
+    printf "${border}│${RESET}   %-$((w - 3))s${border}│${RESET}\n" "$l2"
+    printf "${border}│${RESET}   %-$((w - 3))s${border}│${RESET}\n" "$l3"
+    printf "${border}│${RESET}   %-$((w - 3))s${border}│${RESET}\n" "$l4"
     printf "${border}╰$(printf '─%.0s' $(seq 1 $w))╯${RESET}\n"
 }
 
@@ -182,7 +182,7 @@ printf "${GREY}^T${RESET}\n"; sleep 0.3
 _fzf_popup "py" "src/server.py" "src/worker.py" "tests/test_server.py" "pyproject.toml" "4/4"
 sleep 1.8
 # clear popup, show selected
-printf "\033[8A\033[J"
+printf "\033[9A\033[J"
 _prompt "~/projects/app" "main" "staged"
 _type "vim src/server.py"
 sleep 0.3; echo; sleep 1.0
@@ -198,16 +198,16 @@ _fzf_popup "git d" \
     "docker compose up -d" \
     "4/142"
 sleep 1.8
-printf "\033[8A\033[J"
+printf "\033[9A\033[J"
 _prompt "~/projects/app" "main" "staged"
-_run "git diff --staged" 2.0
+DELTA_FEATURES="" COLORTERM=truecolor _run "git diff --staged" 2.0
 
 # ── Scene 5: zoxide ───────────────────────────────────────────────────────────
 _comment "smart directory jump — zoxide"
 _prompt "~" "" ""
 _type "z app"; sleep 0.3; echo
 printf "${GREY}  → ~/projects/app${RESET}\n"
-sleep 1.2
+sleep 1.8
 
 # ── Scene 6: tmux ─────────────────────────────────────────────────────────────
 clear
@@ -226,7 +226,7 @@ printf "${GREY}│${RESET}                                      ${GREY}│${RESE
 printf "${GREY}│${RESET}                                      ${GREY}│${RESET}                                     ${GREY}│${RESET}\n"
 printf "${GREY}└──────────────────────────────────────┴─────────────────────────────────────┘${RESET}\n"
 _tmux_bar "0:zsh  1:app*  2:server  3:logs" "CPU 6%  14:23  12 Mar"
-sleep 2.5
+sleep 3.5
 
 # ── End ───────────────────────────────────────────────────────────────────────
 printf "\n"
