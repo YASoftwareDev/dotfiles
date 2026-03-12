@@ -216,15 +216,15 @@ sleep 0.6
 
 # Simulate a tmux split layout
 printf "\n"
-printf "${GREY}┌──────────────────────────────────────┬─────────────────────────────────────┐${RESET}\n"
-printf "${GREY}│${RESET} ${CYAN}${BOLD} ~/projects/app  main ✔${RESET}           ${GREY}│${RESET} ${CYAN}${BOLD} ~/projects/api  main ✔${RESET}          ${GREY}│${RESET}\n"
-printf "${GREY}│${RESET} ${BOLD}${BLUE}❯${RESET} git status                         ${GREY}│${RESET} ${BOLD}${BLUE}❯${RESET} tail -f logs/app.log               ${GREY}│${RESET}\n"
-printf "${GREY}│${RESET} On branch main                       ${GREY}│${RESET} ${GREEN}[14:22:11] GET /health 200${RESET}         ${GREY}│${RESET}\n"
-printf "${GREY}│${RESET} nothing to commit, working tree clean${GREY}│${RESET} ${GREEN}[14:22:14] POST /process 200${RESET}       ${GREY}│${RESET}\n"
-printf "${GREY}│${RESET}                                      ${GREY}│${RESET} ${YELLOW}[14:22:18] GET /users 404${RESET}          ${GREY}│${RESET}\n"
-printf "${GREY}│${RESET}                                      ${GREY}│${RESET}                                     ${GREY}│${RESET}\n"
-printf "${GREY}│${RESET}                                      ${GREY}│${RESET}                                     ${GREY}│${RESET}\n"
-printf "${GREY}└──────────────────────────────────────┴─────────────────────────────────────┘${RESET}\n"
+printf "${GREY}┌───────────────────────────────────────┬──────────────────────────────────────┐${RESET}\n"
+printf "${GREY}│${RESET} ${CYAN}${BOLD} ~/projects/app  main ✔${RESET}                ${GREY}│${RESET} ${CYAN}${BOLD} ~/projects/api  main ✔${RESET}               ${GREY}│${RESET}\n"
+printf "${GREY}│${RESET} ${BOLD}${BLUE}❯${RESET} git status                          ${GREY}│${RESET} ${BOLD}${BLUE}❯${RESET} tail -f logs/app.log               ${GREY}│${RESET}\n"
+printf "${GREY}│${RESET} On branch main                        ${GREY}│${RESET} ${GREEN}[14:22:11] GET /health 200${RESET}           ${GREY}│${RESET}\n"
+printf "${GREY}│${RESET} nothing to commit, working tree clean ${GREY}│${RESET} ${GREEN}[14:22:14] POST /process 200${RESET}         ${GREY}│${RESET}\n"
+printf "${GREY}│${RESET}                                       ${GREY}│${RESET} ${YELLOW}[14:22:18] GET /users 404${RESET}            ${GREY}│${RESET}\n"
+printf "${GREY}│${RESET}                                       ${GREY}│${RESET}                                      ${GREY}│${RESET}\n"
+printf "${GREY}│${RESET}                                       ${GREY}│${RESET}                                      ${GREY}│${RESET}\n"
+printf "${GREY}└───────────────────────────────────────┴──────────────────────────────────────┘${RESET}\n"
 _tmux_bar "0:zsh  1:app*  2:server  3:logs" "CPU 6%  14:23  12 Mar"
 sleep 3.5
 
