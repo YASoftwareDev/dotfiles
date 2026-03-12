@@ -51,6 +51,74 @@ exec zsh          # activate zsh (or open a new terminal)
 p10k configure    # customise the prompt
 ```
 
+## Docker
+
+### Running dotfiles inside a container
+
+For a clean `ubuntu:20.04` container with nothing pre-installed:
+
+**Option A — single command** (chains apt + bootstrap in one paste):
+
+```bash
+apt-get update -qq && apt-get install -yq curl && \
+  curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash -s -- workstation
+exec zsh
+```
+
+**Option B — zero in-container prereqs** (`get.sh` auto-installs git and curl):
+
+```bash
+# from the host — copy get.sh into a running container:
+docker cp get.sh <container>:/get.sh
+docker exec <container> bash /get.sh workstation
+docker exec -it <container> zsh
+```
+
+After install: `exec zsh` activates zsh for the current session. All future
+`docker exec -it <container> bash` sessions auto-switch to zsh via `~/.bashrc`.
+
+> Use the `docker` profile instead of `workstation` for a lighter, headless
+> install (~3 min, no Neovim, no Nerd Fonts required).
+
+---
+
+### Building a Docker image
+
+Use the included [`Dockerfile`](Dockerfile) to bake dotfiles into an image at
+build time — one build, instant subsequent starts:
+
+```bash
+# default: ubuntu:24.04, docker profile
+docker build -t my-devenv .
+docker run --rm -it my-devenv          # drops to zsh
+```
+
+Override Ubuntu version or install profile:
+
+```bash
+docker build --build-arg UBUNTU=20.04 --build-arg PROFILE=workstation \
+  -t my-devenv:workstation .
+```
+
+Or write your own minimal `Dockerfile`:
+
+```dockerfile
+FROM ubuntu:20.04
+RUN apt-get update -qq && apt-get install -yq curl && \
+    curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh \
+    | bash -s -- docker
+ENV POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=true
+CMD ["zsh"]
+```
+
+The `Dockerfile` in this repo also supports an **iterative mode** — mount the
+live source tree and re-run `install.sh` without rebuilding the image:
+
+```bash
+docker run --rm -it -v "$PWD":/root/dotfiles my-devenv bash
+# inside: cd ~/dotfiles && bash install.sh workstation
+```
+
 ## Update
 
 ```bash
