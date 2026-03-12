@@ -6,29 +6,23 @@
 #        asciinema rec demo.cast --overwrite --cols 80 --rows 24
 #   2. Inside the recording run:
 #        bash ~/.dotfiles/demo.sh
-#   3. Stop recording: Ctrl+D
 #
-# Convert to GIF (recommended — no npm needed):
+# Convert to GIF (recommended):
 #   agg demo.cast demo.gif
 #
-# Convert to SVG (requires svg-term-cli):
+# Convert to SVG:
 #   svg-term --in demo.cast --out demo.svg --window --width 80 --height 24
 
 export TERM=xterm-256color
+export PATH="$HOME/.local/bin:$PATH"
 
-# Ensure dotfiles binaries are on PATH (inherited when run from zsh, but safe to repeat)
-export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/v24.14.0/bin:$PATH"
-
-# ── Colours (p10k lean palette) ───────────────────────────────────────────────
-BOLD='\033[1m'
-RESET='\033[0m'
-GREEN='\033[38;5;76m'
-CYAN='\033[38;5;39m'
-MAGENTA='\033[38;5;135m'
-YELLOW='\033[38;5;220m'
-RED='\033[38;5;196m'
-GREY='\033[38;5;245m'
-BLUE='\033[38;5;33m'
+# ── Colours ───────────────────────────────────────────────────────────────────
+BOLD='\033[1m';    RESET='\033[0m'
+GREEN='\033[38;5;76m';   CYAN='\033[38;5;39m'
+MAGENTA='\033[38;5;135m'; YELLOW='\033[38;5;220m'
+RED='\033[38;5;196m';    GREY='\033[38;5;245m'
+BLUE='\033[38;5;33m';    WHITE='\033[38;5;255m'
+BG_DARK='\033[48;5;232m'; FG_STATUS='\033[38;5;102m'
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -57,9 +51,7 @@ _prompt() {
 _run() {
     local cmd="$1" pause_after="${2:-1.2}"
     _type "$cmd"
-    sleep 0.25
-    echo
-    sleep 0.1
+    sleep 0.25; echo; sleep 0.1
     eval "$cmd" 2>&1 || true
     sleep "$pause_after"
 }
@@ -67,6 +59,34 @@ _run() {
 _comment() {
     printf "\n${GREY}# %s${RESET}\n" "$1"
     sleep 0.5
+}
+
+# Draw a fzf-style floating popup
+# Args: query  selected_line  line2  line3  line4  count
+_fzf_popup() {
+    local query="$1" sel="$2" l2="$3" l3="$4" l4="$5" count="$6"
+    local w=76
+    local border="${CYAN}"
+    printf "${border}╭$(printf '─%.0s' $(seq 1 $w))╮${RESET}\n"
+    printf "${border}│${RESET} ${BOLD}> %s${RESET}%-$((w - ${#query} - 4))s${GREY}%s${RESET} ${border}│${RESET}\n" \
+        "$query" "" "$count"
+    printf "${border}├$(printf '─%.0s' $(seq 1 $w))┤${RESET}\n"
+    printf "${border}│${RESET} ${GREEN}${BOLD}❯ %-$((w - 2))s${RESET}${border}│${RESET}\n" "$sel"
+    printf "${border}│${RESET}   %-$((w - 2))s${border}│${RESET}\n" "$l2"
+    printf "${border}│${RESET}   %-$((w - 2))s${border}│${RESET}\n" "$l3"
+    printf "${border}│${RESET}   %-$((w - 2))s${border}│${RESET}\n" "$l4"
+    printf "${border}╰$(printf '─%.0s' $(seq 1 $w))╯${RESET}\n"
+}
+
+# Draw a simulated tmux status bar
+_tmux_bar() {
+    local wins="$1" right="$2"
+    local left_len=$(( ${#wins} + 2 ))
+    local right_len=$(( ${#right} + 2 ))
+    local pad=$(( 80 - left_len - right_len ))
+    printf "${BG_DARK}${BOLD}${WHITE} %s ${RESET}" "$wins"
+    printf "${BG_DARK}%-${pad}s${RESET}" ""
+    printf "${BG_DARK}${FG_STATUS} %s ${RESET}\n" "$right"
 }
 
 # ── Build demo project ────────────────────────────────────────────────────────
@@ -130,7 +150,6 @@ EOF
 
 git add . && git commit -q -m "feat: initial project structure"
 
-# Stage a change for the diff scene
 cat >> src/server.py << 'EOF'
 
 
@@ -143,44 +162,74 @@ git add src/server.py
 
 # ── Recording ─────────────────────────────────────────────────────────────────
 clear
-sleep 1.2
+sleep 1.0
 
-# ── Scene 1: directory listing ────────────────────────────────────────────────
+# ── Scene 1: eza ──────────────────────────────────────────────────────────────
 _comment "modern ls — eza"
 _prompt "~/projects/app" "main" "staged"
-_run "eza -l --sort=type"
+_run "eza -l --no-user --sort=type"
 
-# ── Scene 2: content search ───────────────────────────────────────────────────
+# ── Scene 2: ripgrep ──────────────────────────────────────────────────────────
 _comment "search across files — ripgrep"
 _prompt "~/projects/app" "main" "staged"
 _run "rg 'TODO'"
 
-# ── Scene 3: file finder ──────────────────────────────────────────────────────
-_comment "find files — fd"
+# ── Scene 3: Ctrl+T — fuzzy file search ───────────────────────────────────────
+_comment "Ctrl+T — fuzzy file finder"
 _prompt "~/projects/app" "main" "staged"
-_run "fd -e py"
-
-# ── Scene 4: git log ──────────────────────────────────────────────────────────
-_comment "git log"
+_type "vim "; sleep 0.3
+printf "${GREY}^T${RESET}\n"; sleep 0.3
+_fzf_popup "py" "src/server.py" "src/worker.py" "tests/test_server.py" "pyproject.toml" "4/4"
+sleep 1.8
+# clear popup, show selected
+printf "\033[8A\033[J"
 _prompt "~/projects/app" "main" "staged"
-_run "git log --oneline" 1.0
+_type "vim src/server.py"
+sleep 0.3; echo; sleep 1.0
 
-# ── Scene 5: git diff (rendered by delta) ────────────────────────────────────
-_comment "git diff — rendered by delta"
+# ── Scene 4: Ctrl+R — history search ─────────────────────────────────────────
+_comment "Ctrl+R — fuzzy history search"
+_prompt "~/projects/app" "main" "staged"
+printf "${GREY}^R${RESET}\n"; sleep 0.3
+_fzf_popup "git d" \
+    "git diff --staged" \
+    "git log --oneline -10" \
+    "rg 'TODO' --type py" \
+    "docker compose up -d" \
+    "4/142"
+sleep 1.8
+printf "\033[8A\033[J"
 _prompt "~/projects/app" "main" "staged"
 _run "git diff --staged" 2.0
 
-# ── Scene 6: zoxide smart jump (simulated — z is a zsh function) ─────────────
+# ── Scene 5: zoxide ───────────────────────────────────────────────────────────
 _comment "smart directory jump — zoxide"
 _prompt "~" "" ""
-_type "z app"
-sleep 0.3
-echo
-sleep 0.3
+_type "z app"; sleep 0.3; echo
 printf "${GREY}  → ~/projects/app${RESET}\n"
-sleep 1.5
+sleep 1.2
+
+# ── Scene 6: tmux ─────────────────────────────────────────────────────────────
+clear
+_comment "tmux — persistent sessions, split panes"
+sleep 0.6
+
+# Simulate a tmux split layout
+printf "\n"
+printf "${GREY}┌──────────────────────────────────────┬─────────────────────────────────────┐${RESET}\n"
+printf "${GREY}│${RESET} ${CYAN}${BOLD} ~/projects/app  main ✔${RESET}           ${GREY}│${RESET} ${CYAN}${BOLD} ~/projects/api  main ✔${RESET}          ${GREY}│${RESET}\n"
+printf "${GREY}│${RESET} ${BOLD}${BLUE}❯${RESET} git status                         ${GREY}│${RESET} ${BOLD}${BLUE}❯${RESET} tail -f logs/app.log               ${GREY}│${RESET}\n"
+printf "${GREY}│${RESET} On branch main                       ${GREY}│${RESET} ${GREEN}[14:22:11] GET /health 200${RESET}         ${GREY}│${RESET}\n"
+printf "${GREY}│${RESET} nothing to commit, working tree clean${GREY}│${RESET} ${GREEN}[14:22:14] POST /process 200${RESET}       ${GREY}│${RESET}\n"
+printf "${GREY}│${RESET}                                      ${GREY}│${RESET} ${YELLOW}[14:22:18] GET /users 404${RESET}          ${GREY}│${RESET}\n"
+printf "${GREY}│${RESET}                                      ${GREY}│${RESET}                                     ${GREY}│${RESET}\n"
+printf "${GREY}│${RESET}                                      ${GREY}│${RESET}                                     ${GREY}│${RESET}\n"
+printf "${GREY}└──────────────────────────────────────┴─────────────────────────────────────┘${RESET}\n"
+_tmux_bar "0:zsh  1:app*  2:server  3:logs" "CPU 6%  14:23  12 Mar"
+sleep 2.5
 
 # ── End ───────────────────────────────────────────────────────────────────────
+printf "\n"
 _prompt "~/projects/app" "main" "staged"
 sleep 2.0
 
