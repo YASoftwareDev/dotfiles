@@ -143,6 +143,11 @@ _do_update_neovim() {
     fi
     if $CHECK_ONLY; then
         _report_version neovim "${current:-none}" "$latest_tag"
+        if $CAN_SUDO; then
+            log_info "  → update would install to /usr/local/ (sudo available)"
+        else
+            log_info "  → update would install to ~/.local/ (no sudo)"
+        fi
         return
     fi
     if [ "$current" = "$latest" ]; then
@@ -180,6 +185,7 @@ if _should_run apt; then
     if $CAN_SUDO; then
         if $CHECK_ONLY; then
             apt list --upgradable 2>/dev/null | grep -v '^Listing' || true
+            log_info "  → sudo required to apply these updates"
         else
             $SUDO apt-get -yq update
             $SUDO env DEBIAN_FRONTEND=noninteractive apt-get -yq upgrade
