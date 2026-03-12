@@ -1,6 +1,6 @@
 # Dotfiles
 
-Ubuntu 20.04+ development environment — zsh, neovim, tmux, search tools, Python tooling.
+Ubuntu 20.04+ development environment — zsh, tmux, search tools, Python tooling.
 
 ## Install
 
@@ -47,7 +47,6 @@ cd ~/.dotfiles
 ```bash
 exec zsh          # activate zsh (or open a new terminal)
 p10k configure    # customise the prompt
-nvim              # lazy.nvim auto-installs plugins on first launch
 ```
 
 ## Update
@@ -136,6 +135,27 @@ cd ~/.dotfiles && ./update.sh
 - **zoxide** — smart directory jumper (`z <dir>`, `zi` for interactive picker)
 - **eza** — modern `ls` replacement; aliased as `la` and `tree`
 
+### Git
+
+- **delta** — pager for `git diff` / `git log` (line numbers, navigate mode, zdiff3 conflicts)
+- `.gitconfig`: `pager = delta`, diff drivers for zip/gz/bz2/xz/tar/pdf/bin
+- `.gitattributes`: maps file extensions to diff drivers
+
+### Python tooling
+
+- **uv** — fast Python package manager / virtualenv tool (installed to `~/.local/bin`)
+- **uvx** — uv tool runner (installed alongside uv)
+- **ruff** — Python linter + formatter (installed via `uv tool install ruff`)
+
+### Other tools
+
+- **ranger** — terminal file manager (config symlinked individually)
+- **tig** — terminal git UI
+- **cheat** — command cheatsheets (`cheat <command>`)
+- **jq** — JSON processor
+- **shellcheck** — shell script linter
+- **GNU parallel** — parallel job execution
+
 ### Editor — Neovim
 
 Full Lua config at `nvim/.config/nvim/init.lua`. Plugin manager: **lazy.nvim** (auto-bootstrapped).
@@ -172,27 +192,6 @@ Full Lua config at `nvim/.config/nvim/init.lua`. Plugin manager: **lazy.nvim** (
 | `gd` / `gr` / `K` | LSP: definition / references / hover |
 | `<C-h/j/k/l>`, `<M-h/j/k/l>` | Window navigation (normal + insert) |
 | `<C/M-arrows>` | Window navigation (arrow key variants) |
-
-### Git
-
-- **delta** — pager for `git diff` / `git log` (line numbers, navigate mode, zdiff3 conflicts)
-- `.gitconfig`: `pager = delta`, diff drivers for zip/gz/bz2/xz/tar/pdf/bin
-- `.gitattributes`: maps file extensions to diff drivers
-
-### Python tooling
-
-- **uv** — fast Python package manager / virtualenv tool (installed to `~/.local/bin`)
-- **uvx** — uv tool runner (installed alongside uv)
-- **ruff** — Python linter + formatter (installed via `uv tool install ruff`)
-
-### Other tools
-
-- **ranger** — terminal file manager (config symlinked individually)
-- **tig** — terminal git UI
-- **cheat** — command cheatsheets (`cheat <command>`)
-- **jq** — JSON processor
-- **shellcheck** — shell script linter
-- **GNU parallel** — parallel job execution
 
 ### Useful aliases & functions
 
