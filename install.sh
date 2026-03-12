@@ -87,6 +87,10 @@ elif [ -z "$PROFILE" ]; then
 fi
 
 log_info "Profile: ${BOLD}${PROFILE}${NC}"
+if [ "$PROFILE" = "workstation" ] && [ -f /.dockerenv ]; then
+    log_warn "Docker detected with 'workstation' profile (~15 min, full install)."
+    log_warn "For a lighter headless install re-run: bash ~/.dotfiles/install.sh docker"
+fi
 echo ""
 
 # Preconditions
@@ -106,11 +110,13 @@ echo ""
 echo "  Next steps:"
 case "$PROFILE" in
     minimal|workstation)
-        echo "    • Start a new terminal session (or: exec zsh)"
+        echo "    • Switch to zsh now:  exec zsh"
+        echo "    • (Or start a new terminal session)"
         echo "    • Run p10k configure to customise your prompt"
         ;;
     docker)
-        echo "    • Source ~/.zshrc in your entrypoint"
+        echo "    • Interactive sessions (docker exec -it ... bash) will auto-switch to zsh"
+        echo "    • For Dockerfile entrypoints: source ~/.zshrc or use CMD [\"/bin/zsh\"]"
         ;;
 esac
 echo ""

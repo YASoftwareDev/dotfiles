@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-03-12
+
+### Fixed
+- `get.sh`: auto-install `git` and `curl` via `apt-get` when running as root on
+  apt-based systems — bare `ubuntu:20.04` containers now need zero manual
+  pre-installs (`_apt_bootstrap` helper runs `apt-get update` at most once)
+- `get.sh`: sudo preflight check now correctly reports "running as root" instead
+  of the misleading "apt package installs will be skipped" warning
+- `modules/zsh.sh` `_set_default_shell`: `$USER` unbound variable crash in root
+  containers replaced with `$(id -un)`
+- `modules/zsh.sh` `_set_default_shell`: hardcoded `sudo usermod` replaced with
+  `$SUDO usermod` — works on minimal images without `sudo` installed
+- `modules/zsh.sh` `_set_default_shell`: `$SHELL` unbound variable crash guarded
+  with `${SHELL:-}`
+- `modules/zsh.sh` `_set_default_shell`: empty `zsh_path` guard prevents silent
+  false-positive "already installed" and crashes on `usermod`
+
+### Added
+- `modules/zsh.sh`: `_patch_bashrc_for_docker` — when `/.dockerenv` is detected,
+  appends `exec zsh` guard to `~/.bashrc` so `docker exec -it … bash` sessions
+  auto-switch to zsh; fires for all profiles including `docker`
+- `install.sh`: warns when `workstation` profile is selected inside a Docker
+  container, suggesting the lighter `docker` profile
+- `get.sh`: Docker usage documented in header — Option A (combined one-liner) and
+  Option B (`docker cp` for zero in-container pre-reqs)
+
 ## [1.0.0] - 2026-03-11
 
 Complete overhaul of the dotfiles infrastructure: modular profiles, Neovim, CI, and bootstrap.
