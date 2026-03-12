@@ -1,6 +1,6 @@
 # Dotfiles
 
-Ubuntu 20.04+ development environment — zsh, tmux, search tools, Python tooling.
+Terminal development environment — zsh, tmux, search tools, Python tooling.
 
 ![demo](demo.svg)
 
@@ -55,7 +55,7 @@ p10k configure    # customise the prompt
 
 ### Running dotfiles inside a container
 
-For a clean `ubuntu:20.04` container with nothing pre-installed:
+For a clean Ubuntu container with nothing pre-installed:
 
 **Option A — single command** (chains apt + bootstrap in one paste):
 
@@ -103,7 +103,7 @@ docker build --build-arg UBUNTU=20.04 --build-arg PROFILE=workstation \
 Or write your own minimal `Dockerfile`:
 
 ```dockerfile
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 RUN apt-get update -qq && apt-get install -yq curl && \
     curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh \
     | bash -s -- docker

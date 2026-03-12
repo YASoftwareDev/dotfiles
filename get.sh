@@ -16,7 +16,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh -o get.sh
 #   bash get.sh [minimal|workstation|docker]
 #
-# Docker (clean ubuntu:20.04):
+# Docker (clean Ubuntu container):
 #   Option A — single copy-paste command (installs curl, then runs get.sh):
 #     apt-get update -qq && apt-get install -yq curl && \
 #       curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash -s -- workstation
