@@ -30,8 +30,9 @@ _install_tmux_plugins() {
         if [ -d "$dest" ]; then
             log_ok "$name already installed — skipping"
         else
+            log_info "$name: installing latest → $dest"
             if git clone --depth 1 "https://github.com/${repo}.git" "$dest" 2>/dev/null; then
-                log_ok "$name installed"
+                log_ok "$name installed → $dest"
             else
                 log_warn "$name: git clone failed — skipping"
                 all_ok=false

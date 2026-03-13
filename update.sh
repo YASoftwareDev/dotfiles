@@ -15,6 +15,7 @@
 #   ./update.sh --check              # check all versions
 #   ./update.sh --check neovim fzf  # check only neovim and fzf
 #   ./update.sh neovim              # update only neovim
+#   NOSUDO=1 ./update.sh            # skip apt upgrade, skip all sudo operations
 
 set -euo pipefail
 
@@ -179,7 +180,16 @@ _do_update_neovim() {
 }
 
 # ── System packages ────────────────────────────────────────────────────────────
+log_info "Checking sudo access…"
 detect_sudo
+case "$SUDO_STATUS" in
+    root)              log_ok   "Running as root — apt upgrades will run directly" ;;
+    sudo_passwordless) log_ok   "sudo available — apt upgrades will run via sudo" ;;
+    sudo_password)
+        log_ok   "sudo available — apt upgrades will run via sudo"
+        log_warn "sudo requires a password — you will be prompted when apt runs" ;;
+    nosudo)            log_warn "No sudo — apt upgrade skipped" ;;
+esac
 if _should_run apt; then
     log_step "System packages (apt)"
     if $CAN_SUDO; then

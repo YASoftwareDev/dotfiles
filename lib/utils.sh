@@ -23,20 +23,38 @@ apt_install() {
     $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -yq "$@"
 }
 
-# Check if we can use sudo (sets globals SUDO and CAN_SUDO)
+# Check if we can use sudo (sets globals SUDO, CAN_SUDO, SUDO_STATUS).
+# Pure probe — no output, no sudo -v, never prompts interactively.
+# SUDO_STATUS values: root | sudo_passwordless | sudo_password | nosudo
 detect_sudo() {
+    if [ -n "${NOSUDO:-}" ]; then
+        SUDO=""
+        CAN_SUDO=false
+        SUDO_STATUS=nosudo
+        export SUDO CAN_SUDO SUDO_STATUS
+        return
+    fi
     if [ "$(id -u)" -eq 0 ]; then
         SUDO=""
         CAN_SUDO=true
-    elif sudo -v 2>/dev/null; then
+        SUDO_STATUS=root
+    elif sudo -n true 2>/dev/null; then
         SUDO="sudo"
         CAN_SUDO=true
+        SUDO_STATUS=sudo_passwordless
+    elif command -v sudo &>/dev/null; then
+        # sudo binary found but -n probe failed. Cannot distinguish "needs password"
+        # from "not in sudoers" without prompting. CAN_SUDO=true is set optimistically;
+        # the first $SUDO call will fail loudly if the user is not actually in sudoers.
+        SUDO="sudo"
+        CAN_SUDO=true
+        SUDO_STATUS=sudo_password
     else
         SUDO=""
         CAN_SUDO=false
-        log_warn "No sudo access — skipping system package installation."
+        SUDO_STATUS=nosudo
     fi
-    export SUDO CAN_SUDO
+    export SUDO CAN_SUDO SUDO_STATUS
 }
 
 # Safe symlink: creates parent dir and force-overwrites existing link
@@ -125,8 +143,30 @@ run_checks() {
     _check_network
     _check_disk
     detect_sudo
-    if ! $CAN_SUDO; then
-        log_warn "No sudo — apt packages skipped; tools will be fetched as local binaries into ~/.local/bin"
+    case "$SUDO_STATUS" in
+        root)
+            log_ok "Running as root — system packages will be installed directly" ;;
+        sudo_passwordless)
+            log_ok "sudo available (passwordless) — system packages will be installed via apt" ;;
+        sudo_password)
+            log_info "sudo available — system packages will be installed via apt"
+            log_warn "sudo requires a password — you will be prompted when apt runs" ;;
+        nosudo)
+            if [ -n "${NOSUDO:-}" ]; then
+                log_info "NOSUDO=1 set — running in user-local mode (sudo disabled)"
+            else
+                log_warn "No sudo — apt skipped; tools will be fetched as local binaries into ~/.local/bin"
+            fi ;;
+    esac
+    if $CAN_SUDO && [ -n "${PROFILE:-}" ]; then
+        case "$PROFILE" in
+            minimal)
+                log_info "sudo will be used for: apt packages, chsh/usermod (default shell)" ;;
+            workstation)
+                log_info "sudo will be used for: apt packages, neovim install to /usr/local/, chsh/usermod (default shell)" ;;
+            docker)
+                log_info "sudo will be used for: apt packages" ;;
+        esac
     fi
     log_ok "All checks passed"
 }

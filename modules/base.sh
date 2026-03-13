@@ -9,15 +9,18 @@ install_base() {
     mkdir -p ~/.local/bin
 
     if $CAN_SUDO; then
-        $SUDO apt-get -yq update
-        apt_install \
-            git curl wget \
-            zsh tmux neovim \
-            ranger jq \
-            man-db gnupg \
-            python3 python3-venv \
-            ripgrep fd-find tig \
+        local -a _pkgs=(
+            git curl wget
+            zsh tmux neovim
+            ranger jq
+            man-db gnupg
+            python3 python3-venv
+            ripgrep fd-find tig
             parallel shellcheck
+        )
+        log_info "Installing via apt: ${_pkgs[*]} (versions resolved by apt)"
+        $SUDO apt-get -yq update
+        apt_install "${_pkgs[@]}"
 
         # fd is installed as 'fdfind' on Debian/Ubuntu — add a shim if fd is missing
         if ! has fd && has fdfind; then
@@ -54,17 +57,17 @@ install_base_docker() {
         return
     fi
 
+    local -a _pkgs=(
+        locales git curl wget
+        zsh tmux neovim
+        jq ripgrep fd-find shellcheck
+    )
+    log_info "Installing via apt: ${_pkgs[*]} (versions resolved by apt)"
     $SUDO apt-get -yq update
-    apt_install locales
+    apt_install "${_pkgs[@]}"
+    log_info "Generating locale: en_US.UTF-8"
     $SUDO locale-gen en_US.UTF-8
     $SUDO update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
-
-    apt_install \
-        git curl wget \
-        zsh tmux neovim \
-        jq \
-        ripgrep fd-find \
-        shellcheck
 
     if ! has fd && has fdfind; then
         mkdir -p ~/.local/bin
@@ -110,6 +113,7 @@ _install_zoxide() {
     [ -n "$apt_ver" ] && major=$(echo "$apt_ver" | cut -d. -f1)
 
     if $CAN_SUDO && { [ "$major" -gt 0 ] || [ "$minor" -ge 8 ]; }; then
+        log_info "zoxide: installing via apt (version ≥ 0.8 available) → system"
         apt_install zoxide
         return
     fi
@@ -145,6 +149,7 @@ _install_zoxide() {
         return
     fi
 
+    log_info "zoxide: installing $tag → ~/.local/bin/zoxide"
     if _download_tar_bin "$url" "zoxide" ~/.local/bin/zoxide; then
         log_ok "zoxide installed → ~/.local/bin ($(~/.local/bin/zoxide --version 2>/dev/null))"
         return
@@ -188,6 +193,7 @@ _install_delta() {
         local arch; arch="$(_deb_arch)"
         local deb="git-delta_${ver}_${arch}.deb"
         local url="https://github.com/dandavison/delta/releases/download/${ver}/${deb}"
+        log_info "git-delta: installing $ver → system (via .deb)"
         local tmp; tmp="$(mktemp -d)"
         # shellcheck disable=SC2064
         trap "rm -rf '$tmp'" RETURN
@@ -197,7 +203,7 @@ _install_delta() {
             wget -qO "$tmp/$deb" "$url"   || { log_warn "git-delta: download failed — skipping"; return; }
         fi
         $SUDO dpkg -i "$tmp/$deb"
-        log_ok "git-delta ${ver} installed"
+        log_ok "git-delta ${ver} installed → $(command -v delta 2>/dev/null || echo 'system')"
     else
         log_step "git-delta (GitHub binary — no sudo)"
         local arch; arch=$(uname -m)
@@ -211,6 +217,7 @@ _install_delta() {
                 ;;
         esac
         local url="https://github.com/dandavison/delta/releases/download/${ver}/delta-${ver}-${delta_arch}.tar.gz"
+        log_info "git-delta: installing $ver → ~/.local/bin/delta"
         if _download_tar_bin "$url" "delta" ~/.local/bin/delta; then
             log_ok "git-delta installed → ~/.local/bin/delta ($(~/.local/bin/delta --version 2>/dev/null))"
         else
@@ -228,12 +235,14 @@ _install_eza() {
     fi
 
     if $CAN_SUDO && apt-cache show eza &>/dev/null 2>&1; then
+        log_info "eza: installing via apt → system"
         apt_install eza
         return
     fi
 
     if $CAN_SUDO; then
         log_step "eza (official PPA)"
+        log_info "eza: installing latest → system (via PPA)"
         apt_install gpg  # needed for dearmor; may already be present
         $SUDO mkdir -p /etc/apt/keyrings
         if has curl; then
@@ -248,7 +257,7 @@ _install_eza() {
         $SUDO chmod 644 /etc/apt/keyrings/gierens.gpg /etc/apt/sources.list.d/gierens.list
         $SUDO apt-get update -yq
         apt_install eza
-        log_ok "eza installed via PPA"
+        log_ok "eza installed via PPA ($(eza --version 2>/dev/null | head -1))"
     else
         log_step "eza (GitHub binary — no sudo)"
         local arch; arch=$(uname -m)
@@ -267,6 +276,7 @@ _install_eza() {
             return
         fi
         local url="https://github.com/eza-community/eza/releases/download/${tag}/eza_${eza_arch}.tar.gz"
+        log_info "eza: installing $tag → ~/.local/bin/eza"
         if _download_tar_bin "$url" "eza" ~/.local/bin/eza; then
             log_ok "eza installed → ~/.local/bin/eza ($(~/.local/bin/eza --version 2>/dev/null | head -1))"
         else
@@ -299,6 +309,7 @@ _install_ripgrep() {
     fi
     local ver="${tag#v}"
     local url="https://github.com/BurntSushi/ripgrep/releases/download/${tag}/ripgrep-${ver}-${rg_arch}.tar.gz"
+    log_info "ripgrep: installing $tag → ~/.local/bin/rg"
     if _download_tar_bin "$url" "rg" ~/.local/bin/rg; then
         log_ok "ripgrep installed → ~/.local/bin/rg ($(~/.local/bin/rg --version 2>/dev/null | head -1))"
     else
@@ -329,6 +340,7 @@ _install_fd() {
         return
     fi
     local url="https://github.com/sharkdp/fd/releases/download/${tag}/fd-${tag}-${fd_arch}.tar.gz"
+    log_info "fd: installing $tag → ~/.local/bin/fd"
     if _download_tar_bin "$url" "fd" ~/.local/bin/fd; then
         log_ok "fd installed → ~/.local/bin/fd ($(~/.local/bin/fd --version 2>/dev/null))"
     else
@@ -359,6 +371,7 @@ _install_jq() {
         return
     fi
     local url="https://github.com/jqlang/jq/releases/download/${tag}/jq-linux-${jq_arch}"
+    log_info "jq: installing $tag → ~/.local/bin/jq"
     local ok=true
     if has curl; then
         curl -sfLo ~/.local/bin/jq "$url" || ok=false
@@ -385,6 +398,7 @@ _install_fzf() {
         return
     fi
     log_step "fzf (git clone)"
+    log_info "fzf: installing latest → ~/.fzf/ (shell integration via ~/.fzf.zsh, binary symlinked to ~/.local/bin/fzf)"
     git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf --quiet
     ~/.fzf/install --no-update-rc --key-bindings --completion
     mkdir -p ~/.local/bin

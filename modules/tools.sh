@@ -26,6 +26,9 @@ _install_ruff() {
         log_warn "uv not found — skipping ruff install"
         return
     fi
+    local uv_bin_dir
+    uv_bin_dir=$("$uv_bin" tool bin-dir 2>/dev/null || echo "$HOME/.local/bin")
+    log_info "ruff: installing latest via uv → $uv_bin_dir/ruff"
     "$uv_bin" tool install ruff
     log_ok "ruff installed ($(command -v ruff >/dev/null 2>&1 && ruff --version 2>/dev/null || echo "run: source ~/.zshrc to activate"))"
 }
@@ -51,6 +54,7 @@ _install_uv() {
 
     # uv uses stable asset names (no version in filename) — use direct URL, no API needed
     local url="https://github.com/astral-sh/uv/releases/latest/download/uv-${uv_arch}.tar.gz"
+    log_info "uv: installing latest → ~/.local/bin/uv"
 
     mkdir -p ~/.local/bin
     local tmp
@@ -103,6 +107,7 @@ _install_cheat() {
 
     # cheat uses stable asset names (no version in filename) — use direct URL, no API needed
     local url="https://github.com/cheat/cheat/releases/latest/download/cheat-linux-${cheat_arch}.gz"
+    log_info "cheat: installing latest → ~/.local/bin/cheat"
 
     mkdir -p ~/.local/bin
     local ok=true
@@ -117,7 +122,7 @@ _install_cheat() {
         return
     fi
     chmod +x ~/.local/bin/cheat
-    log_ok "cheat installed → ~/.local/bin"
+    log_ok "cheat installed → ~/.local/bin/cheat ($(~/.local/bin/cheat --version 2>/dev/null || echo 'unknown version'))"
 }
 
 _link_ripgrep_config() {
