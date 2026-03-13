@@ -19,6 +19,8 @@ DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # ── Defaults ──────────────────────────────────────────────────────────────────
 ALL_UBUNTU=(20.04 22.04 24.04)
 ALL_PROFILES=(docker minimal workstation)
+# nosudo is a special profile: it uses Dockerfile.nosudo and a non-root user.
+ALL_NOSUDO_UBUNTU=(20.04 22.04 24.04)
 FILTER_UBUNTU=()
 FILTER_PROFILES=()
 NO_CACHE=false
@@ -44,15 +46,18 @@ Options:
   --no-cache            Pass --no-cache to docker build
   --clean               Remove ALL dotfiles-test:* images and dangling layers after
                         run (regardless of --ubuntu/--profile filters)
+  --skip-nosudo         Skip the no-sudo matrix (Dockerfile.nosudo)
   --help                Show this help
 
 Valid Ubuntu versions: ${ALL_UBUNTU[*]}
-Valid profiles:        ${ALL_PROFILES[*]}
+Valid profiles:        ${ALL_PROFILES[*]}  nosudo
 
 Examples:
   bash test-local.sh
   bash test-local.sh --ubuntu 24.04 --profile minimal
   bash test-local.sh --ubuntu 22.04 --ubuntu 24.04 --profile docker
+  bash test-local.sh --ubuntu 24.04 --profile nosudo
+  bash test-local.sh --skip-nosudo
 EOF
 }
 
@@ -63,16 +68,24 @@ _validate_in() {
     echo "Invalid ${label}: '${value}'. Valid: $*" >&2; exit 1
 }
 
+SKIP_NOSUDO=false
+FILTER_NOSUDO=false  # true when user explicitly requests nosudo profile
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --ubuntu)
             _validate_in "$2" "ubuntu version" "${ALL_UBUNTU[@]}"
             FILTER_UBUNTU+=("$2"); shift 2 ;;
         --profile)
-            _validate_in "$2" "profile" "${ALL_PROFILES[@]}"
-            FILTER_PROFILES+=("$2"); shift 2 ;;
-        --no-cache) NO_CACHE=true; shift ;;
-        --clean)    CLEAN=true;    shift ;;
+            if [[ "$2" == "nosudo" ]]; then
+                FILTER_NOSUDO=true; shift 2
+            else
+                _validate_in "$2" "profile" "${ALL_PROFILES[@]}"
+                FILTER_PROFILES+=("$2"); shift 2
+            fi ;;
+        --no-cache)    NO_CACHE=true;    shift ;;
+        --clean)       CLEAN=true;       shift ;;
+        --skip-nosudo) SKIP_NOSUDO=true; shift ;;
         --help|-h)  usage; exit 0 ;;
         *) echo "Unknown option: $1" >&2; usage; exit 1 ;;
     esac
@@ -184,6 +197,77 @@ run_combination() {
     return 0
 }
 
+# ── No-sudo runner (uses Dockerfile.nosudo, non-root user) ───────────────────
+# Returns: 0=pass, 1=fail
+_build_nosudo() {
+    local ubuntu="$1" tag logfile
+    tag=$(_tag "$ubuntu" "nosudo")
+    logfile="${LOG_DIR}/${ubuntu}-nosudo.log"
+    local -a cache_flag=()
+    $NO_CACHE && cache_flag=(--no-cache)
+    echo -e "  ${BLUE}→${NC} building ${BOLD}${tag}${NC} (Dockerfile.nosudo) ..."
+    if docker build \
+        "${cache_flag[@]}" \
+        --build-arg "UBUNTU=${ubuntu}" \
+        -f "${DOTFILES_DIR}/Dockerfile.nosudo" \
+        -t "$tag" \
+        "$DOTFILES_DIR" \
+        >>"$logfile" 2>&1; then
+        echo -e "  ${GREEN}✓${NC} build ok"
+        return 0
+    else
+        echo -e "  ${RED}✗${NC} build FAILED  (see $logfile)"
+        return 1
+    fi
+}
+
+run_nosudo() {
+    local ubuntu="$1"
+    local tag logfile
+    tag=$(_tag "$ubuntu" "nosudo")
+    logfile="${LOG_DIR}/${ubuntu}-nosudo.log"
+
+    mkdir -p "$LOG_DIR"
+    : >"$logfile"  # truncate
+
+    echo ""
+    echo -e "${BOLD}── Ubuntu ${ubuntu}  /  nosudo ──${NC}"
+
+    # 1. Build (install.sh runs as non-root user during docker build)
+    _build_nosudo "$ubuntu" || return 1
+
+    # 2. Test suite (run as the same non-root user)
+    echo -e "  ${BLUE}→${NC} test.sh nosudo ..."
+    if docker run --rm \
+        -e TERM=xterm-256color \
+        -e POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=true \
+        --user user \
+        "$tag" bash -c \
+        "export PATH=\"\$HOME/.local/bin:\$PATH\"; cd ~/dotfiles && bash test.sh nosudo" \
+        >>"$logfile" 2>&1; then
+        echo -e "  ${GREEN}✓${NC} test.sh nosudo"
+    else
+        echo -e "  ${RED}✗${NC} test.sh nosudo FAILED  (see $logfile)"
+        return 1
+    fi
+
+    # 3. Idempotency — re-run install.sh as non-root user
+    echo -e "  ${BLUE}→${NC} idempotency (re-run install.sh minimal) ..."
+    if docker run --rm \
+        -e TERM=xterm-256color \
+        --user user \
+        "$tag" bash -c \
+        "export PATH=\"\$HOME/.local/bin:\$PATH\"; cd ~/dotfiles && bash install.sh minimal" \
+        >>"$logfile" 2>&1; then
+        echo -e "  ${GREEN}✓${NC} idempotency"
+    else
+        echo -e "  ${RED}✗${NC} idempotency FAILED  (see $logfile)"
+        return 1
+    fi
+
+    return 0
+}
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 _check_docker
 
@@ -197,9 +281,31 @@ echo -e "${BOLD}╔════════════════════�
 echo -e "║     YA Dotfiles — Local Matrix Tests     ║"
 echo -e "╚══════════════════════════════════════════╝${NC}"
 echo ""
+# Determine which no-sudo Ubuntu versions to run
+if $FILTER_NOSUDO; then
+    # User explicitly requested nosudo — use the ubuntu filter (or all)
+    if [[ ${#FILTER_UBUNTU[@]} -gt 0 ]]; then
+        NOSUDO_LIST=("${FILTER_UBUNTU[@]}")
+    else
+        NOSUDO_LIST=("${ALL_NOSUDO_UBUNTU[@]}")
+    fi
+    # Remove regular profiles if user only asked for nosudo
+    if [[ ${#FILTER_PROFILES[@]} -eq 0 ]]; then
+        PROFILE_LIST=()
+    fi
+elif $SKIP_NOSUDO; then
+    NOSUDO_LIST=()
+else
+    NOSUDO_LIST=("${ALL_NOSUDO_UBUNTU[@]}")
+fi
+
+nosudo_count=${#NOSUDO_LIST[@]}
+regular_count=$(( ${#UBUNTU_LIST[@]} * ${#PROFILE_LIST[@]} ))
+
 echo -e "  Ubuntu versions : ${UBUNTU_LIST[*]}"
 echo -e "  Profiles        : ${PROFILE_LIST[*]}"
-echo -e "  Combinations    : $((${#UBUNTU_LIST[@]} * ${#PROFILE_LIST[@]}))"
+echo -e "  No-sudo Ubuntu  : ${NOSUDO_LIST[*]:-none}"
+echo -e "  Combinations    : $((regular_count + nosudo_count))"
 echo -e "  Logs            : ${LOG_DIR}/"
 
 for ubuntu in "${UBUNTU_LIST[@]}"; do
@@ -213,6 +319,17 @@ for ubuntu in "${UBUNTU_LIST[@]}"; do
             results+=("${RED}FAIL${NC}  Ubuntu ${ubuntu}  /  ${profile}  →  ${LOG_DIR}/${ubuntu}-${profile}.log")
         fi
     done
+done
+
+for ubuntu in "${NOSUDO_LIST[@]}"; do
+    total=$((total + 1))
+    if run_nosudo "$ubuntu"; then
+        passed=$((passed + 1))
+        results+=("${GREEN}PASS${NC}  Ubuntu ${ubuntu}  /  nosudo")
+    else
+        failed=$((failed + 1))
+        results+=("${RED}FAIL${NC}  Ubuntu ${ubuntu}  /  nosudo  →  ${LOG_DIR}/${ubuntu}-nosudo.log")
+    fi
 done
 
 # ── Summary table ─────────────────────────────────────────────────────────────

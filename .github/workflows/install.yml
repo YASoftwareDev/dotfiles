@@ -67,3 +67,58 @@ jobs:
 
       - name: Re-run test suite after update
         run: su -s /bin/bash -c 'HOME=/home/testuser; export HOME; export TERM=xterm-256color; cd ~/dotfiles && bash test.sh ${{ matrix.profile }}' testuser
+
+  install-nosudo:
+    name: "nosudo @ Ubuntu ${{ matrix.ubuntu }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    container:
+      image: "ubuntu:${{ matrix.ubuntu }}"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        ubuntu: ["20.04", "22.04", "24.04"]
+
+    steps:
+      - name: Bootstrap prerequisites (as root — mirrors a shared host)
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get -yq update
+          apt-get -yq install apt-utils git curl wget ca-certificates zsh tmux python3
+
+      - name: Create non-root user WITHOUT sudo
+        run: useradd -m -s /bin/bash user
+
+      - name: Checkout dotfiles
+        uses: actions/checkout@v4
+
+      - name: Copy dotfiles to user home
+        run: |
+          cp -r . /home/user/dotfiles
+          chown -R user:user /home/user/dotfiles
+
+      - name: Configure curl auth (avoids GitHub API rate limit)
+        run: |
+          printf 'header = "Authorization: Bearer %s"\n' "${{ secrets.GITHUB_TOKEN }}" \
+            > /home/user/.curlrc
+          chown user:user /home/user/.curlrc
+          chmod 600 /home/user/.curlrc
+
+      - name: Install — no-sudo path (minimal profile)
+        run: |
+          su -s /bin/bash -c \
+            'HOME=/home/user; export HOME; export PATH="$HOME/.local/bin:$PATH"; cd ~/dotfiles && bash install.sh minimal' \
+            user
+
+      - name: Run test suite (nosudo profile)
+        run: |
+          su -s /bin/bash -c \
+            'HOME=/home/user; export HOME; export PATH="$HOME/.local/bin:$PATH"; export TERM=xterm-256color; cd ~/dotfiles && bash test.sh nosudo' \
+            user
+
+      - name: Idempotency — re-run install.sh
+        run: |
+          su -s /bin/bash -c \
+            'HOME=/home/user; export HOME; export PATH="$HOME/.local/bin:$PATH"; cd ~/dotfiles && bash install.sh minimal' \
+            user

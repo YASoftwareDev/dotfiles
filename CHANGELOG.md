@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-03-13
+
+### Added
+- **No-sudo support**: when `sudo` is unavailable, `modules/base.sh` now fetches
+  prebuilt binaries (`rg`, `fd`, `jq`, `delta`, `eza`, `fzf`, `zoxide`) from
+  GitHub releases into `~/.local/bin` instead of aborting
+- `_install_ripgrep`, `_install_fd`, `_install_jq` — dedicated helpers for
+  no-sudo binary installs (musl tarball or single-binary releases)
+- `_install_delta` / `_install_eza` — extended with no-sudo tarball path alongside
+  existing `.deb` / PPA paths
+- `modules/zsh.sh`: guard that skips oh-my-zsh, plugins, and zshrc setup when
+  `zsh` is not available; prints actionable reinstall hint
+- `test.sh`: `nosudo` profile — verifies all `~/.local/bin` binaries are present
+  and functional; confirms `sudo` is absent in the test environment
+- `test-local.sh`: `--profile nosudo` flag and `--skip-nosudo` flag; `run_nosudo`
+  runner builds via `Dockerfile.nosudo` and runs the nosudo test suite
+- `.github/workflows/install.yml`: `install-nosudo` job — matrix across Ubuntu
+  20.04 / 22.04 / 24.04 as a non-root user with no `sudo`
+
+### Changed
+- `modules/base.sh`: `install_base` restructured — apt path and no-sudo path are
+  symmetric branches; prints PATH hint when binaries land in `~/.local/bin`
+- `modules/base.sh` `_install_zoxide` / `_install_delta` / `_install_eza`: apt /
+  `.deb` fallbacks now guarded with `$CAN_SUDO` to avoid false errors
+- `lib/utils.sh`: no-sudo warning message updated to mention `~/.local/bin`
+
 ## [1.0.2] - 2026-03-12
 
 ### Removed
@@ -95,7 +121,10 @@ Complete overhaul of the dotfiles infrastructure: modular profiles, Neovim, CI, 
 ### Added
 - Initial dotfiles: Zsh (oh-my-zsh + fzf), Tmux, Vim, and monolithic `install.sh`
 
-[Unreleased]: https://github.com/tpedzimaz/dotfiles/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/tpedzimaz/dotfiles/compare/v1.0.3...HEAD
+[1.0.3]: https://github.com/tpedzimaz/dotfiles/compare/v1.0.2...v1.0.3
+[1.0.2]: https://github.com/tpedzimaz/dotfiles/compare/v1.0.1...v1.0.2
+[1.0.1]: https://github.com/tpedzimaz/dotfiles/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/tpedzimaz/dotfiles/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/tpedzimaz/dotfiles/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/tpedzimaz/dotfiles/compare/v0.1.0...v0.2.0

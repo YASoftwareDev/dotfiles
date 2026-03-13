@@ -4,6 +4,11 @@
 
 install_zsh() {
     local change_shell="${1:-yes}"
+    if ! has zsh; then
+        log_warn "zsh not found — skipping oh-my-zsh, plugins, and zshrc setup"
+        log_warn "  Install zsh via your package manager, then re-run: bash ~/.dotfiles/install.sh"
+        return 0
+    fi
     _install_ohmyzsh
     _install_zsh_plugins
     _link_zshrc
