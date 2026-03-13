@@ -126,7 +126,7 @@ run_checks() {
     _check_disk
     detect_sudo
     if ! $CAN_SUDO; then
-        log_warn "Continuing without sudo — apt packages will be skipped."
+        log_warn "No sudo — apt packages skipped; tools will be fetched as local binaries into ~/.local/bin"
     fi
     log_ok "All checks passed"
 }

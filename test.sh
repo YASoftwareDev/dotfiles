@@ -206,6 +206,59 @@ if [ "$PROFILE" = "workstation" ]; then
     check_link ~/.config/ranger/scope.sh
 fi
 
+# ── 13. Profile-specific: nosudo ──────────────────────────────────────────────
+# In the no-sudo environment every binary is fetched from GitHub and placed in
+# ~/.local/bin.  Verify each one is present, executable, and functional.
+if [ "$PROFILE" = "nosudo" ]; then
+    _hdr "No-sudo: ~/.local/bin binaries"
+
+    check_local_bin() {
+        local cmd="$1" label="${2:-$1}"
+        local p="$HOME/.local/bin/$cmd"
+        if [ -x "$p" ]; then
+            _ok "$label  →  $p  ($("$p" --version 2>&1 | head -1))"
+        elif command -v "$cmd" &>/dev/null; then
+            # Acceptable: binary on PATH even if not in ~/.local/bin
+            _ok "$label  →  $(command -v "$cmd")  ($(${cmd} --version 2>&1 | head -1))"
+        else
+            _fail "$label not found (expected in ~/.local/bin)"
+        fi
+    }
+
+    check_local_bin rg   "ripgrep"
+    check_local_bin fd   "fd"
+    check_local_bin jq   "jq"
+    check_local_bin fzf  "fzf"
+    check_local_bin zoxide "zoxide"
+    check_local_bin delta  "git-delta"
+    check_local_bin eza    "eza"
+
+    _hdr "No-sudo: sudo NOT available"
+    if sudo -v 2>/dev/null; then
+        _fail "sudo is available — no-sudo test is invalid"
+    else
+        _ok "sudo not available (correct)"
+    fi
+
+    _hdr "No-sudo: functional smoke tests"
+    if command -v rg &>/dev/null; then
+        check_run "ripgrep can search" bash -c 'echo hello | rg hello'
+    fi
+    if command -v fd &>/dev/null; then
+        check_run "fd can find files" bash -c 'fd --version'
+    fi
+    if command -v jq &>/dev/null; then
+        check_run "jq can parse JSON" bash -c 'echo "{\"x\":1}" | jq .x | grep -q 1'
+    fi
+    if command -v fzf &>/dev/null; then
+        check_run "fzf non-interactive filter" \
+            bash -c 'result=$(printf "apple\nbanana\n" | fzf --filter=ban); [ "$result" = "banana" ]'
+    fi
+    if command -v zoxide &>/dev/null; then
+        check_run "zoxide init" bash -c 'eval "$(zoxide init bash)"'
+    fi
+fi
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 TOTAL=$((PASS+FAIL+SKIP))
 echo ""

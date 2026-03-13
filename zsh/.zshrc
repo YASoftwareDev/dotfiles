@@ -119,3 +119,4 @@ fgl() {
 
 # ── Local overrides (machine-specific, not tracked) ───────────────────────────
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
+

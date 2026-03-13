@@ -1,35 +1,48 @@
 #!/usr/bin/env bash
 # Base system packages — requires apt (Ubuntu/Debian)
 # Idempotent: apt handles "already installed" gracefully
+# When CAN_SUDO=false, apt steps are skipped and tools are fetched as
+# pre-built binaries into ~/.local/bin instead.
 
 install_base() {
     log_step "Base packages"
-    if ! $CAN_SUDO; then
-        log_warn "Skipping system packages (no sudo)"
-        return
-    fi
+    mkdir -p ~/.local/bin
 
-    $SUDO apt-get -yq update
-    apt_install \
-        git curl wget \
-        zsh tmux neovim \
-        ranger jq \
-        man-db gnupg \
-        python3 python3-venv \
-        ripgrep fd-find tig \
-        parallel shellcheck
+    if $CAN_SUDO; then
+        $SUDO apt-get -yq update
+        apt_install \
+            git curl wget \
+            zsh tmux neovim \
+            ranger jq \
+            man-db gnupg \
+            python3 python3-venv \
+            ripgrep fd-find tig \
+            parallel shellcheck
 
-    # fd is installed as 'fdfind' on Debian/Ubuntu — add a shim if fd is missing
-    if ! has fd && has fdfind; then
-        mkdir -p ~/.local/bin
-        ln -sf "$(command -v fdfind)" ~/.local/bin/fd
-        log_ok "Created fd → fdfind shim in ~/.local/bin"
+        # fd is installed as 'fdfind' on Debian/Ubuntu — add a shim if fd is missing
+        if ! has fd && has fdfind; then
+            ln -sf "$(command -v fdfind)" ~/.local/bin/fd
+            log_ok "Created fd → fdfind shim in ~/.local/bin"
+        fi
+    else
+        log_warn "No sudo — skipping apt; fetching available tools as local binaries"
+        for tool in git zsh tmux python3; do
+            has "$tool" || log_warn "$tool not found — install via your system package manager"
+        done
+        _install_ripgrep
+        _install_fd
+        _install_jq
     fi
 
     _install_fzf
     _install_zoxide
     _install_delta
     _install_eza
+
+    if ! $CAN_SUDO; then
+        log_warn "Binaries installed to ~/.local/bin — ensure it is on your PATH:"
+        log_warn "  export PATH=\"\$HOME/.local/bin:\$PATH\""
+    fi
 
     log_ok "Base packages installed"
 }
@@ -96,7 +109,7 @@ _install_zoxide() {
     local major=0
     [ -n "$apt_ver" ] && major=$(echo "$apt_ver" | cut -d. -f1)
 
-    if [ "$major" -gt 0 ] || [ "$minor" -ge 8 ]; then
+    if $CAN_SUDO && { [ "$major" -gt 0 ] || [ "$minor" -ge 8 ]; }; then
         apt_install zoxide
         return
     fi
@@ -122,7 +135,7 @@ _install_zoxide() {
     fi
 
     if [ -z "$url" ]; then
-        if [ -n "$apt_ver" ]; then
+        if $CAN_SUDO && [ -n "$apt_ver" ]; then
             log_warn "zoxide: could not determine latest version; falling back to apt $apt_ver"
             log_warn "zoxide: apt version <0.8 — 'zi' alias requires ≥0.8; run update.sh to upgrade"
             apt_install zoxide
@@ -138,7 +151,7 @@ _install_zoxide() {
     fi
 
     # GitHub download failed (e.g. rate-limited in local Docker builds)
-    if [ -n "$apt_ver" ]; then
+    if $CAN_SUDO && [ -n "$apt_ver" ]; then
         log_warn "zoxide: GitHub download failed; falling back to apt $apt_ver"
         log_warn "zoxide: apt version <0.8 — 'zi' alias requires ≥0.8; run update.sh to upgrade"
         apt_install zoxide
@@ -148,20 +161,19 @@ _install_zoxide() {
     log_warn "zoxide: GitHub download failed and no apt package available — skipping"
 }
 
-# git-delta: apt on Ubuntu 24.04+; GitHub .deb binary on 20.04/22.04
+# git-delta: apt on Ubuntu 24.04+; GitHub .deb on 20.04/22.04 with sudo,
+# or musl tarball when no sudo is available.
 _install_delta() {
     if has delta; then
         log_ok "git-delta already installed — skipping"
         return
     fi
 
-    if apt-cache show git-delta &>/dev/null 2>&1; then
+    if $CAN_SUDO && apt-cache show git-delta &>/dev/null 2>&1; then
         apt_install git-delta
         return
     fi
 
-    log_step "git-delta (GitHub binary)"
-    local arch; arch="$(_deb_arch)"
     local tag ver
     tag=$(_gh_latest_tag_noapi "dandavison/delta") || tag=""
     ver="${tag#v}"
@@ -171,53 +183,195 @@ _install_delta() {
         return
     fi
 
-    local deb="git-delta_${ver}_${arch}.deb"
-    local url="https://github.com/dandavison/delta/releases/download/${ver}/${deb}"
-    local tmp; tmp="$(mktemp -d)"
-    # shellcheck disable=SC2064
-    trap "rm -rf '$tmp'" RETURN
-
-    if has curl; then
-        curl -sfLo "$tmp/$deb" "$url" || { log_warn "git-delta: download failed — skipping"; return; }
+    if $CAN_SUDO; then
+        log_step "git-delta (GitHub .deb)"
+        local arch; arch="$(_deb_arch)"
+        local deb="git-delta_${ver}_${arch}.deb"
+        local url="https://github.com/dandavison/delta/releases/download/${ver}/${deb}"
+        local tmp; tmp="$(mktemp -d)"
+        # shellcheck disable=SC2064
+        trap "rm -rf '$tmp'" RETURN
+        if has curl; then
+            curl -sfLo "$tmp/$deb" "$url" || { log_warn "git-delta: download failed — skipping"; return; }
+        else
+            wget -qO "$tmp/$deb" "$url"   || { log_warn "git-delta: download failed — skipping"; return; }
+        fi
+        $SUDO dpkg -i "$tmp/$deb"
+        log_ok "git-delta ${ver} installed"
     else
-        wget -qO "$tmp/$deb" "$url"   || { log_warn "git-delta: download failed — skipping"; return; }
+        log_step "git-delta (GitHub binary — no sudo)"
+        local arch; arch=$(uname -m)
+        local delta_arch
+        case "$arch" in
+            x86_64)  delta_arch="x86_64-unknown-linux-musl" ;;
+            aarch64) delta_arch="aarch64-unknown-linux-gnu"  ;;
+            *)
+                log_warn "git-delta: unsupported arch $arch — skipping"
+                return
+                ;;
+        esac
+        local url="https://github.com/dandavison/delta/releases/download/${ver}/delta-${ver}-${delta_arch}.tar.gz"
+        if _download_tar_bin "$url" "delta" ~/.local/bin/delta; then
+            log_ok "git-delta installed → ~/.local/bin/delta ($(~/.local/bin/delta --version 2>/dev/null))"
+        else
+            log_warn "git-delta: download failed — skipping"
+        fi
     fi
-
-    $SUDO dpkg -i "$tmp/$deb"
-    log_ok "git-delta ${ver} installed"
 }
 
-# eza: apt on Ubuntu 24.04+; official PPA (deb.gierens.de) on 20.04/22.04
+# eza: apt on Ubuntu 24.04+; official PPA on 20.04/22.04 with sudo,
+# or musl tarball when no sudo is available.
 _install_eza() {
     if has eza; then
         log_ok "eza already installed — skipping"
         return
     fi
 
-    if apt-cache show eza &>/dev/null 2>&1; then
+    if $CAN_SUDO && apt-cache show eza &>/dev/null 2>&1; then
         apt_install eza
         return
     fi
 
-    log_step "eza (official PPA)"
-    apt_install gpg  # needed for dearmor; may already be present
-
-    $SUDO mkdir -p /etc/apt/keyrings
-    if has curl; then
-        curl -fsSL https://raw.githubusercontent.com/eza-community/eza/main/deb.asc \
-            | $SUDO gpg --dearmor -o /etc/apt/keyrings/gierens.gpg
+    if $CAN_SUDO; then
+        log_step "eza (official PPA)"
+        apt_install gpg  # needed for dearmor; may already be present
+        $SUDO mkdir -p /etc/apt/keyrings
+        if has curl; then
+            curl -fsSL https://raw.githubusercontent.com/eza-community/eza/main/deb.asc \
+                | $SUDO gpg --dearmor -o /etc/apt/keyrings/gierens.gpg
+        else
+            wget -qO- https://raw.githubusercontent.com/eza-community/eza/main/deb.asc \
+                | $SUDO gpg --dearmor -o /etc/apt/keyrings/gierens.gpg
+        fi
+        echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" \
+            | $SUDO tee /etc/apt/sources.list.d/gierens.list > /dev/null
+        $SUDO chmod 644 /etc/apt/keyrings/gierens.gpg /etc/apt/sources.list.d/gierens.list
+        $SUDO apt-get update -yq
+        apt_install eza
+        log_ok "eza installed via PPA"
     else
-        wget -qO- https://raw.githubusercontent.com/eza-community/eza/main/deb.asc \
-            | $SUDO gpg --dearmor -o /etc/apt/keyrings/gierens.gpg
+        log_step "eza (GitHub binary — no sudo)"
+        local arch; arch=$(uname -m)
+        local eza_arch
+        case "$arch" in
+            x86_64)  eza_arch="x86_64-unknown-linux-musl" ;;
+            aarch64) eza_arch="aarch64-unknown-linux-musl" ;;
+            *)
+                log_warn "eza: unsupported arch $arch — skipping"
+                return
+                ;;
+        esac
+        local tag; tag=$(_gh_latest_tag_noapi "eza-community/eza") || tag=""
+        if [ -z "$tag" ]; then
+            log_warn "eza: could not determine latest release — skipping"
+            return
+        fi
+        local url="https://github.com/eza-community/eza/releases/download/${tag}/eza_${eza_arch}.tar.gz"
+        if _download_tar_bin "$url" "eza" ~/.local/bin/eza; then
+            log_ok "eza installed → ~/.local/bin/eza ($(~/.local/bin/eza --version 2>/dev/null | head -1))"
+        else
+            log_warn "eza: download failed — skipping"
+        fi
     fi
+}
 
-    echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" \
-        | $SUDO tee /etc/apt/sources.list.d/gierens.list > /dev/null
-    $SUDO chmod 644 /etc/apt/keyrings/gierens.gpg /etc/apt/sources.list.d/gierens.list
+# ripgrep: GitHub tarball — binary is 'rg'
+_install_ripgrep() {
+    if has rg; then
+        log_ok "ripgrep already installed — skipping"
+        return
+    fi
+    log_step "ripgrep (GitHub binary)"
+    local arch; arch=$(uname -m)
+    local rg_arch
+    case "$arch" in
+        x86_64)  rg_arch="x86_64-unknown-linux-musl" ;;
+        aarch64) rg_arch="aarch64-unknown-linux-gnu"  ;;
+        *)
+            log_warn "ripgrep: unsupported arch $arch — skipping"
+            return
+            ;;
+    esac
+    local tag; tag=$(_gh_latest_tag_noapi "BurntSushi/ripgrep") || tag=""
+    if [ -z "$tag" ]; then
+        log_warn "ripgrep: could not determine latest release — skipping"
+        return
+    fi
+    local ver="${tag#v}"
+    local url="https://github.com/BurntSushi/ripgrep/releases/download/${tag}/ripgrep-${ver}-${rg_arch}.tar.gz"
+    if _download_tar_bin "$url" "rg" ~/.local/bin/rg; then
+        log_ok "ripgrep installed → ~/.local/bin/rg ($(~/.local/bin/rg --version 2>/dev/null | head -1))"
+    else
+        log_warn "ripgrep: download failed — skipping"
+    fi
+}
 
-    $SUDO apt-get update -yq
-    apt_install eza
-    log_ok "eza installed via PPA"
+# fd: GitHub tarball — binary is 'fd'
+_install_fd() {
+    if has fd || has fdfind; then
+        log_ok "fd already installed — skipping"
+        return
+    fi
+    log_step "fd (GitHub binary)"
+    local arch; arch=$(uname -m)
+    local fd_arch
+    case "$arch" in
+        x86_64)  fd_arch="x86_64-unknown-linux-musl" ;;
+        aarch64) fd_arch="aarch64-unknown-linux-gnu"  ;;
+        *)
+            log_warn "fd: unsupported arch $arch — skipping"
+            return
+            ;;
+    esac
+    local tag; tag=$(_gh_latest_tag_noapi "sharkdp/fd") || tag=""
+    if [ -z "$tag" ]; then
+        log_warn "fd: could not determine latest release — skipping"
+        return
+    fi
+    local url="https://github.com/sharkdp/fd/releases/download/${tag}/fd-${tag}-${fd_arch}.tar.gz"
+    if _download_tar_bin "$url" "fd" ~/.local/bin/fd; then
+        log_ok "fd installed → ~/.local/bin/fd ($(~/.local/bin/fd --version 2>/dev/null))"
+    else
+        log_warn "fd: download failed — skipping"
+    fi
+}
+
+# jq: GitHub single-binary release
+_install_jq() {
+    if has jq; then
+        log_ok "jq already installed — skipping"
+        return
+    fi
+    log_step "jq (GitHub binary)"
+    local arch; arch=$(uname -m)
+    local jq_arch
+    case "$arch" in
+        x86_64)  jq_arch="amd64" ;;
+        aarch64) jq_arch="arm64" ;;
+        *)
+            log_warn "jq: unsupported arch $arch — skipping"
+            return
+            ;;
+    esac
+    local tag; tag=$(_gh_latest_tag_noapi "jqlang/jq") || tag=""
+    if [ -z "$tag" ]; then
+        log_warn "jq: could not determine latest release — skipping"
+        return
+    fi
+    local url="https://github.com/jqlang/jq/releases/download/${tag}/jq-linux-${jq_arch}"
+    local ok=true
+    if has curl; then
+        curl -sfLo ~/.local/bin/jq "$url" || ok=false
+    else
+        wget -qO ~/.local/bin/jq "$url" || ok=false
+    fi
+    if $ok; then
+        chmod +x ~/.local/bin/jq
+        log_ok "jq installed → ~/.local/bin/jq ($(~/.local/bin/jq --version 2>/dev/null))"
+    else
+        log_warn "jq: download failed — skipping"
+        rm -f ~/.local/bin/jq
+    fi
 }
 
 # fzf: install via git clone so shell integration (~/.fzf.zsh) is generated
