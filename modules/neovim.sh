@@ -69,6 +69,10 @@ install_neovim() {
         | head -1)
     local latest="${latest_tag#v}"
 
+    # Install prefix: /usr/local with sudo, ~/.local without (needed for disclosure below)
+    local prefix
+    if $CAN_SUDO; then prefix="/usr/local"; else prefix="$HOME/.local"; fi
+
     # Skip if already at latest version
     if has nvim; then
         local current
@@ -77,19 +81,13 @@ install_neovim() {
             log_ok "neovim $latest_tag already installed — skipping"
             return
         fi
-        log_info "neovim: upgrading $current → $latest"
+        log_info "neovim: upgrading $current → $latest (installing to $prefix)"
+        log_info "neovim: GitHub binary will overwrite any apt-installed version"
     else
-        log_info "neovim: installing $latest_tag"
+        log_info "neovim: installing $latest_tag → $prefix"
     fi
 
-    # Install prefix: /usr/local with sudo, ~/.local without
-    local prefix
-    if $CAN_SUDO; then
-        prefix="/usr/local"
-    else
-        prefix="$HOME/.local"
-        mkdir -p "$prefix"
-    fi
+    if ! $CAN_SUDO; then mkdir -p "$prefix"; fi
 
     local tmp
     tmp=$(mktemp -d)
@@ -111,6 +109,12 @@ install_neovim() {
     fi
 
     if $CAN_SUDO; then
+        # Refresh credential cache right before use — the download above may have
+        # taken long enough for the 15-minute sudo cache to expire.
+        if ! sudo -n true 2>/dev/null; then
+            log_warn "sudo credential cache may have expired — you may be prompted"
+        fi
+        [ -n "${SUDO:-}" ] && sudo -v 2>/dev/null || true
         $SUDO cp -r "$extracted"/. "$prefix/"
     else
         cp -r "$extracted"/. "$prefix/"

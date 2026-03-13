@@ -41,6 +41,7 @@ _install_ohmyzsh() {
     else
         installer="wget -qO- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh"
     fi
+    log_info "oh-my-zsh: installing latest → ~/.oh-my-zsh"
     RUNZSH=no CHSH=no sh -c "$($installer)" 2>/dev/null
     log_ok "oh-my-zsh installed"
 }
@@ -91,6 +92,10 @@ _set_default_shell() {
     fi
     if $CAN_SUDO; then
         # usermod edits /etc/passwd directly — no PAM required (works in containers/CI)
+        if ! sudo -n true 2>/dev/null; then
+            log_warn "sudo credential cache may have expired — you may be prompted"
+        fi
+        [ -n "${SUDO:-}" ] && sudo -v 2>/dev/null || true
         $SUDO usermod -s "$zsh_path" "$(id -un)"
         log_ok "Default shell set to zsh (restart your session)"
     elif chsh -s "$zsh_path" 2>/dev/null; then
@@ -108,6 +113,7 @@ _git_clone_if_missing() {
         log_ok "$name already installed — skipping"
         return
     fi
+    log_info "$name: installing latest → $dest"
     git clone "${extra_flags[@]}" "$url" "$dest" --quiet
-    log_ok "$name installed"
+    log_ok "$name installed → $dest"
 }

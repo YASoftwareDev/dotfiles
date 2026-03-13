@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-03-13
+
+### Fixed
+- `lib/utils.sh` `detect_sudo()`: rewritten as a pure probe — no output, no
+  `sudo -v` interactive call; eliminates duplicate warnings and unexpected
+  password prompts at startup
+- `lib/utils.sh` `run_checks()`: replaced single hardcoded message with 4-state
+  `$SUDO_STATUS` switch (`root` / `sudo_passwordless` / `sudo_password` /
+  `nosudo`); `sudo_password` case demoted from `log_ok` (✓) to `log_info` since
+  credentials are not yet validated
+- `modules/neovim.sh`: `sudo -v` credential refresh moved to after the GitHub
+  tarball download (inside `if $CAN_SUDO`), preventing 15-minute cache expiry
+  during slow downloads
+- `modules/neovim.sh` / `modules/zsh.sh`: added `sudo -n true` pre-check before
+  each late-phase `sudo -v` call; emits `log_warn` if cache may have expired so
+  the user is not surprised by a prompt
+- `get.sh`: cosmetic sudo preflight check now respects `NOSUDO=1` — no longer
+  reports "✓ sudo" when sudo is explicitly disabled
+
+### Added
+- `NOSUDO=1` env var support across all entry points: forces user-local
+  (`~/.local/bin`) install path and skips all apt/sudo operations even when
+  `sudo` is technically available; documented in `install.sh`, `update.sh`, and
+  `get.sh` usage headers
+- `lib/utils.sh` `run_checks()`: profile-aware sudo footprint note — lists
+  exactly which operations will use `sudo` for the active `$PROFILE`
+- Per-tool pre-install disclosure in all installer modules: each tool now logs
+  its target version and destination path before downloading (unified pattern
+  across `modules/base.sh`, `modules/neovim.sh`, `modules/tools.sh`,
+  `modules/zsh.sh`, `modules/tmux.sh`)
+- `modules/base.sh`: DRY `_pkgs` arrays — single declaration drives both
+  `log_info` disclosure and `apt_install` call, eliminating list duplication
+
+### Changed
+- `update.sh`: bare `detect_sudo` call replaced with explicit `log_info` +
+  4-state `$SUDO_STATUS` messaging giving accurate context for the update path
+- `modules/tools.sh` `_install_ruff`: disclosure now uses `uv tool bin-dir`
+  (PATH shim location) instead of `uv tool dir` (venv location)
+
 ## [1.0.3] - 2026-03-13
 
 ### Added
@@ -121,7 +160,8 @@ Complete overhaul of the dotfiles infrastructure: modular profiles, Neovim, CI, 
 ### Added
 - Initial dotfiles: Zsh (oh-my-zsh + fzf), Tmux, Vim, and monolithic `install.sh`
 
-[Unreleased]: https://github.com/tpedzimaz/dotfiles/compare/v1.0.3...HEAD
+[Unreleased]: https://github.com/tpedzimaz/dotfiles/compare/v1.0.4...HEAD
+[1.0.4]: https://github.com/tpedzimaz/dotfiles/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/tpedzimaz/dotfiles/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/tpedzimaz/dotfiles/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/tpedzimaz/dotfiles/compare/v1.0.0...v1.0.1

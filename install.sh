@@ -2,10 +2,11 @@
 # YA Dotfiles — main installer
 #
 # Usage:
-#   ./install.sh                  # interactive wizard (recommended for first-timers)
-#   ./install.sh minimal          # zsh + tmux + git config only
-#   ./install.sh workstation      # everything (default for non-interactive runs)
-#   ./install.sh docker           # headless, CI-friendly, no shell change
+#   ./install.sh                        # interactive wizard (recommended for first-timers)
+#   ./install.sh minimal                # zsh + tmux + git config only
+#   ./install.sh workstation            # everything (default for non-interactive runs)
+#   ./install.sh docker                 # headless, CI-friendly, no shell change
+#   NOSUDO=1 ./install.sh workstation   # force user-local (~/.local/bin) installs, skip apt
 #
 
 set -euo pipefail

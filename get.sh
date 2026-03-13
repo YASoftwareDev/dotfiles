@@ -12,6 +12,10 @@
 #   docker (headless, CI-friendly, no shell change):
 #     curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash -s -- docker
 #
+#   force user-local installs (no apt, ~/.local/bin only) — useful on shared machines:
+#     NOSUDO=1 bash get.sh workstation
+#     (NOSUDO=1 is forwarded automatically to install.sh via exec)
+#
 # Or inspect first, then run (also gives you the interactive wizard):
 #   curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh -o get.sh
 #   bash get.sh [minimal|workstation|docker]
@@ -94,12 +98,14 @@ else
 fi
 
 # sudo (soft — not needed when already root)
-if [ "$(id -u)" -eq 0 ]; then
+if [ -n "${NOSUDO:-}" ]; then
+    _warn "NOSUDO set — sudo checks skipped (user-local install)"
+elif [ "$(id -u)" -eq 0 ]; then
     _ok "running as root (sudo not required)"
 elif command -v sudo &>/dev/null && sudo -n true 2>/dev/null; then
     _ok "sudo (passwordless)"
 elif command -v sudo &>/dev/null; then
-    _warn "sudo present but requires a password — apt packages may prompt"
+    _warn "sudo present but requires a password — you will be prompted when apt runs"
 else
     _warn "sudo not found — apt package installs will be skipped"
 fi
