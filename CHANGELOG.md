@@ -160,12 +160,12 @@ Complete overhaul of the dotfiles infrastructure: modular profiles, Neovim, CI, 
 ### Added
 - Initial dotfiles: Zsh (oh-my-zsh + fzf), Tmux, Vim, and monolithic `install.sh`
 
-[Unreleased]: https://github.com/tpedzimaz/dotfiles/compare/v1.0.4...HEAD
-[1.0.4]: https://github.com/tpedzimaz/dotfiles/compare/v1.0.3...v1.0.4
-[1.0.3]: https://github.com/tpedzimaz/dotfiles/compare/v1.0.2...v1.0.3
-[1.0.2]: https://github.com/tpedzimaz/dotfiles/compare/v1.0.1...v1.0.2
-[1.0.1]: https://github.com/tpedzimaz/dotfiles/compare/v1.0.0...v1.0.1
-[1.0.0]: https://github.com/tpedzimaz/dotfiles/compare/v0.3.0...v1.0.0
-[0.3.0]: https://github.com/tpedzimaz/dotfiles/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/tpedzimaz/dotfiles/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/tpedzimaz/dotfiles/releases/tag/v0.1.0
+[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.0.4...HEAD
+[1.0.4]: https://github.com/YASoftwareDev/dotfiles/compare/v1.0.3...v1.0.4
+[1.0.3]: https://github.com/YASoftwareDev/dotfiles/compare/v1.0.2...v1.0.3
+[1.0.2]: https://github.com/YASoftwareDev/dotfiles/compare/v1.0.1...v1.0.2
+[1.0.1]: https://github.com/YASoftwareDev/dotfiles/compare/v1.0.0...v1.0.1
+[1.0.0]: https://github.com/YASoftwareDev/dotfiles/compare/v0.3.0...v1.0.0
+[0.3.0]: https://github.com/YASoftwareDev/dotfiles/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/YASoftwareDev/dotfiles/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/YASoftwareDev/dotfiles/releases/tag/v0.1.0
