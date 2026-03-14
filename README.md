@@ -24,6 +24,14 @@ curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.s
 curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash -s -- docker
 ```
 
+**nosudo** — any profile without apt/sudo; all tools land in `~/.local/bin` (~10–20 min)
+
+```bash
+NOSUDO=1 curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash -s -- workstation
+# or, after cloning:
+NOSUDO=1 ./install.sh workstation
+```
+
 <details>
 <summary>Other install methods</summary>
 
