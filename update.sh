@@ -9,7 +9,7 @@
 #
 # Available tools (pass one or more to update only those):
 #   apt  omz  tmux-plugins  zsh-plugins  fzf  rg  fd  shellcheck
-#   zoxide  delta  eza  uv  ruff  neovim  cheat  pre-commit
+#   zoxide  delta  eza  uv  ruff  neovim  cheat  pre-commit  xcape
 #
 # Examples:
 #   ./update.sh --check              # check all versions
@@ -44,7 +44,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 _KNOWN_TOOLS=(apt omz tmux-plugins zsh-plugins fzf rg fd shellcheck
-              zoxide delta eza uv ruff neovim cheat pre-commit)
+              zoxide delta eza uv ruff neovim cheat pre-commit xcape)
 
 # Validate SELECTED against known tool names.
 for _sel in "${SELECTED[@]+"${SELECTED[@]}"}"; do
@@ -391,6 +391,44 @@ if _should_run cheat; then
         fi
     else
         log_warn "cheat not installed — run install.sh workstation first"
+    fi
+fi
+
+# ── xcape ──────────────────────────────────────────────────────────────────────
+# Source-built from https://github.com/alols/xcape (no versioned releases).
+# Deps: libxtst-dev libx11-dev pkg-config make gcc
+if _should_run xcape; then
+    log_step "xcape"
+    if has xcape; then
+        if $CHECK_ONLY; then
+            _check_git_updates "xcape" "" 2>/dev/null || true
+            log_info "xcape: installed at $(command -v xcape) — source-built from alols/xcape (no version tags)"
+            if $CAN_SUDO; then
+                log_info "  → run './update.sh xcape' to rebuild from latest source"
+            else
+                log_warn "  → sudo required to reinstall xcape"
+            fi
+        else
+            if ! $CAN_SUDO; then
+                log_warn "xcape: sudo required to install build deps and binary — skipping"
+            else
+                log_info "xcape: rebuilding from source (alols/xcape)"
+                apt_install libxtst-dev libx11-dev pkg-config make gcc
+                local _xc_tmp; _xc_tmp=$(mktemp -d)
+                # shellcheck disable=SC2064
+                trap "rm -rf '$_xc_tmp'" RETURN
+                if git clone --depth=1 https://github.com/alols/xcape.git "$_xc_tmp/xcape" 2>/dev/null \
+                        && make -C "$_xc_tmp/xcape" 2>/dev/null; then
+                    $SUDO install -m 755 "$_xc_tmp/xcape/xcape" /usr/local/bin/xcape
+                    log_ok "xcape rebuilt → /usr/local/bin/xcape"
+                else
+                    log_warn "xcape: build failed — skipping"
+                fi
+            fi
+        fi
+    else
+        log_warn "xcape not installed — run install.sh workstation first"
+        log_warn "  Requires: sudo apt-get install -y libxtst-dev libx11-dev pkg-config make gcc"
     fi
 fi
 

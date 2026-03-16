@@ -52,6 +52,69 @@ cd ~/.dotfiles
 
 </details>
 
+## Font
+
+This setup uses **MesloLGS NF** — a Nerd Font variant patched by the powerlevel10k author.
+Required for prompt icons, lualine glyphs, and nvim-tree file icons to render correctly.
+
+> **Install on your local workstation** — the machine running your terminal, not on a remote
+> server you SSH into. Terminals render fonts locally.
+
+```bash
+./scripts/install-fonts.sh
+```
+
+Installs 4 font variants (Regular, Bold, Italic, Bold Italic) to `~/.local/share/fonts/` — no sudo needed.
+
+> **Tip:** if you run `p10k configure` after installing the dotfiles, it will also offer to
+> install MesloLGS NF automatically. The script above is useful when you want the font in
+> place *before* running the wizard, or when skipping the wizard entirely.
+
+### Terminal setup
+
+After installing, set your terminal font to **MesloLGS NF**, size **12–13pt**:
+
+**GNOME Terminal** (default Ubuntu terminal)
+Open Preferences (☰ menu) → select your profile → **Text** tab → uncheck *Use system font* → set font to `MesloLGS NF`
+
+**Konsole**
+Settings → Edit Current Profile → **Appearance** tab → Font → change to `MesloLGS NF`
+
+**Terminator**
+Right-click inside terminal → Preferences → Profiles → **General** tab → uncheck *Use system fixed width font* → set font to `MesloLGS NF`
+
+**Alacritty** (`~/.config/alacritty/alacritty.toml`):
+```toml
+[font]
+normal = { family = "MesloLGS NF" }
+size = 12.0
+```
+
+**kitty** (`~/.config/kitty/kitty.conf`):
+```
+font_family      MesloLGS NF
+font_size        12.0
+```
+
+**urxvt** (`~/.Xresources`):
+```
+URxvt.font: xft:MesloLGS NF:size=12
+```
+Then apply with: `xrdb -merge ~/.Xresources`
+
+**VS Code integrated terminal** (`settings.json`):
+```json
+"terminal.integrated.fontFamily": "MesloLGS NF"
+```
+
+### Verify
+
+After setting the font in your terminal, confirm fontconfig indexed it:
+```bash
+fc-list | grep -i meslo
+```
+Expected output: lines containing `MesloLGS NF` with `:style=Regular`, `Bold`, etc.
+
 ## After install
 
 ```bash
@@ -169,6 +232,8 @@ cd ~/.dotfiles && ./update.sh
 │   └── .gitattributes  # diff driver assignments
 ├── ripgrep/
 │   └── rc              # symlinked to ~/.config/ripgrep/rc
+├── x11/
+│   └── .xprofile       # symlinked to ~/.xprofile (keyboard remapping at X login)
 └── ranger/
     └── rc.conf …       # individual files symlinked to ~/.config/ranger/
 ```
@@ -185,6 +250,7 @@ cd ~/.dotfiles && ./update.sh
 | `git/.gitattributes` | `~/.gitattributes` |
 | `ripgrep/rc` | `~/.config/ripgrep/rc` |
 | `ranger/rc.conf` etc. | `~/.config/ranger/rc.conf` etc. |
+| `x11/.xprofile` | `~/.xprofile` |
 
 > **Note:** ranger config files are symlinked individually (not the directory) so ranger's runtime state files (bookmarks, history, tagged) are written to `~/.config/ranger/` and not tracked by git.
 
@@ -233,6 +299,23 @@ cd ~/.dotfiles && ./update.sh
 - **jq** — JSON processor
 - **shellcheck** — shell script linter
 - **GNU parallel** — parallel job execution
+
+### X11 keyboard remapping (optional, Vim/Neovim users)
+
+Not part of the default install. Run manually if you want it:
+
+```bash
+./scripts/install-x11.sh
+```
+
+Caps Lock becomes a dual-function key — active immediately and persisted via `~/.xprofile` at X session login:
+
+| Action | Result |
+|---|---|
+| Tap Caps Lock alone | `Escape` (via **xcape**) |
+| Hold Caps Lock + another key | `Ctrl` (via **setxkbmap**) |
+
+Requires `xcape` (built from source: [alols/xcape](https://github.com/alols/xcape), deps: `libxtst-dev libx11-dev`). The script handles the full install.
 
 ### Editor — Neovim
 
@@ -292,10 +375,12 @@ They are not called by `install.sh`.
 
 | Script | Purpose |
 |---|---|
+| `scripts/install-fonts.sh` | Install MesloLGS NF (Nerd Font, required for prompt icons) |
 | `scripts/install-cmake.sh` | Build CMake from source (default: 4.2.3) |
 | `scripts/install-git.sh` | Build git from source (default: 2.53.0) |
+| `scripts/install-x11.sh` | X11 keyboard remapping: Caps Lock → Ctrl/Escape (Vim users) |
 
-Both accept an optional version argument: `./scripts/install-cmake.sh 4.1.0`
+cmake and git accept an optional version argument: `./scripts/install-cmake.sh 4.1.0`
 
 ## Machine-specific config
 

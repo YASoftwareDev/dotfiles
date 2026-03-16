@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-03-16
+
+### Added
+- `scripts/install-fonts.sh`: downloads and installs MesloLGS NF (4 variants)
+  to `~/.local/share/fonts/` — no sudo required; validates downloads and
+  refreshes fontconfig cache
+- `scripts/install-x11.sh`: installs `xcape` from source (alols/xcape) and
+  symlinks `x11/.xprofile`; applies remapping immediately and persists via
+  `~/.xprofile` at next X session login
+- `x11/.xprofile`: Caps Lock dual-function remapping — Ctrl when held, Escape
+  when tapped alone (uses `setxkbmap` + `xcape`)
+- `update.sh`: added `xcape` to known tools; rebuilds from source via
+  `alols/xcape` with `--check` support and sudo guard
+
+### Changed
+- `install.sh`: post-install hints now include font and X11 remapping steps for
+  `workstation` profile; docker profile notes these as local-machine-only steps
+- `README.md`: added Font section (MesloLGS NF — required for icons; per-
+  terminal setup instructions for GNOME Terminal, Konsole, Terminator,
+  Alacritty, kitty, urxvt, VS Code); added `x11/.xprofile` to directory
+  structure and symlink table; replaced demo SVG with MP4 video
+
 ## [1.0.4] - 2026-03-13
 
 ### Fixed
