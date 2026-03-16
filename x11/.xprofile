@@ -1,0 +1,12 @@
+#!/bin/sh
+# ~/.xprofile — sourced by display managers (GDM, LightDM, SDDM) at X session start
+# Sets up keyboard remapping: Caps Lock = Ctrl (hold) / Escape (tap)
+
+# Caps Lock acts as an additional Ctrl modifier when held
+setxkbmap -option caps:ctrl_modifier
+
+# Caps Lock sends Escape when tapped alone (requires xcape)
+if command -v xcape >/dev/null 2>&1; then
+    pkill -x xcape 2>/dev/null || true
+    xcape -e 'Caps_Lock=Escape'
+fi

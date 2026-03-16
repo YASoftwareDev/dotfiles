@@ -114,10 +114,21 @@ case "$PROFILE" in
         echo "    • Switch to zsh now:  exec zsh"
         echo "    • (Or start a new terminal session)"
         echo "    • Run p10k configure to customise your prompt"
+        echo ""
+        echo "  Font (run on your LOCAL machine, not here if this is a remote/server):"
+        echo "    • ./scripts/install-fonts.sh   — installs MesloLGS NF (required for icons)"
+        echo "    • Then set terminal font to 'MesloLGS NF' 12–13pt (see README.md)"
+        echo ""
+        echo "  Optional (Vim/Neovim users, X11 only):"
+        echo "    • ./scripts/install-x11.sh     — Caps Lock = Ctrl (hold) / Escape (tap)"
         ;;
     docker)
         echo "    • Interactive sessions (docker exec -it ... bash) will auto-switch to zsh"
         echo "    • For Dockerfile entrypoints: source ~/.zshrc or use CMD [\"/bin/zsh\"]"
+        echo ""
+        echo "  Not installed (headless environment — run on a local X11 workstation):"
+        echo "    • Font:  ./scripts/install-fonts.sh  — MesloLGS NF for terminal icons"
+        echo "    • X11:   ./scripts/install-x11.sh   — Caps Lock remapping (Vim users)"
         ;;
 esac
 echo ""
