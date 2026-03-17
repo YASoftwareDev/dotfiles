@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `zsh/.zshrc`: set `fzf-tab` popup minimum size (60 columns × 8 rows) so file/folder names are not truncated in the completion popup
+
 ## [1.1.2] - 2026-03-17
 
 ### Changed
