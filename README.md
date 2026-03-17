@@ -4,6 +4,31 @@ Terminal development environment — zsh, tmux, search tools, Python tooling.
 
 ![demo](demo.svg)
 
+## Table of Contents
+
+- [Install](#install)
+- [Font](#font)
+  - [Terminal setup](#terminal-setup)
+  - [Verify](#verify)
+- [After install](#after-install)
+- [Docker](#docker)
+  - [Running dotfiles inside a container](#running-dotfiles-inside-a-container)
+  - [Building a Docker image](#building-a-docker-image)
+- [Update](#update)
+- [Repository structure](#repository-structure)
+- [Symlink map](#symlink-map)
+- [What's included](#whats-included)
+  - [Shell & terminal](#shell--terminal)
+  - [Search](#search-the-core-philosophy-find-anything-fast)
+  - [Git](#git)
+  - [Python tooling](#python-tooling)
+  - [Other tools](#other-tools)
+  - [X11 keyboard remapping](#x11-keyboard-remapping-optional-vimneovim-users)
+  - [Editor — Neovim](#editor--neovim)
+  - [Useful aliases & functions](#useful-aliases--functions)
+- [Advanced install scripts](#advanced-install-scripts)
+- [Machine-specific config](#machine-specific-config)
+
 ## Install
 
 **workstation** — full setup: zsh, neovim, tmux, search tools, CLI utilities (~15 min)
