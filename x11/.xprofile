@@ -1,12 +1,18 @@
 #!/bin/sh
-# ~/.xprofile — sourced by display managers (GDM, LightDM, SDDM) at X session start
-# Sets up keyboard remapping: Caps Lock = Ctrl (hold) / Escape (tap)
+# ~/.xprofile — sourced by display managers (GDM, LightDM, SDDM) at X session start.
+#
+# NOTE: On GNOME, gnome-settings-daemon resets xkb settings after this file
+# runs.  caps-remap.sh is therefore also wired up as a GNOME autostart entry
+# (~/.config/autostart/caps-remap.desktop) so it re-fires after the session
+# is fully ready.  Both are required for GNOME — this file alone is not enough.
+#
+# NOTE: This file is NOT sourced by startx/xinit.  If you start X without a
+# display manager, add the call below to ~/.xinitrc instead.
+#
+# NOTE: This file has no effect on Wayland sessions.  Use xremap or keyd for
+# an equivalent setup under Wayland.
 
-# Caps Lock acts as an additional Ctrl modifier when held
-setxkbmap -option caps:ctrl_modifier
-
-# Caps Lock sends Escape when tapped alone (requires xcape)
-if command -v xcape >/dev/null 2>&1; then
-    pkill -x xcape 2>/dev/null || true
-    xcape -e 'Caps_Lock=Escape'
+caps_remap="${HOME}/.local/bin/caps-remap"
+if [ -x "$caps_remap" ]; then
+    "$caps_remap"
 fi

@@ -233,7 +233,9 @@ cd ~/.dotfiles && ./update.sh
 ├── ripgrep/
 │   └── rc              # symlinked to ~/.config/ripgrep/rc
 ├── x11/
-│   └── .xprofile       # symlinked to ~/.xprofile (keyboard remapping at X login)
+│   ├── caps-remap.sh   # remapping script (single source of truth)
+│   ├── .xprofile       # symlinked to ~/.xprofile — calls caps-remap at X login
+│   └── .config/autostart/caps-remap.desktop  # GNOME autostart (re-fires after gnome-settings-daemon)
 └── ranger/
     └── rc.conf …       # individual files symlinked to ~/.config/ranger/
 ```
@@ -251,6 +253,8 @@ cd ~/.dotfiles && ./update.sh
 | `ripgrep/rc` | `~/.config/ripgrep/rc` |
 | `ranger/rc.conf` etc. | `~/.config/ranger/rc.conf` etc. |
 | `x11/.xprofile` | `~/.xprofile` |
+| `x11/caps-remap.sh` | `~/.local/bin/caps-remap` |
+| `x11/.config/autostart/caps-remap.desktop` | `~/.config/autostart/caps-remap.desktop` |
 
 > **Note:** ranger config files are symlinked individually (not the directory) so ranger's runtime state files (bookmarks, history, tagged) are written to `~/.config/ranger/` and not tracked by git.
 
@@ -308,14 +312,22 @@ Not part of the default install. Run manually if you want it:
 ./scripts/install-x11.sh
 ```
 
-Caps Lock becomes a dual-function key — active immediately and persisted via `~/.xprofile` at X session login:
+Caps Lock becomes a dual-function key — active immediately and persisted at next login:
 
 | Action | Result |
 |---|---|
-| Tap Caps Lock alone | `Escape` (via **xcape**) |
-| Hold Caps Lock + another key | `Ctrl` (via **setxkbmap**) |
+| Tap Caps Lock alone (< 200 ms) | `Escape` (via **xcape**) |
+| Hold Caps Lock + another key | `Ctrl` (via **xmodmap**) |
+
+The physical Ctrl key is unaffected — only the Caps Lock key gains this behaviour.
 
 Requires `xcape` (built from source: [alols/xcape](https://github.com/alols/xcape), deps: `libxtst-dev libx11-dev`). The script handles the full install.
+
+**Persistence:** `~/.xprofile` applies the remapping at X session start. On **GNOME**, `gnome-settings-daemon` resets xkb after `.xprofile` runs — the autostart entry `caps-remap.desktop` re-applies it once the session is ready.
+
+**Wayland:** xmodmap and xcape have no effect on Wayland. Use [xremap](https://github.com/xremap/xremap) or [keyd](https://github.com/rvaiya/keyd) for an equivalent setup.
+
+**startx / no display manager:** `.xprofile` is not sourced by `startx`. Add `. ~/.xprofile` (or call `caps-remap` directly) in `~/.xinitrc`.
 
 ### Editor — Neovim
 

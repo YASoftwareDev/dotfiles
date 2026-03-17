@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Caps Lock Remap
+Comment=Remap Caps Lock: hold=Ctrl, tap=Escape. Re-applies xmodmap+xcape after gnome-settings-daemon resets xkb on session start.
+Exec=/bin/sh -c 'exec "$HOME/.local/bin/caps-remap"'
+Hidden=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

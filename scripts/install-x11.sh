@@ -6,13 +6,18 @@
 #
 # What it does:
 #   - Installs xcape (built from source: https://github.com/alols/xcape)
-#   - Symlinks ~/.xprofile -> dotfiles/x11/.xprofile
-#   - Applies setxkbmap immediately (no relogin needed for that part)
-#   - xcape takes effect at next X session login (or run xcape manually)
+#   - Symlinks ~/.local/bin/caps-remap   (the remapping script)
+#   - Symlinks ~/.xprofile               (runs caps-remap at X session start)
+#   - Symlinks ~/.config/autostart/caps-remap.desktop
+#       → required on GNOME: gnome-settings-daemon resets xkb after .xprofile
+#         runs, so the autostart entry re-applies the mapping once the session
+#         is fully ready.  Safe no-op on non-GNOME desktops.
+#   - Applies the remapping to the current session immediately.
 #
-# Intended for Vim/Neovim users who want Caps Lock as dual-function:
-#   tap  → Escape
-#   hold → Ctrl
+# Limitations documented in x11/caps-remap.sh:
+#   - X11 only (no effect on Wayland; use xremap or keyd there)
+#   - startx/xinit users must also source caps-remap from ~/.xinitrc
+#   - Assumes keycode 66 is Caps Lock (standard on almost all keyboards)
 #
 # Not part of the default workstation install — run manually if you want it.
 
@@ -23,6 +28,7 @@ source "${DOTFILES_DIR}/lib/utils.sh"
 
 detect_sudo
 
+# ── xcape ──────────────────────────────────────────────────────────────────
 log_step "xcape"
 if has xcape; then
     log_ok "xcape already installed at $(command -v xcape) — skipping build"
@@ -44,16 +50,28 @@ else
     log_ok "xcape installed → /usr/local/bin/xcape"
 fi
 
-log_step "~/.xprofile"
+# ── symlinks ───────────────────────────────────────────────────────────────
+log_step "symlinks"
+
+chmod +x "${DOTFILES_DIR}/x11/caps-remap.sh"
+symlink "${DOTFILES_DIR}/x11/caps-remap.sh" ~/.local/bin/caps-remap
+log_ok "~/.local/bin/caps-remap linked"
+
 symlink "${DOTFILES_DIR}/x11/.xprofile" ~/.xprofile
 log_ok "~/.xprofile linked"
 
-log_step "Applying keyboard remapping to current session"
-setxkbmap -option caps:ctrl_modifier
-pkill -x xcape 2>/dev/null || true
-xcape -e 'Caps_Lock=Escape'
-log_ok "setxkbmap + xcape active (Caps Lock = Ctrl/Escape)"
+symlink "${DOTFILES_DIR}/x11/.config/autostart/caps-remap.desktop" \
+    ~/.config/autostart/caps-remap.desktop
+log_ok "~/.config/autostart/caps-remap.desktop linked (GNOME autostart)"
+
+# ── apply to current session ───────────────────────────────────────────────
+log_step "Applying remapping to current session"
+~/.local/bin/caps-remap
+log_ok "caps-remap applied (Caps Lock = Ctrl/Escape)"
 
 echo ""
-log_ok "Done — remapping is active now and will persist via ~/.xprofile at next login"
+log_ok "Done — remapping is active now and will persist at next login"
+if [ -n "${XDG_CURRENT_DESKTOP:-}" ] && echo "$XDG_CURRENT_DESKTOP" | grep -qi gnome; then
+    log_info "GNOME detected: autostart entry will re-apply after gnome-settings-daemon at next login"
+fi
 echo ""
