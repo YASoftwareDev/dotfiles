@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-03-17
+
+### Fixed
+- `x11/.xprofile` + `scripts/install-x11.sh`: replaced `setxkbmap
+  caps:ctrl_modifier` with `xmodmap`-based approach using `Hyper_L` as a
+  unique keysym for Caps Lock; physical Ctrl key (`Control_L`) is no longer
+  affected by xcape, so tapping the real Ctrl key no longer sends Escape
+- GNOME: `gnome-settings-daemon` resets xkb after `.xprofile` runs, leaving
+  the remapping silently inactive; fixed by adding
+  `x11/.config/autostart/caps-remap.desktop` which re-applies the mapping
+  after the session is fully ready (installed to
+  `~/.config/autostart/caps-remap.desktop` by `install-x11.sh`)
+- `scripts/install-x11.sh`: xmodmap `add Control = Hyper_L` could fail with
+  `BadValue` and abort the script under `set -euo pipefail` before xcape was
+  started; moved remapping logic to `x11/caps-remap.sh` with `|| true` guards
+
+### Added
+- `x11/caps-remap.sh`: dedicated remapping script — single source of truth for
+  the xmodmap + xcape commands; documents mechanism, limitations (Wayland,
+  startx, keycode assumption, Hyper_L mod4 side-effect, `-t 200` threshold)
+- `x11/.config/autostart/caps-remap.desktop`: GNOME autostart entry (see above)
+
+### Changed
+- `x11/.xprofile`: delegates to `~/.local/bin/caps-remap`; documents GNOME
+  override caveat, Wayland limitation, and startx/xinit gap at the top of file
+- `scripts/install-x11.sh`: symlinks `caps-remap.sh` to
+  `~/.local/bin/caps-remap` and the autostart `.desktop` file; stale
+  `setxkbmap` references removed from comments and log messages
+- `README.md`: x11 directory tree and symlink map updated with new files;
+  X11 section corrected (xmodmap replaces setxkbmap; GNOME, Wayland, and
+  startx caveats added)
+
 ## [1.1.0] - 2026-03-16
 
 ### Added
