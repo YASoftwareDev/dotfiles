@@ -78,6 +78,7 @@ zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
 zstyle ':completion:*' menu no
 zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza --color=always -1 $realpath 2>/dev/null || ls --color=always -1 $realpath 2>/dev/null'
 zstyle ':fzf-tab:*' switch-group '<' '>'
+zstyle ':fzf-tab:*' popup-min-size 30 8
 
 # ── Aliases ───────────────────────────────────────────────────────────────────
 # fd: search everything including gitignored and hidden by default
