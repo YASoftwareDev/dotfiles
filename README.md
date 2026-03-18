@@ -289,7 +289,7 @@ cd ~/.dotfiles && ./update.sh
 
 - **zsh** with **oh-my-zsh** + **powerlevel10k** prompt
 - **tmux** — terminal multiplexer (gpakosz/.tmux framework)
-  - Plugins: `tmux-resurrect`, `tmux-continuum`, `tmux-fzf`, `tmux-cpu`
+  - Plugins: `tmux-fzf`, `tmux-cpu`
 - Oh-my-zsh plugins: `git`, `vi-mode`, `history`, `history-substring-search`, `dircycle`, `dirhistory`, `last-working-dir`, `colored-man-pages`, `command-not-found`
 - External zsh plugins: `zsh-autosuggestions`, `fast-syntax-highlighting`, `fzf-tab`
 

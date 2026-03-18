@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-03-18
+
 ### Fixed
 - `zsh/.zshrc`: set `fzf-tab` popup minimum size (60 columns × 8 rows) so file/folder names are not truncated in the completion popup
+
+### Removed
+- `tmux/.tmux.conf.local`: removed `tmux-resurrect` and `tmux-continuum` plugins — `@continuum-restore 'on'` was automatically restoring all saved sessions on every tmux launch, causing ~20 unwanted windows/panes to appear on startup
 
 ## [1.1.2] - 2026-03-17
 
@@ -222,7 +227,8 @@ Complete overhaul of the dotfiles infrastructure: modular profiles, Neovim, CI, 
 ### Added
 - Initial dotfiles: Zsh (oh-my-zsh + fzf), Tmux, Vim, and monolithic `install.sh`
 
-[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.1.3...HEAD
+[1.1.3]: https://github.com/YASoftwareDev/dotfiles/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/YASoftwareDev/dotfiles/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/YASoftwareDev/dotfiles/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/YASoftwareDev/dotfiles/compare/v1.0.4...v1.1.0

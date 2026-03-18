@@ -413,10 +413,6 @@ tmux_conf_uninstall_plugins_on_reload=false
 # Fresh install:  ./install.sh workstation
 # Update plugins: ./update.sh tmux-plugins
 #
-set -g @continuum-restore 'on'
-
-run '~/.tmux/plugins/tmux-resurrect/resurrect.tmux'
-run '~/.tmux/plugins/tmux-continuum/continuum.tmux'
 run '~/.tmux/plugins/tmux-fzf/main.tmux'
 run '~/.tmux/plugins/tmux-cpu/cpu.tmux'
 
