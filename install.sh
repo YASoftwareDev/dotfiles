@@ -118,22 +118,25 @@ case "$PROFILE" in
             echo "    • To fix permanently: chsh -s $(command -v zsh)  then re-login"
         fi
         echo "    • Activate zsh right now (no re-login needed):  exec zsh"
-        echo "    • Once in zsh:  p10k configure   to choose your prompt style"
+        echo "    • Once in zsh:  p10k configure   (wizard — installs fonts + sets prompt style)"
         echo ""
-        echo "  Font (run on your LOCAL machine, not here if this is a remote/server):"
-        echo "    • ./scripts/install-fonts.sh   — installs MesloLGS NF (required for icons)"
-        echo "    • Then set terminal font to 'MesloLGS NF' 12–13pt (see README.md)"
+        echo "  Font — install on your LOCAL machine (not on a remote server you SSH into):"
+        echo "    Option A (easiest): run  p10k configure  — the wizard installs MesloLGS NF for you"
+        echo "    Option B (script):  ~/.dotfiles/scripts/install-fonts.sh"
+        echo "    Option C (curl):    bash <(curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/scripts/install-fonts.sh)"
+        echo "    Then set terminal font to 'MesloLGS NF' 12–13pt (see README.md)"
         echo ""
         echo "  Optional (Vim/Neovim users, X11 only):"
-        echo "    • ./scripts/install-x11.sh     — Caps Lock = Ctrl (hold) / Escape (tap)"
+        echo "    • ~/.dotfiles/scripts/install-x11.sh  — Caps Lock = Ctrl (hold) / Escape (tap)"
         ;;
     docker)
         echo "    • Interactive sessions (docker exec -it ... bash) will auto-switch to zsh"
         echo "    • For Dockerfile entrypoints: source ~/.zshrc or use CMD [\"/bin/zsh\"]"
         echo ""
         echo "  Not installed (headless environment — run on a local X11 workstation):"
-        echo "    • Font:  ./scripts/install-fonts.sh  — MesloLGS NF for terminal icons"
-        echo "    • X11:   ./scripts/install-x11.sh   — Caps Lock remapping (Vim users)"
+        echo "    • Font:  ~/.dotfiles/scripts/install-fonts.sh  — MesloLGS NF for terminal icons"
+        echo "           or: bash <(curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/scripts/install-fonts.sh)"
+        echo "    • X11:   ~/.dotfiles/scripts/install-x11.sh   — Caps Lock remapping (Vim users)"
         ;;
 esac
 echo ""

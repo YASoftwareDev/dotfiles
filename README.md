@@ -85,15 +85,25 @@ Required for prompt icons, lualine glyphs, and nvim-tree file icons to render co
 > **Install on your local workstation** — the machine running your terminal, not on a remote
 > server you SSH into. Terminals render fonts locally.
 
+**Option A — `p10k configure` (easiest)**
+
+Run the wizard once in zsh and it will offer to install MesloLGS NF for you:
 ```bash
-./scripts/install-fonts.sh
+exec zsh        # switch to zsh if not already there
+p10k configure  # first screen asks about fonts
 ```
 
-Installs 4 font variants (Regular, Bold, Italic, Bold Italic) to `~/.local/share/fonts/` — no sudo needed.
+**Option B — script** (repo already cloned to `~/.dotfiles`):
+```bash
+~/.dotfiles/scripts/install-fonts.sh
+```
 
-> **Tip:** if you run `p10k configure` after installing the dotfiles, it will also offer to
-> install MesloLGS NF automatically. The script above is useful when you want the font in
-> place *before* running the wizard, or when skipping the wizard entirely.
+**Option C — curl** (no local repo needed):
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/scripts/install-fonts.sh)
+```
+
+All options install 4 font variants (Regular, Bold, Italic, Bold Italic) to `~/.local/share/fonts/` — no sudo needed.
 
 ### Terminal setup
 
