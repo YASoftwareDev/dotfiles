@@ -251,6 +251,19 @@ _download_tar_bin() {
     rm -rf "$tmp"
 }
 
+# Return 0 (true) if version string $1 is strictly older than $2.
+# Uses sort -V (GNU coreutils version sort, available on Ubuntu 20.04+).
+# Returns 1 (false) if either argument is empty — treats unknown as non-older.
+# Usage: _ver_older_than "0.9.0" "0.10.4"
+_ver_older_than() {
+    local a="${1:-}" b="${2:-}"
+    [ -z "$a" ] && return 1
+    [ -z "$b" ] && return 1
+    local lower
+    lower=$(printf '%s\n%s\n' "$a" "$b" | sort -V | head -1)
+    [ "$lower" = "$a" ] && [ "$a" != "$b" ]
+}
+
 # Verify the installed binary at DEST is what the shell will actually resolve.
 # Usage: _verify_dest BINARY_NAME DEST
 _verify_dest() {

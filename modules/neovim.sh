@@ -3,6 +3,25 @@
 # Falls back to apt if GitHub is unreachable or arch is unsupported.
 # Idempotent: skips install when the installed version already matches latest.
 
+# Probe ~/.local/bin/nvim and ~/bin/nvim for older copies that would shadow
+# CANONICAL (/usr/local/bin/nvim). Warns with a fix command for each found.
+# Uses direct path probes — not `command -v` — so install-time bash PATH
+# differences don't mask the shadow.
+_nvim_warn_shadows() {
+    local canonical="$1"
+    local _cv _sv _shadow
+    _cv=$(_cmd_version "$canonical" --version) || _cv=""
+    [ -z "$_cv" ] && return 0  # canonical unreadable — nothing useful to compare
+    for _shadow in "$HOME/.local/bin/nvim" "$HOME/bin/nvim"; do
+        [ -e "$_shadow" ] || continue
+        _sv=$(_cmd_version "$_shadow" --version) || _sv=""
+        if _ver_older_than "$_sv" "$_cv"; then
+            log_warn "neovim: $_shadow ($_sv) will shadow $canonical ($_cv)"
+            log_warn "  Fix: rm $_shadow"
+        fi
+    done
+}
+
 # Link nvim config from dotfiles repo
 link_nvim_config() {
     log_step "nvim config"
@@ -79,6 +98,10 @@ install_neovim() {
         current=$(nvim --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
         if [ "$current" = "$latest" ]; then
             log_ok "neovim $latest_tag already installed — skipping"
+            # Shadow check still needed: `nvim` above may have resolved to a
+            # user-local copy (e.g. ~/.local/bin/nvim) that shadows an existing
+            # /usr/local/bin/nvim at the same version.
+            if $CAN_SUDO; then _nvim_warn_shadows /usr/local/bin/nvim; fi
             return
         fi
         log_info "neovim: upgrading $current → $latest (installing to $prefix)"
@@ -120,7 +143,10 @@ install_neovim() {
         cp -r "$extracted"/. "$prefix/"
     fi
 
-    log_ok "neovim installed → $prefix ($(nvim --version 2>/dev/null | head -1))"
+    # Use the full path so the version shown is always the binary we just
+    # installed, not whatever `nvim` resolves to in the install-time bash PATH.
+    log_ok "neovim installed → $prefix ($($prefix/bin/nvim --version 2>/dev/null | head -1))"
+    if $CAN_SUDO; then _nvim_warn_shadows /usr/local/bin/nvim; fi
 }
 
 _neovim_apt() {
