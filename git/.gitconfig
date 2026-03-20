@@ -51,3 +51,6 @@
 
 [include]
     path = ~/.gitconfig.local
+[credential "https://gitlab.gnome.org"]
+	helper = 
+	helper = !/usr/bin/glab auth git-credential
