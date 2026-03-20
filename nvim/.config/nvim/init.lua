@@ -184,7 +184,15 @@ require('lazy').setup({
           list          = { selection = { preselect = false } }, -- require explicit Tab before CR accepts
           accept        = { auto_brackets = { enabled = true } },
           documentation = { auto_show = true, auto_show_delay_ms = 200 },
-          menu          = { min_width = 30, max_width = 80 },
+          menu          = {
+            min_width = 30,
+            draw = {
+              components = {
+                label             = { width = { fill = true, max = 80 } },
+                label_description = { width = { max = 50 } },
+              },
+            },
+          },
         },
       })
     end,
