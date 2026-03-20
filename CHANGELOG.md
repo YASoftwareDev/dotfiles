@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-03-20
+
+### Changed
+- `README.md` + `install.sh`: font install section now offers three explicit
+  options — `p10k configure` (wizard, easiest), `~/.dotfiles/scripts/install-fonts.sh`
+  (absolute path, works after `curl | bash` install), and a `bash <(curl ...)` one-liner
+  (no local repo required); fixes confusing `./scripts/install-fonts.sh` relative path
+  shown in post-install message when user is not in the dotfiles directory
+
 ## [1.2.0] - 2026-03-20
 
 ### Added
