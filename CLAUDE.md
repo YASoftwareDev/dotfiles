@@ -36,23 +36,37 @@ VERSION           semver string
 CHANGELOG.md      keep-a-changelog format
 ```
 
+`DOTFILES_DIR` is set at the top of every script to the absolute repo root:
+```bash
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+```
+Use it whenever referencing files inside the repo — never use relative paths.
+
 ---
 
 ## Install profiles
 
-| Profile | Sudo | Installs | Notes |
-|---------|------|----------|-------|
-| `minimal` | required | base pkgs, zsh, tmux, git config | Terminal baseline |
-| `workstation` | required | minimal + neovim + tools (uv, ruff, cheat) | Full dev setup |
-| `docker` | optional | base pkgs, zsh, tmux, git config | No shell change, no fonts |
-| `nosudo` | none | all tools fetched to `~/.local/bin` | `NOSUDO=1 ./install.sh minimal` |
+Three profiles are valid `install.sh` arguments:
+
+| Profile | Sudo | Installs |
+|---------|------|----------|
+| `minimal` | required for apt | base pkgs, zsh, tmux, git config |
+| `workstation` | required for apt | minimal + neovim + tools (uv, ruff, cheat) |
+| `docker` | optional | base pkgs, zsh, tmux, git config (no shell change) |
 
 Profile selection: CLI arg → interactive wizard (tty only) → workstation default.
+
+**No-sudo mode** is not a profile — it is an environment flag:
+```bash
+NOSUDO=1 ./install.sh minimal   # forces CAN_SUDO=false; tools fetched to ~/.local/bin
+```
+`nosudo` appears as a profile name only in `test.sh`, where it validates that
+the no-sudo install produced the correct binaries in `~/.local/bin`.
 
 Module orchestration in `install.sh`:
 - `_run_minimal`      → base → zsh → tmux → git link
 - `_run_workstation`  → base → zsh → tmux plugins → tools → neovim → git link
-- `_run_docker`       → base\_docker → zsh(no shell change) → tmux → git link
+- `_run_docker`       → base\_docker → zsh (no shell change) → tmux → git link
 
 ---
 
@@ -60,14 +74,41 @@ Module orchestration in `install.sh`:
 
 ```bash
 log_step "Section name"   # bold header: ── Section name ──
-log_info "..."            # blue →
-log_ok   "..."            # green ✓
-log_warn "..." >&2        # yellow !  (stderr)
-log_error "..." >&2       # red ✗     (stderr)
-die "..."                 # log_error + exit 1
+log_info "message"        # blue →
+log_ok   "message"        # green ✓
+log_warn "message"        # yellow !  — already writes to stderr internally
+log_error "message"       # red ✗    — already writes to stderr internally
+die "message"             # log_error + exit 1
 ```
 
-Always use these — never `echo` directly.
+`log_warn` and `log_error` redirect to stderr inside the function — do NOT add
+`>&2` at call sites. Always use these; never `echo` directly.
+
+---
+
+## Shell scripting rules
+
+**`set -euo pipefail`** — all scripts use strict mode. Key implication:
+```bash
+# WRONG — (( expr )) exits with status 1 when result is 0 (falsy), triggers set -e
+(( count++ ))
+
+# CORRECT
+count=$(( count + 1 ))
+```
+
+**`local` declarations** — every variable inside a function MUST be declared
+`local` (or `local -a` for arrays). Undeclared variables leak into global scope
+and can corrupt state when functions are called multiple times or sourced.
+
+```bash
+my_func() {
+    local var="value"
+    local -a arr=()
+    local result
+    result=$(some_command)
+}
+```
 
 ---
 
@@ -87,11 +128,8 @@ if $CAN_SUDO; then
     $SUDO apt-get ...
 fi
 
-# Refresh credential cache before long operations
-sudo -v 2>/dev/null || true
-
-# Environment override
-NOSUDO=1 ./install.sh minimal   # forces CAN_SUDO=false everywhere
+# Refresh credential cache before long operations (download may take >15 min)
+[ -n "${SUDO:-}" ] && sudo -v 2>/dev/null || true
 ```
 
 ---
@@ -110,10 +148,10 @@ Key helpers in `lib/utils.sh`:
 |----------|---------|
 | `has CMD` | `command -v` wrapper |
 | `apt_install` | apt-get with DEBIAN_FRONTEND=noninteractive |
-| `_gh_latest_tag_noapi REPO` | Tag via HTTP redirect (no API, no rate limit) |
-| `_gh_latest_tag REPO` | Tag via GitHub JSON API |
-| `_gh_latest_release REPO PATTERN` | Download URL matching pattern |
-| `_gh_release_info REPO PATTERN` | Tag + URL in one API call → `"TAG URL"` |
+| `_gh_latest_tag_noapi REPO` | Tag via HTTP redirect — **prefer this** (no API, no rate limit) |
+| `_gh_latest_tag REPO` | Tag via GitHub JSON API — use only when redirect fails |
+| `_gh_latest_release REPO PATTERN` | Download URL matching asset pattern |
+| `_gh_release_info REPO PATTERN` | Tag + URL in one API call → `"TAG URL"` — use when you need both |
 | `_download_tar_bin URL BIN DEST` | Download tarball, extract named binary |
 | `_cmd_version CMD [ARGS]` | Extract `\d+\.\d+(\.\d+)?` from `--version` |
 | `_ver_older_than A B` | True if A < B via `sort -V` |
@@ -121,8 +159,44 @@ Key helpers in `lib/utils.sh`:
 | `_resolve_dest BIN FALLBACK` | Use current binary location; never `/usr/*` |
 | `symlink SRC DST` | `mkdir -p + ln -sf` |
 
-**Use `_gh_release_info` (not URL construction) for `.deb` assets** — asset names
-change between releases (e.g. delta 0.19.0 renamed `git-delta` → `git-delta-musl`).
+**When to use which GitHub helper:**
+- Tag only, no download → `_gh_latest_tag_noapi` (no API call)
+- Tag + URL together → `_gh_release_info` (one API call)
+- URL only (pattern match) → `_gh_latest_release`
+- **Never construct `.deb` URLs manually** — asset names change between releases
+  (e.g. delta 0.19.0 renamed `git-delta` → `git-delta-musl`); use `_gh_release_info`
+
+---
+
+## update.sh
+
+**Two modes:**
+```bash
+./update.sh             # update all tools
+./update.sh --check     # report current vs latest (read-only)
+./update.sh rg neovim   # update only named tools
+```
+
+**Known tools list** — `_KNOWN_TOOLS` array at the top of `update.sh`:
+```
+apt omz tmux-plugins zsh-plugins fzf rg fd shellcheck
+zoxide delta eza uv ruff neovim cheat pre-commit xcape
+```
+**When adding a new tool, add its name here** — the arg parser rejects unknown names.
+
+**`_should_run` pattern** used at the top of each tool block:
+```bash
+_should_run "toolname" || return 0
+```
+
+**`_update_std_tool` helper** covers standard single-binary GitHub tarball tools:
+```bash
+# Usage: _update_std_tool CMD LABEL REPO GNU_ARM [BINARY] [ASSET_PREFIX]
+_update_std_tool rg    "ripgrep" "BurntSushi/ripgrep" gnu
+_update_std_tool eza   "eza"     "eza-community/eza"  musl eza "eza_"
+```
+
+**PATH shadow check** (`_check_path_shadows`) always runs at the end, read-only.
 
 ---
 
@@ -152,7 +226,9 @@ local tmp; tmp=$(mktemp -d)
 trap "rm -rf '$tmp'" RETURN   # RETURN fires on explicit return AND implicit exit
 ```
 
-Use `RETURN` (not `EXIT`) so the trap is function-scoped, not script-scoped.
+`SC2064` is disabled intentionally — `$tmp` must expand at trap-definition time
+(it is a local variable; expanding later would find it unset). Use `RETURN` not
+`EXIT` so the trap is function-scoped, not script-scoped.
 
 ---
 
@@ -160,11 +236,11 @@ Use `RETURN` (not `EXIT`) so the trap is function-scoped, not script-scoped.
 
 Two surfaces:
 
-1. **install time** (`modules/neovim.sh` `_nvim_warn_shadows`): direct file probes
-   (`[ -e "$HOME/.local/bin/nvim" ]`) — never `command -v`, which resolves via
-   install-time bash PATH and may return a shadow binary.
+1. **Install time** (`modules/neovim.sh` `_nvim_warn_shadows`): direct file probes
+   on `$HOME/.local/bin/nvim` and `$HOME/bin/nvim` — never `command -v`, which
+   resolves via install-time bash PATH and may itself return a shadow binary.
 
-2. **update time** (`update.sh` `_check_path_shadows`): PATH walk looking for
+2. **Update time** (`update.sh` `_check_path_shadows`): PATH walk looking for
    executables before `/usr/local/bin`. Runs always, read-only.
 
 Only `/usr/local/bin` tools need shadow checks — tools at `~/.local/bin` are
@@ -183,14 +259,31 @@ already at the highest dotfiles-managed PATH priority.
 | `git/.gitconfig` | `~/.gitconfig` |
 | `git/.gitattributes` | `~/.gitattributes` |
 | `ripgrep/rc` | `~/.config/ripgrep/rc` |
-| `ranger/*.conf` | `~/.config/ranger/*.conf` (individual files) |
+| `ranger/rc.conf`, `rifle.conf`, `scope.sh`, `commands*.py` | `~/.config/ranger/` (individual files) |
 | `x11/.xprofile` | `~/.xprofile` |
+| `x11/.config/autostart/caps-remap.desktop` | `~/.config/autostart/caps-remap.desktop` |
 
 Ranger is linked file-by-file (not as a directory) to keep runtime state
 (`bookmarks`, `history`, `tags`) out of git.
 
 Nvim: if `~/.config/nvim` is a real directory (not a symlink), `link_nvim_config`
 warns and bails rather than creating a link inside it.
+
+---
+
+## fzf integration
+
+fzf is installed via **git clone** to `~/.fzf/` (not apt, not a binary release).
+The installer generates `~/.fzf.zsh` which adds `~/.fzf/bin` to PATH and registers
+`Ctrl+T`/`Ctrl+R`/`Alt+C` bindings.
+
+`~/.fzf.zsh` is sourced **explicitly** in `.zshrc`:
+```bash
+[[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh
+```
+The oh-my-zsh `fzf` plugin was removed — this explicit source line is the **only**
+thing that activates fzf shell integration. Do not remove it. Do not re-add the
+oh-my-zsh `fzf` plugin without removing this line first.
 
 ---
 
@@ -201,6 +294,7 @@ warns and bails rather than creating a link inside it.
 | `_SHELL_IS_ZSH` | `_set_default_shell()` in `modules/zsh.sh` | `install.sh` "next steps" |
 | `CAN_SUDO` | `detect_sudo()` in `lib/utils.sh` | everywhere |
 | `CHECK_ONLY` | `--check` arg in `update.sh` | update.sh per-tool blocks |
+| `DOTFILES_DIR` | top of each script | modules, symlink helpers |
 
 ---
 
@@ -239,27 +333,27 @@ Profile-specific checks:
 **Job `install-nosudo`** (3 combinations):
 - Ubuntu 20.04 / 22.04 / 24.04
 - Root pre-installs: git, curl, wget, ca-certificates, zsh, tmux, python3
-- Regular user with no sudo; `NOSUDO` path exercised
+- Regular user with no sudo; `NOSUDO=1` path exercised
 
 ---
 
 ## Versioning & release
 
-- `VERSION` — semver (e.g. `1.2.2`)
-- `CHANGELOG.md` — keep-a-changelog; update `[Unreleased]` section then add `[X.Y.Z] - DATE`
-- Tags: `vX.Y.Z`
-- Patch: bug fixes. Minor: new features. Major: breaking changes.
+```
+1. Edit VERSION — bump semver (patch: fix, minor: feature, major: breaking)
+2. Edit CHANGELOG.md — move items from [Unreleased] to [X.Y.Z] - YYYY-MM-DD
+3. git add VERSION CHANGELOG.md && git commit -m "docs: bump version to X.Y.Z"
+4. git tag vX.Y.Z
+5. git push origin master && git push origin vX.Y.Z
+6. gh release create vX.Y.Z --title "vX.Y.Z" --notes "..."
+```
 
 ---
 
 ## What NOT to do
 
 - **Never construct GitHub release asset URLs from version + arch** — use
-  `_gh_release_info` or `_gh_latest_release` to get the actual URL; names change.
-- **Never use `command -v` to check for binaries at install time** when PATH order
-  matters — use absolute paths or direct `[ -x /path/to/bin ]` probes.
-- **Never commit generated files** (`*_pb2.py`, `*.pb.go`, etc.) — not relevant
-  here but applies if protobuf ever appears.
+  `_gh_release_info` or `_gh_latest_release`; asset names change between releases.
+- **Never use `command -v` at install time** when PATH order matters — use direct
+  `[ -x /absolute/path ]` probes (install-time bash PATH may resolve to shadow).
 - **Never `git push` without confirmation** — always ask first.
-- **Never add Co-Authored-By: Claude** to commit messages.
-- **Never skip hooks** (`--no-verify`) or force-push master.
