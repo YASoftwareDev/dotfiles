@@ -177,6 +177,8 @@ _install_zoxide() {
 
 # git-delta: apt on Ubuntu 24.04+; GitHub .deb on 20.04/22.04 with sudo,
 # or musl tarball when no sudo is available.
+# The .deb asset name has changed between releases (e.g. git-delta → git-delta-musl),
+# so we look up the actual URL via the API rather than constructing it.
 _install_delta() {
     if has delta; then
         log_ok "git-delta already installed — skipping"
@@ -188,21 +190,20 @@ _install_delta() {
         return
     fi
 
-    local tag ver
-    tag=$(_gh_latest_tag_noapi "dandavison/delta") || tag=""
-    ver="${tag#v}"
-
-    if [ -z "$ver" ]; then
-        log_warn "git-delta: could not determine latest release — skipping"
-        return
-    fi
-
     if $CAN_SUDO; then
         log_step "git-delta (GitHub .deb)"
         local arch; arch="$(_deb_arch)"
-        local deb="git-delta_${ver}_${arch}.deb"
-        local url="https://github.com/dandavison/delta/releases/download/${ver}/${deb}"
-        log_info "git-delta: installing $ver → system (via .deb)"
+        local tag="" url=""
+        # Use _gh_release_info to get both tag and exact .deb URL in one API call —
+        # avoids brittle filename construction that breaks when asset names change.
+        read -r tag url < <(_gh_release_info "dandavison/delta" "${arch}.deb") || true
+        local ver="${tag#v}"
+        if [ -z "$url" ]; then
+            log_warn "git-delta: could not find .deb release URL — skipping"
+            return
+        fi
+        local deb="${url##*/}"
+        log_info "git-delta: installing ${ver:-unknown} → system (via .deb)"
         local tmp; tmp="$(mktemp -d)"
         # shellcheck disable=SC2064
         trap "rm -rf '$tmp'" RETURN
@@ -225,6 +226,12 @@ _install_delta() {
                 return
                 ;;
         esac
+        local tag; tag=$(_gh_latest_tag_noapi "dandavison/delta") || tag=""
+        local ver="${tag#v}"
+        if [ -z "$ver" ]; then
+            log_warn "git-delta: could not determine latest release — skipping"
+            return
+        fi
         local url="https://github.com/dandavison/delta/releases/download/${ver}/delta-${ver}-${delta_arch}.tar.gz"
         log_info "git-delta: installing $ver → ~/.local/bin/delta"
         if _download_tar_bin "$url" "delta" ~/.local/bin/delta; then
