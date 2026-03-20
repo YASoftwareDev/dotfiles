@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-03-20
+
+### Fixed
+- `modules/base.sh`: delta `.deb` install was constructing the asset filename
+  (`git-delta_VERSION_amd64.deb`) but delta 0.19.0 renamed the asset to
+  `git-delta-musl_VERSION_amd64.deb`, silently breaking installation on Ubuntu
+  20.04/22.04; fixed by using `_gh_release_info` to look up the exact URL from
+  the GitHub API instead of hardcoding the filename pattern
+
 ## [1.2.1] - 2026-03-20
 
 ### Changed
