@@ -11,10 +11,14 @@
 #   apt  omz  tmux-plugins  zsh-plugins  fzf  rg  fd  shellcheck
 #   zoxide  delta  eza  uv  ruff  neovim  cheat  pre-commit  xcape
 #
+# A PATH shadow check always runs at the end (read-only). It detects older
+# binaries at higher-priority PATH locations that would hide managed versions
+# installed to /usr/local/bin (e.g. nvim, xcape).
+#
 # Examples:
-#   ./update.sh --check              # check all versions
-#   ./update.sh --check neovim fzf  # check only neovim and fzf
-#   ./update.sh neovim              # update only neovim
+#   ./update.sh --check              # check all versions + shadow report
+#   ./update.sh --check neovim fzf  # check only neovim and fzf (+ shadow report)
+#   ./update.sh neovim              # update only neovim (+ shadow report)
 #   NOSUDO=1 ./update.sh            # skip apt upgrade, skip all sudo operations
 
 set -euo pipefail
@@ -177,6 +181,80 @@ _do_update_neovim() {
     fi
     log_ok "neovim updated → $(nvim --version 2>/dev/null | head -1)"
     _verify_dest nvim "$nvim_dest"
+}
+
+# ── PATH shadow check ─────────────────────────────────────────────────────────
+# Detect binaries at higher-priority PATH locations that shadow dotfiles-managed
+# versions at /usr/local/bin. Runs always (read-only, no side effects).
+#
+# Only /usr/local/bin tools need this check — tools at ~/.local/bin are already
+# at the highest dotfiles-managed PATH priority and cannot be shadowed by the
+# installer itself.
+_check_path_shadows() {
+    log_step "PATH shadow check"
+
+    # Collect PATH dirs that appear before /usr/local/bin.
+    # These are the only locations that can shadow /usr/local/bin binaries.
+    local -a _before=() _all_dirs=()
+    local _dir _found_usr_local=false
+    IFS=: read -ra _all_dirs <<< "${PATH:-}"
+    for _dir in "${_all_dirs[@]}"; do
+        if [ "$_dir" = "/usr/local/bin" ]; then
+            _found_usr_local=true
+            break
+        fi
+        _before+=("$_dir")
+    done
+
+    # If /usr/local/bin is not in PATH at all, the check is meaningless —
+    # managed binaries there are unreachable regardless of shadows.
+    if ! $_found_usr_local; then
+        log_info "PATH shadow check: /usr/local/bin not in PATH — skipping (run from zsh after exec zsh)"
+        return 0
+    fi
+
+    if [ ${#_before[@]} -eq 0 ]; then
+        log_ok "/usr/local/bin is first in PATH — no shadow risk"
+        return 0
+    fi
+
+    local _any_issue=false _any_checked=false _tool _canonical _shadow _cv _sv
+    for _tool in nvim xcape; do
+        _canonical="/usr/local/bin/$_tool"
+        [ -x "$_canonical" ] || continue  # not installed at /usr/local/bin
+        _any_checked=true
+
+        _shadow=""
+        for _dir in "${_before[@]}"; do
+            [ -x "$_dir/$_tool" ] && _shadow="$_dir/$_tool" && break
+        done
+
+        [ -z "$_shadow" ] && continue  # no shadow for this tool — silent in clean case
+
+        _cv=$(_cmd_version "$_canonical" --version) || _cv=""
+        _sv=$(_cmd_version "$_shadow" --version) || _sv=""
+
+        if [ -z "$_cv" ] || [ -z "$_sv" ]; then
+            log_warn "$_tool: $_shadow shadows /usr/local/bin/$_tool (cannot read versions — inspect manually)"
+            _any_issue=true
+        elif _ver_older_than "$_sv" "$_cv"; then
+            log_warn "$_tool: $_shadow ($_sv) shadows /usr/local/bin/$_tool ($_cv)"
+            log_warn "  Fix: rm $_shadow"
+            _any_issue=true
+        elif [ "$_sv" = "$_cv" ]; then
+            log_warn "$_tool: duplicate at $_shadow — same version as /usr/local/bin/$_tool"
+            log_warn "  Consider: rm $_shadow"
+            _any_issue=true
+        else
+            log_info "$_tool: $_shadow ($_sv) supersedes /usr/local/bin/$_tool ($_cv) — custom newer version"
+        fi
+    done
+
+    if ! $_any_checked; then
+        log_info "No tools installed at /usr/local/bin — shadow check not applicable"
+    elif ! $_any_issue; then
+        log_ok "No PATH shadows detected for /usr/local/bin tools"
+    fi
 }
 
 # ── System packages ────────────────────────────────────────────────────────────
@@ -452,6 +530,9 @@ if _should_run pre-commit; then
         log_warn "  To override: PRECOMMIT_REPO=/your/path ./update.sh"
     fi
 fi
+
+# ── PATH shadow check (always runs — read-only) ───────────────────────────────
+_check_path_shadows
 
 echo ""
 if $CHECK_ONLY; then

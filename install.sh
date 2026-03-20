@@ -111,9 +111,14 @@ echo ""
 echo "  Next steps:"
 case "$PROFILE" in
     minimal|workstation)
-        echo "    • Switch to zsh now:  exec zsh"
-        echo "    • (Or start a new terminal session)"
-        echo "    • Run p10k configure to customise your prompt"
+        if ${_SHELL_IS_ZSH:-false}; then
+            echo "    • Default shell set to zsh — new terminals will open in zsh automatically"
+        else
+            echo "    • Default shell change failed — new terminals will still use bash"
+            echo "    • To fix permanently: chsh -s $(command -v zsh)  then re-login"
+        fi
+        echo "    • Activate zsh right now (no re-login needed):  exec zsh"
+        echo "    • Once in zsh:  p10k configure   to choose your prompt style"
         echo ""
         echo "  Font (run on your LOCAL machine, not here if this is a remote/server):"
         echo "    • ./scripts/install-fonts.sh   — installs MesloLGS NF (required for icons)"

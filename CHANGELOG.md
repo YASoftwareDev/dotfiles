@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-03-20
+
+### Added
+- `lib/utils.sh`: `_ver_older_than` — version comparison helper using `sort -V`
+  (GNU coreutils); returns true when `$1 < $2`, false when either arg is empty
+- `modules/neovim.sh`: `_nvim_warn_shadows` — detects pre-existing `nvim` copies
+  at `~/.local/bin/nvim` or `~/bin/nvim` that shadow the managed install at
+  `/usr/local/bin/nvim`; runs at both install time and on the skip-already-current
+  path so a shadow is never silently missed
+- `update.sh`: `_check_path_shadows` — PATH shadow check that always runs at the
+  end of `update.sh` (read-only, no side effects); walks PATH dirs before
+  `/usr/local/bin`, reports older/duplicate/newer shadows for each managed tool
+  (`nvim`, `xcape`); skipped with an informational message if `/usr/local/bin` is
+  not in PATH at all
+
+### Fixed
+- `modules/base.sh`: add `locales` package and `locale-gen en_US.UTF-8` to
+  `install_base` — on fresh minimal Ubuntu images the locale data is absent,
+  causing Perl to warn on every `Ctrl+R` invocation (fzf's history widget invokes
+  `perl` for multi-line deduplication); idempotent (`locale -a` check guards re-run)
+- `install.sh` + `modules/zsh.sh`: post-install message now correctly reflects
+  whether the default shell change succeeded or failed; uses `_SHELL_IS_ZSH` flag
+  set by `_set_default_shell`; clarifies that `exec zsh` activates the shell
+  immediately without a re-login
+
 ## [1.1.3] - 2026-03-18
 
 ### Fixed

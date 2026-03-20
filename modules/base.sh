@@ -10,6 +10,7 @@ install_base() {
 
     if $CAN_SUDO; then
         local -a _pkgs=(
+            locales
             git curl wget
             zsh tmux neovim
             ranger jq
@@ -21,6 +22,14 @@ install_base() {
         log_info "Installing via apt: ${_pkgs[*]} (versions resolved by apt)"
         $SUDO apt-get -yq update
         apt_install "${_pkgs[@]}"
+
+        # Ensure en_US.UTF-8 locale is generated — without this, Perl (and tools
+        # that shell out to it) will warn whenever LANG=en_US.UTF-8 is set but the
+        # locale data isn't present (e.g. on fresh minimal Ubuntu installs).
+        if ! locale -a 2>/dev/null | grep -q 'en_US.utf8'; then
+            log_info "Generating locale: en_US.UTF-8"
+            $SUDO locale-gen en_US.UTF-8
+        fi
 
         # fd is installed as 'fdfind' on Debian/Ubuntu — add a shim if fd is missing
         if ! has fd && has fdfind; then

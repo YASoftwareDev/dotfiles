@@ -78,6 +78,9 @@ _link_zshrc() {
     log_ok "~/.zshrc → dotfiles/zsh/.zshrc"
 }
 
+# Set by _set_default_shell; read by install.sh's "next steps" section.
+_SHELL_IS_ZSH=false
+
 _set_default_shell() {
     log_step "Default shell"
     local zsh_path
@@ -88,6 +91,7 @@ _set_default_shell() {
     fi
     if [ "${SHELL:-}" = "$zsh_path" ]; then
         log_ok "zsh is already the default shell"
+        _SHELL_IS_ZSH=true
         return
     fi
     if $CAN_SUDO; then
@@ -98,10 +102,13 @@ _set_default_shell() {
         [ -n "${SUDO:-}" ] && sudo -v 2>/dev/null || true
         $SUDO usermod -s "$zsh_path" "$(id -un)"
         log_ok "Default shell set to zsh (restart your session)"
+        _SHELL_IS_ZSH=true
     elif chsh -s "$zsh_path" 2>/dev/null; then
         log_ok "Default shell set to zsh (restart your session)"
+        _SHELL_IS_ZSH=true
     else
         log_warn "Could not change shell — run: chsh -s $zsh_path"
+        _SHELL_IS_ZSH=false
     fi
 }
 
