@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-03-20
+
+### Fixed
+- `nvim/init.lua`: blink.cmp completion menu was too narrow for long file/folder
+  paths; set `min_width=30` and `max_width=80` so path completions are fully visible
+
 ## [1.2.2] - 2026-03-20
 
 ### Fixed
