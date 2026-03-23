@@ -443,3 +443,9 @@ run '~/.tmux/plugins/tmux-cpu/cpu.tmux'
 #
 # "$@"
 # # /!\ do not remove the previous line
+
+# -- server-local overrides ----------------------------------------------------
+
+# Machine-specific settings (not tracked in git — safe across git pull).
+# Put server customisations in ~/.tmux.conf.server instead of editing this file.
+if-shell '[ -f ~/.tmux.conf.server ]' 'source-file ~/.tmux.conf.server'
