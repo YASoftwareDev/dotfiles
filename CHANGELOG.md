@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.4] - 2026-03-23
+
+### Fixed
+- `get.sh`: existing-clone update block now fails loudly instead of silently
+  continuing with a stale clone when `git pull` cannot proceed; detects and
+  handles four distinct failure modes with actionable recovery instructions:
+  - Stale `.git/index.lock` (interrupted git operation) — die with `rm` command
+  - Unfinished merge or rebase state — die with `git status` guidance
+  - Local modifications (dirty working tree) — die with full manual stash
+    sequence including `exec bash` escape hatch for the case where conflict
+    markers break `~/.zshrc` via symlink, and note that `get.sh` is gone after
+    curl-pipe (recovery must use `bash install.sh` directly)
+  - Local commits ahead of upstream — die with `git fetch && reset --hard '@{u}'`
+  - Network / diverged-history pull failure — warn and continue on existing
+    clone (resilient); message correctly states install proceeds on stale version
+    and gives the command to apply latest changes later
+- All die/warn paths consistently point to `bash <dest>/install.sh` rather than
+  "re-run get.sh", which is impossible after a curl-pipe invocation
+
+### Added
+- `tmux/.tmux.conf.local`: server-local override include at end of file —
+  machine-specific tmux settings now go in `~/.tmux.conf.server` (untracked,
+  not in git) so `git pull` never conflicts with server customisations
+
 ## [1.2.3] - 2026-03-20
 
 ### Fixed
@@ -277,7 +301,12 @@ Complete overhaul of the dotfiles infrastructure: modular profiles, Neovim, CI, 
 ### Added
 - Initial dotfiles: Zsh (oh-my-zsh + fzf), Tmux, Vim, and monolithic `install.sh`
 
-[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.1.3...HEAD
+[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.2.4...HEAD
+[1.2.4]: https://github.com/YASoftwareDev/dotfiles/compare/v1.2.3...v1.2.4
+[1.2.3]: https://github.com/YASoftwareDev/dotfiles/compare/v1.2.2...v1.2.3
+[1.2.2]: https://github.com/YASoftwareDev/dotfiles/compare/v1.2.1...v1.2.2
+[1.2.1]: https://github.com/YASoftwareDev/dotfiles/compare/v1.2.0...v1.2.1
+[1.2.0]: https://github.com/YASoftwareDev/dotfiles/compare/v1.1.3...v1.2.0
 [1.1.3]: https://github.com/YASoftwareDev/dotfiles/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/YASoftwareDev/dotfiles/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/YASoftwareDev/dotfiles/compare/v1.1.0...v1.1.1
