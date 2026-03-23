@@ -155,11 +155,51 @@ fi
 # ── Clone or update ────────────────────────────────────────────────────────────
 if [ -d "$DEST/.git" ]; then
     _info "Dotfiles found at $DEST — pulling latest…"
-    if ! git -C "$DEST" pull --ff-only 2>&1; then
-        _warn "git pull failed — continuing with existing clone."
-    else
-        _ok "Updated"
+
+    # Stale lock from a previously interrupted git operation
+    if [ -f "$DEST/.git/index.lock" ]; then
+        _die "Git index is locked at $DEST/.git/index.lock\n  If no git process is running: rm '$DEST/.git/index.lock'\n  Then: bash '$DEST/install.sh' ${PROFILE:-workstation}"
     fi
+
+    # Unfinished merge or rebase
+    if [ -f "$DEST/.git/MERGE_HEAD" ] || [ -d "$DEST/.git/rebase-merge" ] || [ -d "$DEST/.git/rebase-apply" ]; then
+        _die "Repo at $DEST is in an unfinished merge/rebase state.\n  Resolve it first: git -C '$DEST' status\n  Then: bash '$DEST/install.sh' ${PROFILE:-workstation}"
+    fi
+
+    # Local modifications would be overwritten by pull
+    if ! git -C "$DEST" diff --quiet HEAD 2>/dev/null; then
+        _warn "Local modifications detected — cannot pull cleanly:"
+        git -C "$DEST" diff --name-only HEAD 2>/dev/null | while IFS= read -r f; do _warn "  $f"; done
+        _warn "Resolve manually, then run install.sh directly (get.sh is gone after curl-pipe):"
+        _warn "  git -C '$DEST' stash"
+        _warn "  git -C '$DEST' pull"
+        _warn "  git -C '$DEST' stash pop"
+        _warn "  # WARNING: if stash pop has conflicts, ~/.zshrc may break."
+        _warn "  # If that happens: exec bash (use bash until resolved)"
+        _warn "  # Accept upstream: git -C '$DEST' checkout -- <file>"
+        _warn "  # Then: git -C '$DEST' stash drop"
+        _warn "  bash '$DEST/install.sh' ${PROFILE:-workstation}"
+        _die "Aborting — resolve local changes first."
+    fi
+
+    # Local commits ahead of upstream (clean tree but diverged)
+    if git -C "$DEST" rev-parse '@{u}' &>/dev/null; then
+        _ahead=$(git -C "$DEST" rev-list '@{u}..HEAD' --count 2>/dev/null || echo 0)
+        if [ "${_ahead:-0}" -gt 0 ]; then
+            _warn "Local commits on this clone (${_ahead} ahead of upstream):"
+            git -C "$DEST" log '@{u}..HEAD' --oneline >&2
+            _die "Resolve manually:\n  git -C '$DEST' fetch\n  git -C '$DEST' reset --hard '@{u}'  # WARNING: discards those commits\n  bash '$DEST/install.sh' ${PROFILE:-workstation}"
+        fi
+    fi
+
+    # Pull (network failure: warn and continue on existing clone)
+    if git -C "$DEST" pull --ff-only 2>&1; then
+        _ok "Updated to $(git -C "$DEST" describe --tags --always 2>/dev/null || git -C "$DEST" rev-parse --short HEAD)"
+    else
+        _warn "git pull failed — continuing with existing clone (proceeding with installed version)."
+        _warn "To apply latest changes later: git -C '$DEST' pull && bash '$DEST/install.sh' ${PROFILE:-workstation}"
+    fi
+
 elif [ -e "$DEST" ]; then
     _die "$DEST already exists but is not a dotfiles repo.\n  Remove it or set DOTFILES_DIR to a different path:\n  DOTFILES_DIR=~/my-dotfiles bash get.sh ${PROFILE:-}"
 else
