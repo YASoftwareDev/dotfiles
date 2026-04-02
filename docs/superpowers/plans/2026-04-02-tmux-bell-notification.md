@@ -95,7 +95,7 @@ Change:
 
 To:
 ```json
-"command": "PULSE_SERVER=tcp:192.168.122.1:4713 cvlc --aout pulse --play-and-exit ~/.claude/sounds/bell_asking_for_decision_louder.wav &; printf '\\a'"
+"command": "PULSE_SERVER=tcp:192.168.122.1:4713 cvlc --aout pulse --play-and-exit ~/.claude/sounds/bell_asking_for_decision_louder.wav & printf '\\a'"
 ```
 
 - [ ] **Step 2: Update PreToolUse → AskUserQuestion hook (line 73)**
@@ -107,7 +107,7 @@ Change:
 
 To:
 ```json
-"command": "PULSE_SERVER=tcp:192.168.122.1:4713 cvlc --aout pulse --play-and-exit ~/.claude/sounds/sheep_bell_louder.wav &; printf '\\a'"
+"command": "PULSE_SERVER=tcp:192.168.122.1:4713 cvlc --aout pulse --play-and-exit ~/.claude/sounds/sheep_bell_louder.wav & printf '\\a'"
 ```
 
 This hook is under `"PreToolUse"` with `"matcher": "AskUserQuestion"`.
@@ -121,7 +121,7 @@ Change:
 
 To:
 ```json
-"command": "PULSE_SERVER=tcp:192.168.122.1:4713 cvlc --aout pulse --play-and-exit ~/.claude/sounds/sheep_bell_louder.wav &; printf '\\a'"
+"command": "PULSE_SERVER=tcp:192.168.122.1:4713 cvlc --aout pulse --play-and-exit ~/.claude/sounds/sheep_bell_louder.wav & printf '\\a'"
 ```
 
 This hook is under `"Stop"`.
