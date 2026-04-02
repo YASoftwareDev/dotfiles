@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.5] - 2026-04-02
+
+### Added
+- `tmux/.tmux.conf.local`: enable `bell-action any` so terminal bells from background tmux windows propagate to the status bar, triggering the existing bell tab indicator and `blink,bold` styling on the window tab
+
 ## [1.2.4] - 2026-03-23
 
 ### Fixed
@@ -301,7 +306,8 @@ Complete overhaul of the dotfiles infrastructure: modular profiles, Neovim, CI, 
 ### Added
 - Initial dotfiles: Zsh (oh-my-zsh + fzf), Tmux, Vim, and monolithic `install.sh`
 
-[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.2.4...HEAD
+[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.2.5...HEAD
+[1.2.5]: https://github.com/YASoftwareDev/dotfiles/compare/v1.2.4...v1.2.5
 [1.2.4]: https://github.com/YASoftwareDev/dotfiles/compare/v1.2.3...v1.2.4
 [1.2.3]: https://github.com/YASoftwareDev/dotfiles/compare/v1.2.2...v1.2.3
 [1.2.2]: https://github.com/YASoftwareDev/dotfiles/compare/v1.2.1...v1.2.2
