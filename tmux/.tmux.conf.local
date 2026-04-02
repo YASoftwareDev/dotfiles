@@ -343,6 +343,7 @@ set -ga terminal-overrides ",xterm-256color:Tc"
 # modern tmux features
 set -g extended-keys on        # proper Ctrl+Shift+key sequences
 set -g detach-on-destroy off   # switch to next session instead of exiting tmux
+set -g bell-action any         # propagate bells from all windows to status bar
 
 # -- fzf session/window switcher -----------------------------------------------
 
