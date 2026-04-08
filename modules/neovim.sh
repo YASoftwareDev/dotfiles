@@ -142,6 +142,12 @@ install_neovim() {
         local glibc_ver
         glibc_ver=$(ldd --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+$' || echo "unknown")
         log_warn "neovim: prebuilt binary requires glibc ≥ 2.32 (system has $glibc_ver) — falling back to apt"
+        # Remove any broken binary left by a prior failed install so `nvim`
+        # is simply absent rather than crashing on every invocation.
+        if [ -f "$prefix/bin/nvim" ] && ! "$prefix/bin/nvim" --version >/dev/null 2>&1; then
+            rm -f "$prefix/bin/nvim"
+            log_info "neovim: removed incompatible binary from $prefix/bin/nvim"
+        fi
         _neovim_apt
         return
     fi
