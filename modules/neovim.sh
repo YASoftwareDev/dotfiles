@@ -42,6 +42,55 @@ link_nvim_config() {
     log_ok "~/.config/nvim → dotfiles/nvim/.config/nvim"
 }
 
+# Fallback for systems with older glibc: extract the AppImage instead.
+# AppImages bundle their own runtime so glibc ≥ 2.32 is not required.
+# squashfs-root/usr/{bin,lib,share}/… mirrors a standard /usr/ prefix, so
+# copying usr/. → $prefix works for both /usr/local (sudo) and ~/.local.
+_neovim_try_appimage() {
+    local nvim_arch="$1" prefix="$2" raw="$3"
+    log_info "neovim: binary requires newer glibc — trying AppImage"
+
+    local appimage_url
+    appimage_url=$(printf '%s\n' "$raw" \
+        | grep -o '"browser_download_url": *"[^"]*nvim-'"${nvim_arch}"'\.appimage"' \
+        | grep -o 'https://[^"]*' \
+        | head -1)
+
+    if [ -z "$appimage_url" ]; then
+        log_warn "neovim: no AppImage in release — falling back to apt"
+        _neovim_apt
+        return
+    fi
+
+    local tmp
+    tmp=$(mktemp -d)
+    # shellcheck disable=SC2064
+    trap "rm -rf '$tmp'" RETURN
+
+    if has curl; then
+        curl -sfL "$appimage_url" -o "$tmp/nvim.appimage"
+    else
+        wget -qO "$tmp/nvim.appimage" "$appimage_url"
+    fi
+    chmod +x "$tmp/nvim.appimage"
+
+    # --appimage-extract works without FUSE; produces squashfs-root/
+    (cd "$tmp" && ./nvim.appimage --appimage-extract >/dev/null 2>&1)
+
+    if [ ! -d "$tmp/squashfs-root/usr" ]; then
+        log_warn "neovim: AppImage extraction failed — falling back to apt"
+        _neovim_apt
+        return
+    fi
+
+    if $CAN_SUDO; then
+        [ -n "${SUDO:-}" ] && sudo -v 2>/dev/null || true
+        $SUDO cp -r "$tmp/squashfs-root/usr/." "$prefix/"
+    else
+        cp -r "$tmp/squashfs-root/usr/." "$prefix/"
+    fi
+}
+
 install_neovim() {
     log_step "neovim (GitHub releases)"
     # Fetches the API response once and extracts both download URL and tag from
@@ -92,11 +141,12 @@ install_neovim() {
     local prefix
     if $CAN_SUDO; then prefix="/usr/local"; else prefix="$HOME/.local"; fi
 
-    # Skip if already at latest version
+    # Skip if already at latest version AND binary actually runs.
+    # A version-matching but glibc-broken binary must not be skipped.
     if has nvim; then
         local current
         current=$(nvim --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-        if [ "$current" = "$latest" ]; then
+        if [ "$current" = "$latest" ] && "$prefix/bin/nvim" --version >/dev/null 2>&1; then
             log_ok "neovim $latest_tag already installed — skipping"
             # Shadow check still needed: `nvim` above may have resolved to a
             # user-local copy (e.g. ~/.local/bin/nvim) that shadows an existing
@@ -141,6 +191,13 @@ install_neovim() {
         $SUDO cp -r "$extracted"/. "$prefix/"
     else
         cp -r "$extracted"/. "$prefix/"
+    fi
+
+    # Verify the binary actually runs — older glibc systems (e.g. Ubuntu 20.04,
+    # glibc 2.31) cannot execute the standard tarball which requires glibc ≥ 2.32.
+    # Fall back to the AppImage which is self-contained and glibc-independent.
+    if ! "$prefix/bin/nvim" --version >/dev/null 2>&1; then
+        _neovim_try_appimage "$nvim_arch" "$prefix" "$raw"
     fi
 
     # Use the full path so the version shown is always the binary we just
