@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Neovim: install latest stable release from GitHub (prebuilt tarball).
-# Falls back to apt if GitHub is unreachable or arch is unsupported.
+# Falls back to apt if GitHub is unreachable, arch is unsupported, or the
+# prebuilt binary is incompatible with the system's glibc.
 # Idempotent: skips install when the installed version already matches latest.
 
 # Probe ~/.local/bin/nvim and ~/bin/nvim for older copies that would shadow
@@ -40,55 +41,6 @@ link_nvim_config() {
     fi
     symlink "$src" "$dst"
     log_ok "~/.config/nvim → dotfiles/nvim/.config/nvim"
-}
-
-# Fallback for systems with older glibc: extract the AppImage instead.
-# AppImages bundle their own runtime so glibc ≥ 2.32 is not required.
-# squashfs-root/usr/{bin,lib,share}/… mirrors a standard /usr/ prefix, so
-# copying usr/. → $prefix works for both /usr/local (sudo) and ~/.local.
-_neovim_try_appimage() {
-    local nvim_arch="$1" prefix="$2" raw="$3"
-    log_info "neovim: binary requires newer glibc — trying AppImage"
-
-    local appimage_url
-    appimage_url=$(printf '%s\n' "$raw" \
-        | grep -o '"browser_download_url": *"[^"]*nvim-'"${nvim_arch}"'\.appimage"' \
-        | grep -o 'https://[^"]*' \
-        | head -1)
-
-    if [ -z "$appimage_url" ]; then
-        log_warn "neovim: no AppImage in release — falling back to apt"
-        _neovim_apt
-        return
-    fi
-
-    local tmp
-    tmp=$(mktemp -d)
-    # shellcheck disable=SC2064
-    trap "rm -rf '$tmp'" RETURN
-
-    if has curl; then
-        curl -sfL "$appimage_url" -o "$tmp/nvim.appimage"
-    else
-        wget -qO "$tmp/nvim.appimage" "$appimage_url"
-    fi
-    chmod +x "$tmp/nvim.appimage"
-
-    # --appimage-extract works without FUSE; produces squashfs-root/
-    (cd "$tmp" && ./nvim.appimage --appimage-extract >/dev/null 2>&1)
-
-    if [ ! -d "$tmp/squashfs-root/usr" ]; then
-        log_warn "neovim: AppImage extraction failed — falling back to apt"
-        _neovim_apt
-        return
-    fi
-
-    if $CAN_SUDO; then
-        [ -n "${SUDO:-}" ] && sudo -v 2>/dev/null || true
-        $SUDO cp -r "$tmp/squashfs-root/usr/." "$prefix/"
-    else
-        cp -r "$tmp/squashfs-root/usr/." "$prefix/"
-    fi
 }
 
 install_neovim() {
@@ -181,6 +133,19 @@ install_neovim() {
         return
     fi
 
+    # Test the binary IN the tmpdir BEFORE overwriting any existing installation.
+    # Prebuilt GitHub binaries require glibc ≥ 2.32 (Ubuntu 22.04+); systems with
+    # older glibc (e.g. Ubuntu 20.04, glibc 2.31) must fall back to apt.
+    # Note: the AppImage asset uses the same compiled binary — it has the same glibc
+    # requirement — so it is not a viable fallback for this class of failure.
+    if ! "$extracted/bin/nvim" --version >/dev/null 2>&1; then
+        local glibc_ver
+        glibc_ver=$(ldd --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+$' || echo "unknown")
+        log_warn "neovim: prebuilt binary requires glibc ≥ 2.32 (system has $glibc_ver) — falling back to apt"
+        _neovim_apt
+        return
+    fi
+
     if $CAN_SUDO; then
         # Refresh credential cache right before use — the download above may have
         # taken long enough for the 15-minute sudo cache to expire.
@@ -193,13 +158,6 @@ install_neovim() {
         cp -r "$extracted"/. "$prefix/"
     fi
 
-    # Verify the binary actually runs — older glibc systems (e.g. Ubuntu 20.04,
-    # glibc 2.31) cannot execute the standard tarball which requires glibc ≥ 2.32.
-    # Fall back to the AppImage which is self-contained and glibc-independent.
-    if ! "$prefix/bin/nvim" --version >/dev/null 2>&1; then
-        _neovim_try_appimage "$nvim_arch" "$prefix" "$raw"
-    fi
-
     # Use the full path so the version shown is always the binary we just
     # installed, not whatever `nvim` resolves to in the install-time bash PATH.
     log_ok "neovim installed → $prefix ($($prefix/bin/nvim --version 2>/dev/null | head -1))"
@@ -209,6 +167,8 @@ install_neovim() {
 _neovim_apt() {
     if ! $CAN_SUDO; then
         log_warn "neovim: no sudo — cannot install via apt"
+        log_warn "  Prebuilt GitHub binaries require glibc ≥ 2.32 (Ubuntu 22.04+)"
+        log_warn "  Options: upgrade OS, or build neovim from source"
         return
     fi
     apt_install neovim
