@@ -112,6 +112,29 @@ install_neovim() {
         log_info "neovim: installing $latest_tag → $prefix"
     fi
 
+    # Early glibc check — avoids a needless ~100 MB download on old systems.
+    # Prebuilt binaries since v0.10.0 require glibc ≥ 2.32 (Ubuntu 22.04+).
+    # Detect before downloading; if too old, go straight to the legacy binary.
+    local glibc_ver
+    glibc_ver=$(ldd --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+$' || echo "0.0")
+    if _ver_older_than "$glibc_ver" "2.32"; then
+        log_warn "neovim: system glibc $glibc_ver < 2.32 — latest prebuilt incompatible"
+        # Remove any broken binary left by a prior failed install.
+        if [ -f "$prefix/bin/nvim" ] && ! "$prefix/bin/nvim" --version >/dev/null 2>&1; then
+            rm -f "$prefix/bin/nvim"
+            log_info "neovim: removed incompatible binary from $prefix/bin/nvim"
+        fi
+        # Keep any already-working compatible binary (e.g. v0.9.5 from a prior run).
+        if "$prefix/bin/nvim" --version >/dev/null 2>&1; then
+            local legacy_cur
+            legacy_cur=$("$prefix/bin/nvim" --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+            log_ok "neovim $legacy_cur already installed (glibc-compatible) — skipping"
+            return
+        fi
+        [ "$arch" = "x86_64" ] && _neovim_legacy_binary "$prefix" || _neovim_apt
+        return
+    fi
+
     if ! $CAN_SUDO; then mkdir -p "$prefix"; fi
 
     local tmp
@@ -133,25 +156,6 @@ install_neovim() {
         return
     fi
 
-    # Test the binary IN the tmpdir BEFORE overwriting any existing installation.
-    # Prebuilt GitHub binaries require glibc ≥ 2.32 (Ubuntu 22.04+); systems with
-    # older glibc (e.g. Ubuntu 20.04, glibc 2.31) must fall back to apt.
-    # Note: the AppImage asset uses the same compiled binary — it has the same glibc
-    # requirement — so it is not a viable fallback for this class of failure.
-    if ! "$extracted/bin/nvim" --version >/dev/null 2>&1; then
-        local glibc_ver
-        glibc_ver=$(ldd --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+$' || echo "unknown")
-        log_warn "neovim: prebuilt binary requires glibc ≥ 2.32 (system has $glibc_ver) — falling back to apt"
-        # Remove any broken binary left by a prior failed install so `nvim`
-        # is simply absent rather than crashing on every invocation.
-        if [ -f "$prefix/bin/nvim" ] && ! "$prefix/bin/nvim" --version >/dev/null 2>&1; then
-            rm -f "$prefix/bin/nvim"
-            log_info "neovim: removed incompatible binary from $prefix/bin/nvim"
-        fi
-        _neovim_apt
-        return
-    fi
-
     if $CAN_SUDO; then
         # Refresh credential cache right before use — the download above may have
         # taken long enough for the 15-minute sudo cache to expire.
@@ -168,6 +172,43 @@ install_neovim() {
     # installed, not whatever `nvim` resolves to in the install-time bash PATH.
     log_ok "neovim installed → $prefix ($($prefix/bin/nvim --version 2>/dev/null | head -1))"
     if $CAN_SUDO; then _nvim_warn_shadows /usr/local/bin/nvim; fi
+}
+
+# Download the last neovim release compatible with glibc < 2.32.
+# v0.9.5 was built on Ubuntu 18.04 CI (glibc 2.17 baseline) and runs on any
+# glibc ≥ 2.17. Asset name changed to nvim-linux-x86_64 at v0.10.0; v0.9.x
+# used nvim-linux64.  Only x86_64 is handled — ARM64 falls back to apt.
+_neovim_legacy_binary() {
+    local prefix="$1"
+    local tag="v0.9.5"
+    local url="https://github.com/neovim/neovim/releases/download/${tag}/nvim-linux64.tar.gz"
+    log_info "neovim: downloading legacy $tag (glibc 2.17+ compatible)"
+
+    local tmp
+    tmp=$(mktemp -d)
+    # shellcheck disable=SC2064
+    trap "rm -rf '$tmp'" RETURN
+
+    if has curl; then
+        curl -sfL "$url" | tar -xz -C "$tmp" || { log_warn "neovim: legacy download failed — falling back to apt"; _neovim_apt; return; }
+    else
+        wget -qO- "$url" | tar -xz -C "$tmp" || { log_warn "neovim: legacy download failed — falling back to apt"; _neovim_apt; return; }
+    fi
+
+    local extracted="$tmp/nvim-linux64"
+    if [ ! -d "$extracted" ] || ! "$extracted/bin/nvim" --version >/dev/null 2>&1; then
+        log_warn "neovim: legacy binary not usable — falling back to apt"
+        _neovim_apt
+        return
+    fi
+
+    if $CAN_SUDO; then
+        [ -n "${SUDO:-}" ] && sudo -v 2>/dev/null || true
+        $SUDO cp -r "$extracted"/. "$prefix/"
+    else
+        cp -r "$extracted"/. "$prefix/"
+    fi
+    log_ok "neovim legacy $tag installed → $prefix ($($prefix/bin/nvim --version 2>/dev/null | head -1))"
 }
 
 _neovim_apt() {
