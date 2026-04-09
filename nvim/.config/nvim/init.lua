@@ -73,12 +73,13 @@ require('lazy').setup({
     opts = { style = 'palenight' } },                                                          -- darker/dark/palenight/oceanic
 
   -- ── LSP ──────────────────────────────────────────────────────────────────
-  -- blink.cmp (loaded when nvim ≥ 0.10) is listed as a dependency so lazy.nvim
-  -- ensures it loads first on capable versions; on nvim 0.9 it is disabled
-  -- (cond below) and the lspconfig config falls back to default capabilities.
+  -- nvim-lspconfig ≥ 2024-12 requires nvim 0.10 at the plugin level (not just
+  -- API level), so gate the entire block.  On nvim 0.9 the editor still works
+  -- fully; only LSP/completion is absent.
   {
     'neovim/nvim-lspconfig',
-    lazy = false,
+    cond  = vim.fn.has('nvim-0.10') == 1,
+    lazy  = false,
     dependencies = {
       'williamboman/mason.nvim',
       'williamboman/mason-lspconfig.nvim',
@@ -225,6 +226,7 @@ require('lazy').setup({
       'nvim-treesitter/nvim-treesitter-textobjects',
       {
         'nvim-treesitter/nvim-treesitter-context',
+        cond   = vim.fn.has('nvim-0.10') == 1, -- uses LspRequest event (nvim 0.10+)
         config = function()
           require('treesitter-context').setup({ max_lines = 3 })
         end,
