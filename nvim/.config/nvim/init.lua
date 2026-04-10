@@ -233,6 +233,13 @@ require('lazy').setup({
       },
     },
     config       = function()
+      -- Ensure parsers are present on fresh installs (async, no-op if already installed).
+      require('nvim-treesitter').install({
+        'bash', 'c', 'cpp', 'css', 'go', 'html', 'javascript',
+        'json', 'lua', 'markdown', 'python', 'rust', 'toml',
+        'typescript', 'vim', 'yaml',
+      })
+
       -- Highlighting: built-in vim.treesitter, enabled per filetype
       vim.api.nvim_create_autocmd('FileType', {
         group    = vim.api.nvim_create_augroup('UserTreesitter', { clear = true }),
