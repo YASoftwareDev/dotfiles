@@ -220,6 +220,7 @@ require('lazy').setup({
   -- ── Treesitter ───────────────────────────────────────────────────────────
   {
     'nvim-treesitter/nvim-treesitter',
+    cond         = vim.fn.has('nvim-0.10') == 1, -- uses vim.fs.joinpath (nvim 0.10+)
     lazy         = false,
     build        = ':TSUpdate',
     dependencies = {
