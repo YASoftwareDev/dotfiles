@@ -467,6 +467,7 @@ require('lazy').setup({
   { 'andymass/vim-matchup',    event = 'BufReadPost' },
   {
     'echasnovski/mini.ai',
+    cond   = vim.fn.has('nvim-0.10') == 1,
     event  = 'VeryLazy',
     config = function()
       require('mini.ai').setup({
@@ -499,6 +500,7 @@ require('lazy').setup({
   },
   {
     'echasnovski/mini.bracketed',
+    cond   = vim.fn.has('nvim-0.10') == 1,
     event  = 'VeryLazy',
     config = function()
       require('mini.bracketed').setup({
