@@ -73,10 +73,13 @@ require('lazy').setup({
     opts = { style = 'palenight' } },                                                          -- darker/dark/palenight/oceanic
 
   -- ── LSP ──────────────────────────────────────────────────────────────────
-  -- blink.cmp is a dependency so capabilities are available in config
+  -- nvim-lspconfig ≥ 2024-12 requires nvim 0.10 at the plugin level (not just
+  -- API level), so gate the entire block.  On nvim 0.9 the editor still works
+  -- fully; only LSP/completion is absent.
   {
     'neovim/nvim-lspconfig',
-    lazy = false,
+    cond  = vim.fn.has('nvim-0.10') == 1,
+    lazy  = false,
     dependencies = {
       'williamboman/mason.nvim',
       'williamboman/mason-lspconfig.nvim',
@@ -84,14 +87,13 @@ require('lazy').setup({
     },
     config = function()
       require('mason').setup()
-      require('mason-lspconfig').setup({
-        ensure_installed = { 'pyright', 'clangd', 'bashls', 'lua_ls' },
-        automatic_enable = false, -- we call vim.lsp.enable() ourselves below
-      })
 
-      local capabilities = require('blink.cmp').get_lsp_capabilities()
+      -- blink.cmp requires nvim ≥ 0.10; fall back to plain capabilities on older.
+      local capabilities = vim.fn.has('nvim-0.10') == 1
+        and require('blink.cmp').get_lsp_capabilities()
+        or vim.lsp.protocol.make_client_capabilities()
 
-      -- Single LspAttach autocmd covers all servers — no per-server on_attach needed
+      -- Single LspAttach autocmd covers all servers — no per-server on_attach needed.
       vim.api.nvim_create_autocmd('LspAttach', {
         group    = vim.api.nvim_create_augroup('UserLspAttach', { clear = true }),
         callback = function(event)
@@ -101,16 +103,22 @@ require('lazy').setup({
           local map    = function(key, fn, desc)
             vim.keymap.set('n', key, fn, vim.tbl_extend('force', opts, { desc = desc }))
           end
-          map('gd', vim.lsp.buf.definition, 'Go to definition')
-          map('gD', vim.lsp.buf.declaration, 'Go to declaration')
-          map('gr', vim.lsp.buf.references, 'References')
-          map('gi', vim.lsp.buf.implementation, 'Go to implementation')
-          map('K', vim.lsp.buf.hover, 'Hover docs')
-          map('<leader>rn', vim.lsp.buf.rename, 'Rename symbol')
+          map('gd', vim.lsp.buf.definition,      'Go to definition')
+          map('gD', vim.lsp.buf.declaration,     'Go to declaration')
+          map('gr', vim.lsp.buf.references,      'References')
+          map('gi', vim.lsp.buf.implementation,  'Go to implementation')
+          map('K',  vim.lsp.buf.hover,           'Hover docs')
+          map('<leader>rn', vim.lsp.buf.rename,      'Rename symbol')
           map('<leader>ca', vim.lsp.buf.code_action, 'Code action')
-          map('<leader>d', vim.diagnostic.open_float, 'Show diagnostics')
-          map('[d', function() vim.diagnostic.jump({ count = -1 }) end, 'Prev diagnostic')
-          map(']d', function() vim.diagnostic.jump({ count = 1 }) end, 'Next diagnostic')
+          map('<leader>d',  vim.diagnostic.open_float, 'Show diagnostics')
+          -- vim.diagnostic.jump() was added in nvim 0.10
+          if vim.fn.has('nvim-0.10') == 1 then
+            map('[d', function() vim.diagnostic.jump({ count = -1 }) end, 'Prev diagnostic')
+            map(']d', function() vim.diagnostic.jump({ count = 1 }) end,  'Next diagnostic')
+          else
+            map('[d', vim.diagnostic.goto_prev, 'Prev diagnostic')
+            map(']d', vim.diagnostic.goto_next, 'Next diagnostic')
+          end
 
           -- LSP word highlight — replaces vim-illuminate (semantic, not regex)
           -- Use a buffer-keyed augroup so multiple servers attaching to the same
@@ -131,34 +139,44 @@ require('lazy').setup({
         end,
       })
 
-      vim.lsp.config('pyright', {
-        capabilities = capabilities,
-        settings = {
-          python = {
-            analysis = {
-              useLibraryCodeForTypes = true, -- infer types from lib source when stubs absent
+      -- Server configs defined once; registration method differs by nvim version.
+      -- nvim 0.11+: vim.lsp.config/enable (new built-in API, no lspconfig on_attach)
+      -- nvim 0.9–0.10: lspconfig.server.setup() (classic API)
+      local servers = {
+        pyright = {
+          capabilities = capabilities,
+          settings = { python = { analysis = { useLibraryCodeForTypes = true } } },
+        },
+        clangd = { capabilities = capabilities },
+        bashls = { capabilities = capabilities },
+        lua_ls = {
+          capabilities = capabilities,
+          settings = {
+            Lua = {
+              runtime     = { version = 'LuaJIT' },
+              workspace   = { library = { vim.env.VIMRUNTIME }, checkThirdParty = false },
+              diagnostics = { globals = { 'vim' } },
             },
           },
         },
-      })
-      for _, server in ipairs({ 'clangd', 'bashls' }) do
-        vim.lsp.config(server, { capabilities = capabilities })
+      }
+
+      if vim.fn.has('nvim-0.11') == 1 then
+        require('mason-lspconfig').setup({
+          ensure_installed = vim.tbl_keys(servers),
+          automatic_enable = false, -- we call vim.lsp.enable() below
+        })
+        for name, cfg in pairs(servers) do vim.lsp.config(name, cfg) end
+        vim.lsp.enable(vim.tbl_keys(servers))
+      else
+        require('mason-lspconfig').setup({ ensure_installed = vim.tbl_keys(servers) })
+        local lspconfig = require('lspconfig')
+        for name, cfg in pairs(servers) do lspconfig[name].setup(cfg) end
       end
-      vim.lsp.config('lua_ls', {
-        capabilities = capabilities,
-        settings = {
-          Lua = {
-            runtime     = { version = 'LuaJIT' },
-            workspace   = { library = { vim.env.VIMRUNTIME }, checkThirdParty = false },
-            diagnostics = { globals = { 'vim' } },
-          },
-        },
-      })
-      vim.lsp.enable({ 'pyright', 'clangd', 'bashls', 'lua_ls' })
 
       vim.diagnostic.config({
         severity_sort = true,
-        float         = { border = 'rounded', source = true }, -- show server name per diagnostic
+        float         = { border = 'rounded', source = true },
       })
     end,
   },
@@ -166,6 +184,7 @@ require('lazy').setup({
   -- ── Completion ───────────────────────────────────────────────────────────
   {
     'saghen/blink.cmp',
+    cond         = vim.fn.has('nvim-0.10') == 1, -- uses vim.snippet built-in (nvim 0.10+)
     version      = '*', -- use release tags (pre-built Rust binary)
     dependencies = { 'rafamadriz/friendly-snippets' },
     config       = function()
@@ -201,18 +220,27 @@ require('lazy').setup({
   -- ── Treesitter ───────────────────────────────────────────────────────────
   {
     'nvim-treesitter/nvim-treesitter',
+    cond         = vim.fn.has('nvim-0.10') == 1, -- uses vim.fs.joinpath (nvim 0.10+)
     lazy         = false,
     build        = ':TSUpdate',
     dependencies = {
       'nvim-treesitter/nvim-treesitter-textobjects',
       {
         'nvim-treesitter/nvim-treesitter-context',
+        cond   = vim.fn.has('nvim-0.10') == 1, -- uses LspRequest event (nvim 0.10+)
         config = function()
           require('treesitter-context').setup({ max_lines = 3 })
         end,
       },
     },
     config       = function()
+      -- Ensure parsers are present on fresh installs (async, no-op if already installed).
+      require('nvim-treesitter').install({
+        'bash', 'c', 'cpp', 'css', 'go', 'html', 'javascript',
+        'json', 'lua', 'markdown', 'python', 'rust', 'toml',
+        'typescript', 'vim', 'yaml',
+      })
+
       -- Highlighting: built-in vim.treesitter, enabled per filetype
       vim.api.nvim_create_autocmd('FileType', {
         group    = vim.api.nvim_create_augroup('UserTreesitter', { clear = true }),
@@ -439,6 +467,7 @@ require('lazy').setup({
   { 'andymass/vim-matchup',    event = 'BufReadPost' },
   {
     'echasnovski/mini.ai',
+    cond   = vim.fn.has('nvim-0.10') == 1,
     event  = 'VeryLazy',
     config = function()
       require('mini.ai').setup({
@@ -471,6 +500,7 @@ require('lazy').setup({
   },
   {
     'echasnovski/mini.bracketed',
+    cond   = vim.fn.has('nvim-0.10') == 1,
     event  = 'VeryLazy',
     config = function()
       require('mini.bracketed').setup({

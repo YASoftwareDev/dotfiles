@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-04-11
+
+### Added
+- `scripts/install-neovim-src.sh`: standalone script to build the latest
+  stable neovim from source; intended for systems where glibc < 2.32 prevents
+  running prebuilt GitHub release binaries (e.g. Ubuntu 20.04); supports
+  `NEOVIM_TAG` (pin version) and `NEOVIM_PREFIX` (install path) env vars
+
+### Fixed
+- `modules/neovim.sh`: detect glibc version *before* downloading — saves
+  ~100 MB download on incompatible systems; fall back to v0.9.5 tarball
+  (`nvim-linux64.tar.gz`, built on Ubuntu 18.04 CI, glibc 2.17+ baseline)
+  when system glibc < 2.32; verify binary executes before declaring success;
+  clean up any broken binary left by a prior failed install when the glibc
+  fallback triggers; ARM64 systems with glibc < 2.32 fall back to apt
+- `nvim/init.lua`: gate `nvim-treesitter`, `nvim-lspconfig`,
+  `nvim-treesitter-context`, `mini.ai`, and `mini.bracketed` behind
+  `cond = vim.fn.has('nvim-0.10') == 1` — these plugins use nvim 0.10+ APIs
+  (`vim.fs.joinpath`, `LspRequest` event) or declare nvim < 0.10 soft-
+  deprecated; nvim 0.9.5 now starts cleanly with regex highlighting and no LSP
+- `nvim/init.lua`: use the correct post-2024 nvim-treesitter install API
+  (`require('nvim-treesitter').install({...})`) — the old
+  `require('nvim-treesitter.install').ensure_installed` no longer exists after
+  the nvim-treesitter refactor
+
 ## [1.2.5] - 2026-04-02
 
 ### Added
@@ -307,7 +332,8 @@ Complete overhaul of the dotfiles infrastructure: modular profiles, Neovim, CI, 
 ### Added
 - Initial dotfiles: Zsh (oh-my-zsh + fzf), Tmux, Vim, and monolithic `install.sh`
 
-[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.2.5...HEAD
+[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/YASoftwareDev/dotfiles/compare/v1.2.5...v1.3.0
 [1.2.5]: https://github.com/YASoftwareDev/dotfiles/compare/v1.2.4...v1.2.5
 [1.2.4]: https://github.com/YASoftwareDev/dotfiles/compare/v1.2.3...v1.2.4
 [1.2.3]: https://github.com/YASoftwareDev/dotfiles/compare/v1.2.2...v1.2.3
