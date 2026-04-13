@@ -5,8 +5,6 @@
 # Plugins sourced directly via run-shell in .tmux.conf.local
 # (gpakosz framework uses 'if ... source' syntax that TPM's auto-install can't parse)
 _TMUX_PLUGINS=(
-    "tmux-plugins/tmux-resurrect"
-    "tmux-plugins/tmux-continuum"
     "sainnhe/tmux-fzf"
     "tmux-plugins/tmux-cpu"
 )
