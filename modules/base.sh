@@ -139,13 +139,10 @@ _install_zoxide() {
             ;;
     esac
 
-    # Resolve download URL via redirect (no GitHub API rate limits)
-    local url="" tag ver
-    tag=$(_gh_latest_tag_noapi "ajeetdsouza/zoxide") || tag=""
-    if [ -n "$tag" ]; then
-        ver="${tag#v}"
-        url="https://github.com/ajeetdsouza/zoxide/releases/download/${tag}/zoxide-${ver}-${zoxide_arch}.tar.gz"
-    fi
+    # Use _gh_release_info to look up the exact asset URL — avoids fragile manual
+    # construction that could break if zoxide renames assets between releases.
+    local tag="" url=""
+    read -r tag url < <(_gh_release_info "ajeetdsouza/zoxide" "${zoxide_arch}.tar.gz") || true
 
     if [ -z "$url" ]; then
         if $CAN_SUDO && [ -n "$apt_ver" ]; then
@@ -226,14 +223,16 @@ _install_delta() {
                 return
                 ;;
         esac
-        local tag; tag=$(_gh_latest_tag_noapi "dandavison/delta") || tag=""
+        local tag="" url=""
+        # Use _gh_release_info to get the actual asset URL — never construct it
+        # manually; delta asset names have changed between releases.
+        read -r tag url < <(_gh_release_info "dandavison/delta" "${delta_arch}.tar.gz") || true
         local ver="${tag#v}"
-        if [ -z "$ver" ]; then
-            log_warn "git-delta: could not determine latest release — skipping"
+        if [ -z "$url" ]; then
+            log_warn "git-delta: could not find release URL — skipping"
             return
         fi
-        local url="https://github.com/dandavison/delta/releases/download/${ver}/delta-${ver}-${delta_arch}.tar.gz"
-        log_info "git-delta: installing $ver → ~/.local/bin/delta"
+        log_info "git-delta: installing ${ver:-unknown} → ~/.local/bin/delta"
         if _download_tar_bin "$url" "delta" ~/.local/bin/delta; then
             log_ok "git-delta installed → ~/.local/bin/delta ($(~/.local/bin/delta --version 2>/dev/null))"
         else
@@ -263,10 +262,12 @@ _install_eza() {
         $SUDO mkdir -p /etc/apt/keyrings
         if has curl; then
             curl -fsSL https://raw.githubusercontent.com/eza-community/eza/main/deb.asc \
-                | $SUDO gpg --dearmor -o /etc/apt/keyrings/gierens.gpg
+                | $SUDO gpg --dearmor -o /etc/apt/keyrings/gierens.gpg \
+                || { log_warn "eza: failed to add PPA signing key — skipping"; return; }
         else
             wget -qO- https://raw.githubusercontent.com/eza-community/eza/main/deb.asc \
-                | $SUDO gpg --dearmor -o /etc/apt/keyrings/gierens.gpg
+                | $SUDO gpg --dearmor -o /etc/apt/keyrings/gierens.gpg \
+                || { log_warn "eza: failed to add PPA signing key — skipping"; return; }
         fi
         echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" \
             | $SUDO tee /etc/apt/sources.list.d/gierens.list > /dev/null
@@ -286,13 +287,15 @@ _install_eza() {
                 return
                 ;;
         esac
-        local tag; tag=$(_gh_latest_tag_noapi "eza-community/eza") || tag=""
-        if [ -z "$tag" ]; then
-            log_warn "eza: could not determine latest release — skipping"
+        local tag="" url=""
+        # Use _gh_release_info to get the verified asset URL — avoids fragile manual
+        # construction that could break if eza renames assets between releases.
+        read -r tag url < <(_gh_release_info "eza-community/eza" "eza_${eza_arch}.tar.gz") || true
+        if [ -z "$url" ]; then
+            log_warn "eza: could not find release URL — skipping"
             return
         fi
-        local url="https://github.com/eza-community/eza/releases/download/${tag}/eza_${eza_arch}.tar.gz"
-        log_info "eza: installing $tag → ~/.local/bin/eza"
+        log_info "eza: installing ${tag:-unknown} → ~/.local/bin/eza"
         if _download_tar_bin "$url" "eza" ~/.local/bin/eza; then
             log_ok "eza installed → ~/.local/bin/eza ($(~/.local/bin/eza --version 2>/dev/null | head -1))"
         else
@@ -318,14 +321,13 @@ _install_ripgrep() {
             return
             ;;
     esac
-    local tag; tag=$(_gh_latest_tag_noapi "BurntSushi/ripgrep") || tag=""
-    if [ -z "$tag" ]; then
-        log_warn "ripgrep: could not determine latest release — skipping"
+    local tag="" url=""
+    read -r tag url < <(_gh_release_info "BurntSushi/ripgrep" "${rg_arch}.tar.gz") || true
+    if [ -z "$url" ]; then
+        log_warn "ripgrep: could not find release URL — skipping"
         return
     fi
-    local ver="${tag#v}"
-    local url="https://github.com/BurntSushi/ripgrep/releases/download/${tag}/ripgrep-${ver}-${rg_arch}.tar.gz"
-    log_info "ripgrep: installing $tag → ~/.local/bin/rg"
+    log_info "ripgrep: installing ${tag:-unknown} → ~/.local/bin/rg"
     if _download_tar_bin "$url" "rg" ~/.local/bin/rg; then
         log_ok "ripgrep installed → ~/.local/bin/rg ($(~/.local/bin/rg --version 2>/dev/null | head -1))"
     else
@@ -350,13 +352,13 @@ _install_fd() {
             return
             ;;
     esac
-    local tag; tag=$(_gh_latest_tag_noapi "sharkdp/fd") || tag=""
-    if [ -z "$tag" ]; then
-        log_warn "fd: could not determine latest release — skipping"
+    local tag="" url=""
+    read -r tag url < <(_gh_release_info "sharkdp/fd" "${fd_arch}.tar.gz") || true
+    if [ -z "$url" ]; then
+        log_warn "fd: could not find release URL — skipping"
         return
     fi
-    local url="https://github.com/sharkdp/fd/releases/download/${tag}/fd-${tag}-${fd_arch}.tar.gz"
-    log_info "fd: installing $tag → ~/.local/bin/fd"
+    log_info "fd: installing ${tag:-unknown} → ~/.local/bin/fd"
     if _download_tar_bin "$url" "fd" ~/.local/bin/fd; then
         log_ok "fd installed → ~/.local/bin/fd ($(~/.local/bin/fd --version 2>/dev/null))"
     else
@@ -381,13 +383,15 @@ _install_jq() {
             return
             ;;
     esac
-    local tag; tag=$(_gh_latest_tag_noapi "jqlang/jq") || tag=""
-    if [ -z "$tag" ]; then
-        log_warn "jq: could not determine latest release — skipping"
+    local tag="" url=""
+    # Use _gh_release_info to get the verified asset URL — avoids fragile manual
+    # construction that could break if jq renames assets between releases.
+    read -r tag url < <(_gh_release_info "jqlang/jq" "jq-linux-${jq_arch}") || true
+    if [ -z "$url" ]; then
+        log_warn "jq: could not find release URL — skipping"
         return
     fi
-    local url="https://github.com/jqlang/jq/releases/download/${tag}/jq-linux-${jq_arch}"
-    log_info "jq: installing $tag → ~/.local/bin/jq"
+    log_info "jq: installing ${tag:-unknown} → ~/.local/bin/jq"
     local ok=true
     if has curl; then
         curl -sfLo ~/.local/bin/jq "$url" || ok=false

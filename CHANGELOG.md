@@ -7,6 +7,104 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-04-13
+
+### Added
+- `Dockerfile.nosudo`: parameterized test image covering two no-sudo install
+  scenarios, selected via build args:
+  - `nosudo-auto` (`GRANT_SUDO=false`, `NOSUDO_INSTALL=""`): no `sudo` binary
+    present; `detect_sudo()` auto-detects `CAN_SUDO=false` — mirrors bare Ubuntu
+    containers and shared hosts without sudo
+  - `nosudo-forced` (`GRANT_SUDO=true`, `NOSUDO_INSTALL=1`): user has passwordless
+    `sudo` but `NOSUDO=1` overrides it — tests that the explicit env-var override
+    is respected even when sudo would otherwise work
+  Both variants install the `minimal` profile and land all binaries in `~/.local/bin`.
+
+### Changed
+- `modules/tmux.sh`: removed `tmux-resurrect` and `tmux-continuum` from
+  `_TMUX_PLUGINS` — they were removed from `.tmux.conf.local` in v1.1.3 but the
+  installer was never updated; they were being cloned on every workstation install
+  without ever being sourced
+- `test.sh`: comprehensive coverage improvements across all profiles:
+  - **Critical fix**: nosudo `sudo -v` check was `_fail` if sudo was present —
+    this always failed `nosudo-forced` (where user intentionally has sudo but
+    `NOSUDO=1` overrides it). Replaced with informational `_ok` for both variants;
+    the real invariant (binaries in `~/.local/bin`) is verified by `check_local_bin`
+  - `check_local_bin` made strict: no longer accepts system-path binaries via
+    `command -v` fallback — binary must be specifically at `~/.local/bin/<cmd>`
+    so a `NOSUDO=1` regression (binary landing in `/usr/local/bin`) is caught
+  - Added `delta`, `jq`, `python3` to core tools section (installed by every
+    profile; were only partially or never tested)
+  - Added `eza` and `shellcheck` to the minimal/workstation section
+  - Added eza and delta functional smoke tests to the nosudo section
+  - Added tmux plugin dir checks (`tmux-fzf`, `tmux-cpu`) for workstation profile
+  - Fixed `_skip()`: used `$*` where `$1` was intended, doubling the label text
+  - Fixed fd smoke test label ("can find files") to actually search files instead of
+    running `--version`
+  - Removed unreachable `else _fail "zoxide not installed"` (zoxide is now in
+    core tools, which already catches a missing binary)
+  - Added `nosudo` to the profile list in the usage comment
+- `ci-local.sh` (renamed from `test-local.sh`): expanded nosudo coverage from one
+  scenario to two variants (`forced` / `auto`); added `--profile nosudo-forced` and
+  `--profile nosudo-auto` CLI selectors (`--profile nosudo` still selects both);
+  `_run_step` gained an optional `-u USER` flag so nosudo containers run tests as
+  the owning `user` rather than root; `run_nosudo` now runs the full 5-step pipeline
+  (install → test → idempotency → update → re-test) matching `run_combination` for
+  regular profiles; total default combinations increased from 12 to 15
+- `.github/workflows/install.yml`: `install-nosudo` job expanded with
+  `variant: [auto, forced]` matrix axis (3 Ubuntu × 2 variants = 6 combinations,
+  up from 3); added `if: matrix.variant == 'forced'` step that installs `sudo`
+  and grants passwordless access only for the `forced` variant; added
+  `update.sh` step and re-test step so the no-sudo CI pipeline matches the
+  regular `install` job; total CI combinations increased from 12 to 15
+
+### Fixed
+- `get.sh` / `install.sh`: `NOSUDO=1 curl ... | bash` was silently ignored because
+  in a shell pipeline `VAR=val cmd1 | cmd2` the variable prefix is scoped only to
+  `cmd1` (curl), not `cmd2` (bash). Both scripts now accept `--nosudo` as a CLI flag
+  so the curl-pipe form works: `curl ... | bash -s -- --nosudo workstation`.
+  `NOSUDO=1 bash get.sh workstation` (local-file usage) is unchanged and still works.
+- `README.md`: updated nosudo one-liner to use `--nosudo` flag instead of the broken
+  `NOSUDO=1 curl ...` form.
+- `update.sh`: spurious `\"` in cheat URL pattern (`"linux-${cheat_arch}\""`) injected
+  a literal `"` into the grep pattern, making it impossible to match the `.gz` asset
+  URL. Cheat updates had been silently failing. Fixed to `"linux-${cheat_arch}.gz"`.
+- `update.sh`: xcape update block used `local` and `trap ... RETURN` at script
+  top-level where `RETURN` traps never fire, leaking the mktemp directory on every
+  xcape rebuild. Extracted into `_do_update_xcape()` function so the trap fires
+  correctly on function return.
+- `modules/base.sh`: no-sudo install paths for `delta`, `ripgrep`, `fd`, and `zoxide`
+  all constructed GitHub asset download URLs manually. CLAUDE.md forbids this because
+  asset names change between releases (delta 0.19.0 renamed its tarball). All four now
+  use `_gh_release_info` to look up the actual asset URL from the API, matching the
+  pattern already used by the sudo paths.
+- `modules/zsh.sh` `_install_ohmyzsh`: `sh -c "$($installer)"` — if curl/wget failed,
+  `sh -c ""` returned 0 and `set -e` never triggered, silently reporting success while
+  oh-my-zsh was never installed. Now downloads the script into a variable with an
+  explicit failure guard before passing to `sh -c`. Installer failure also now warns
+  and returns instead of triggering `set -e`.
+- `update.sh` oh-my-zsh update: `zsh ... || git pull` — if `git pull` (the fallback)
+  failed, `set -e` exited the entire update script, leaving all remaining tools not
+  updated with no warning message. Rewritten as `if/elif/else` that logs a warning
+  and continues.
+- `lib/utils.sh` `_download_tar_bin`: no `trap RETURN` and no `|| return 1` on the
+  pipe, so a download failure triggered `set -e` exit inside the function — callers'
+  `|| log_warn` handlers were never reached. Added `trap RETURN` for cleanup and
+  `|| return 1` so failures propagate correctly to callers.
+- `modules/neovim.sh` `install_neovim`, `update.sh` `_do_update_neovim`,
+  `update.sh` `_do_update_uv`, `update.sh` cheat update,
+  `modules/base.sh` `_install_eza` PPA: all had `curl | tar/gpg/gunzip` pipes with
+  no error handlers. A network failure would exit the whole script mid-run with no
+  user message. Each now logs a warning and returns/skips cleanly.
+- `scripts/install-git.sh` / `scripts/install-cmake.sh`: `curl | tar` and `curl -o`
+  download failures were silently caught by `set -euo pipefail`, exiting the script
+  with no message. Both now use `|| die "…"` so network failures print an actionable
+  error before exiting.
+- `modules/base.sh` `_install_eza` (no-sudo path) and `_install_jq`: used
+  `_gh_latest_tag_noapi` followed by manual URL construction — the same fragile
+  pattern that CLAUDE.md prohibits because asset names change between releases.
+  Both now use `_gh_release_info` to look up the verified asset URL in one API call.
+
 ## [1.3.0] - 2026-04-11
 
 ### Added
@@ -232,7 +330,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `zsh` is not available; prints actionable reinstall hint
 - `test.sh`: `nosudo` profile — verifies all `~/.local/bin` binaries are present
   and functional; confirms `sudo` is absent in the test environment
-- `test-local.sh`: `--profile nosudo` flag and `--skip-nosudo` flag; `run_nosudo`
+- `ci-local.sh`: `--profile nosudo` flag and `--skip-nosudo` flag; `run_nosudo`
   runner builds via `Dockerfile.nosudo` and runs the nosudo test suite
 - `.github/workflows/install.yml`: `install-nosudo` job — matrix across Ubuntu
   20.04 / 22.04 / 24.04 as a non-root user with no `sudo`
@@ -332,7 +430,8 @@ Complete overhaul of the dotfiles infrastructure: modular profiles, Neovim, CI, 
 ### Added
 - Initial dotfiles: Zsh (oh-my-zsh + fzf), Tmux, Vim, and monolithic `install.sh`
 
-[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/YASoftwareDev/dotfiles/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/YASoftwareDev/dotfiles/compare/v1.2.5...v1.3.0
 [1.2.5]: https://github.com/YASoftwareDev/dotfiles/compare/v1.2.4...v1.2.5
 [1.2.4]: https://github.com/YASoftwareDev/dotfiles/compare/v1.2.3...v1.2.4

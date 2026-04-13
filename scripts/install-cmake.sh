@@ -39,9 +39,11 @@ trap 'rm -f "$installer"' EXIT
 
 log_info "Downloading cmake ${CMAKE_VERSION} installer…"
 if has curl; then
-    curl -sfL "$installer_url" -o "$installer"
+    curl -sfL "$installer_url" -o "$installer" \
+        || die "cmake: download failed (check network and version ${CMAKE_VERSION})"
 else
-    wget -qO "$installer" "$installer_url"
+    wget -qO "$installer" "$installer_url" \
+        || die "cmake: download failed (check network and version ${CMAKE_VERSION})"
 fi
 chmod +x "$installer"
 

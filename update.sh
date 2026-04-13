@@ -115,8 +115,10 @@ _do_update_uv() {
     local tmp; tmp=$(mktemp -d)
     # shellcheck disable=SC2064
     trap "rm -rf '$tmp'" RETURN
-    if has curl; then curl -sfL "$url" | tar -xz -C "$tmp"
-    else wget -qO- "$url" | tar -xz -C "$tmp"; fi
+    if has curl; then curl -sfL "$url" | tar -xz -C "$tmp" \
+        || { log_warn "uv: download/extraction failed — skipping"; return; }
+    else wget -qO- "$url" | tar -xz -C "$tmp" \
+        || { log_warn "uv: download/extraction failed — skipping"; return; }; fi
     for bin in uv uvx; do
         local found; found=$(find "$tmp" -name "$bin" -type f | head -1)
         [ -n "$found" ] && mv "$found" ~/.local/bin/"$bin" && chmod +x ~/.local/bin/"$bin"
@@ -167,8 +169,10 @@ _do_update_neovim() {
     local tmp; tmp=$(mktemp -d)
     # shellcheck disable=SC2064
     trap "rm -rf '$tmp'" RETURN
-    if has curl; then curl -sfL "$nvim_url" | tar -xz -C "$tmp"
-    else wget -qO- "$nvim_url" | tar -xz -C "$tmp"; fi
+    if has curl; then curl -sfL "$nvim_url" | tar -xz -C "$tmp" \
+        || { log_warn "neovim: download/extraction failed — skipping"; return; }
+    else wget -qO- "$nvim_url" | tar -xz -C "$tmp" \
+        || { log_warn "neovim: download/extraction failed — skipping"; return; }; fi
     local extracted; extracted=$(find "$tmp" -maxdepth 1 -type d -name 'nvim-*' | head -1)
     if [ -z "$extracted" ]; then log_warn "neovim: unexpected archive layout — skipping"; return; fi
     local nvim_dest
@@ -181,6 +185,42 @@ _do_update_neovim() {
     fi
     log_ok "neovim updated → $(nvim --version 2>/dev/null | head -1)"
     _verify_dest nvim "$nvim_dest"
+}
+
+# xcape is source-built (no versioned releases) — tmpdir must live in a
+# function so `trap ... RETURN` fires correctly on function exit.
+_do_update_xcape() {
+    if has xcape; then
+        if $CHECK_ONLY; then
+            _check_git_updates "xcape" "" 2>/dev/null || true
+            log_info "xcape: installed at $(command -v xcape) — source-built from alols/xcape (no version tags)"
+            if $CAN_SUDO; then
+                log_info "  → run './update.sh xcape' to rebuild from latest source"
+            else
+                log_warn "  → sudo required to reinstall xcape"
+            fi
+        else
+            if ! $CAN_SUDO; then
+                log_warn "xcape: sudo required to install build deps and binary — skipping"
+            else
+                log_info "xcape: rebuilding from source (alols/xcape)"
+                apt_install libxtst-dev libx11-dev pkg-config make gcc
+                local _xc_tmp; _xc_tmp=$(mktemp -d)
+                # shellcheck disable=SC2064
+                trap "rm -rf '$_xc_tmp'" RETURN
+                if git clone --depth=1 https://github.com/alols/xcape.git "$_xc_tmp/xcape" 2>/dev/null \
+                        && make -C "$_xc_tmp/xcape" 2>/dev/null; then
+                    $SUDO install -m 755 "$_xc_tmp/xcape/xcape" /usr/local/bin/xcape
+                    log_ok "xcape rebuilt → /usr/local/bin/xcape"
+                else
+                    log_warn "xcape: build failed — skipping"
+                fi
+            fi
+        fi
+    else
+        log_warn "xcape not installed — run install.sh workstation first"
+        log_warn "  Requires: sudo apt-get install -y libxtst-dev libx11-dev pkg-config make gcc"
+    fi
 }
 
 # ── PATH shadow check ─────────────────────────────────────────────────────────
@@ -291,9 +331,13 @@ if _should_run omz; then
         if $CHECK_ONLY; then
             _check_git_updates "oh-my-zsh" ~/.oh-my-zsh
         else
-            zsh -c 'source ~/.oh-my-zsh/oh-my-zsh.sh; omz update --unattended' 2>/dev/null \
-                || git -C ~/.oh-my-zsh pull --quiet
-            log_ok "oh-my-zsh updated"
+            if zsh -c 'source ~/.oh-my-zsh/oh-my-zsh.sh; omz update --unattended' 2>/dev/null; then
+                log_ok "oh-my-zsh updated"
+            elif git -C ~/.oh-my-zsh pull --quiet; then
+                log_ok "oh-my-zsh updated (via git pull)"
+            else
+                log_warn "oh-my-zsh: update failed (both omz and git pull) — skipping"
+            fi
         fi
     else
         log_warn "oh-my-zsh not installed — skipping"
@@ -455,13 +499,19 @@ if _should_run cheat; then
             if [ -z "$cheat_arch" ]; then
                 log_warn "cheat: unsupported arch $ARCH — skipping"
             else
-                url=$(_gh_latest_release "cheat/cheat" "linux-${cheat_arch}\"") || url=""
+                url=$(_gh_latest_release "cheat/cheat" "linux-${cheat_arch}.gz") || url=""
                 if [ -n "$url" ]; then
-                    if has curl; then curl -sfL "$url" | gunzip > ~/.local/bin/cheat
-                    else wget -qO- "$url" | gunzip > ~/.local/bin/cheat; fi
-                    chmod +x ~/.local/bin/cheat
-                    log_ok "cheat updated"
-                    _verify_dest cheat ~/.local/bin/cheat
+                    _cheat_ok=true
+                    if has curl; then curl -sfL "$url" | gunzip > ~/.local/bin/cheat || _cheat_ok=false
+                    else wget -qO- "$url" | gunzip > ~/.local/bin/cheat || _cheat_ok=false; fi
+                    if $_cheat_ok; then
+                        chmod +x ~/.local/bin/cheat
+                        log_ok "cheat updated"
+                        _verify_dest cheat ~/.local/bin/cheat
+                    else
+                        log_warn "cheat: download/decompression failed — skipping"
+                        rm -f ~/.local/bin/cheat
+                    fi
                 else
                     log_warn "cheat: could not fetch release URL — skipping"
                 fi
@@ -477,37 +527,7 @@ fi
 # Deps: libxtst-dev libx11-dev pkg-config make gcc
 if _should_run xcape; then
     log_step "xcape"
-    if has xcape; then
-        if $CHECK_ONLY; then
-            _check_git_updates "xcape" "" 2>/dev/null || true
-            log_info "xcape: installed at $(command -v xcape) — source-built from alols/xcape (no version tags)"
-            if $CAN_SUDO; then
-                log_info "  → run './update.sh xcape' to rebuild from latest source"
-            else
-                log_warn "  → sudo required to reinstall xcape"
-            fi
-        else
-            if ! $CAN_SUDO; then
-                log_warn "xcape: sudo required to install build deps and binary — skipping"
-            else
-                log_info "xcape: rebuilding from source (alols/xcape)"
-                apt_install libxtst-dev libx11-dev pkg-config make gcc
-                local _xc_tmp; _xc_tmp=$(mktemp -d)
-                # shellcheck disable=SC2064
-                trap "rm -rf '$_xc_tmp'" RETURN
-                if git clone --depth=1 https://github.com/alols/xcape.git "$_xc_tmp/xcape" 2>/dev/null \
-                        && make -C "$_xc_tmp/xcape" 2>/dev/null; then
-                    $SUDO install -m 755 "$_xc_tmp/xcape/xcape" /usr/local/bin/xcape
-                    log_ok "xcape rebuilt → /usr/local/bin/xcape"
-                else
-                    log_warn "xcape: build failed — skipping"
-                fi
-            fi
-        fi
-    else
-        log_warn "xcape not installed — run install.sh workstation first"
-        log_warn "  Requires: sudo apt-get install -y libxtst-dev libx11-dev pkg-config make gcc"
-    fi
+    _do_update_xcape
 fi
 
 # ── pre-commit common repo ─────────────────────────────────────────────────────

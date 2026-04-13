@@ -2,7 +2,7 @@
 # Automated post-install test suite
 #
 # Usage:
-#   bash test.sh [PROFILE]      # PROFILE: docker | minimal | workstation (default: docker)
+#   bash test.sh [PROFILE]      # PROFILE: docker | minimal | workstation | nosudo (default: docker)
 #
 # Run inside a freshly built container:
 #   docker run --rm dotfiles-test bash /root/dotfiles/test.sh
@@ -23,7 +23,7 @@ SKIP=0
 
 _ok()   { echo -e "  ${GREEN}✓${NC}  $*"; PASS=$((PASS+1)); }
 _fail() { echo -e "  ${RED}✗${NC}  $*" >&2; FAIL=$((FAIL+1)); }
-_skip() { echo -e "  ${YELLOW}–${NC}  $* (skip: $2)"; SKIP=$((SKIP+1)); }
+_skip() { echo -e "  ${YELLOW}–${NC}  $1 (skip: $2)"; SKIP=$((SKIP+1)); }
 _hdr()  { echo -e "\n${BOLD}── $* ──${NC}"; }
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -109,9 +109,12 @@ _hdr "Core tools"
 check_cmd zsh
 check_cmd tmux
 check_cmd git
+check_cmd python3
 check_cmd fzf
 check_cmd rg   "ripgrep"
+check_cmd delta "git-delta"
 check_cmd zoxide
+check_cmd jq
 
 # fd is installed as fdfind on Debian/Ubuntu; shim may live in ~/.local/bin
 if command -v fd &>/dev/null; then
@@ -172,15 +175,11 @@ _hdr "git config"
 check_run "dotfiles git settings applied" \
     bash -c 'git config --global diff.zip.textconv | grep -q unzip'
 
-# ── 10. zoxide ────────────────────────────────────────────────────────────────
+# ── 10. zoxide functional ─────────────────────────────────────────────────────
 _hdr "zoxide"
-if command -v zoxide &>/dev/null; then
-    check_run "zoxide init bash runs" bash -c 'eval "$(zoxide init bash)"'
-    check_run "zoxide add + query" \
-        bash -c 'eval "$(zoxide init bash)"; zoxide add /tmp; zoxide query tmp | grep -q tmp'
-else
-    _fail "zoxide not installed"
-fi
+check_run "zoxide init bash runs" bash -c 'eval "$(zoxide init bash)"'
+check_run "zoxide add + query" \
+    bash -c 'eval "$(zoxide init bash)"; zoxide add /tmp; zoxide query tmp | grep -q tmp'
 
 # ── 11. Profile-specific: minimal ─────────────────────────────────────────────
 if [ "$PROFILE" = "minimal" ] || [ "$PROFILE" = "workstation" ]; then
@@ -188,13 +187,14 @@ if [ "$PROFILE" = "minimal" ] || [ "$PROFILE" = "workstation" ]; then
     check_cmd ranger
     check_cmd tig
     check_cmd parallel
+    check_cmd eza
+    check_cmd shellcheck
 fi
 
 # ── 12. Profile-specific: workstation ─────────────────────────────────────────
 if [ "$PROFILE" = "workstation" ]; then
     _hdr "Workstation tools"
     check_cmd nvim
-    check_cmd delta
     check_cmd uv
     check_cmd cheat
 
@@ -204,6 +204,10 @@ if [ "$PROFILE" = "workstation" ]; then
     check_link ~/.config/ranger/rc.conf
     check_link ~/.config/ranger/rifle.conf
     check_link ~/.config/ranger/scope.sh
+
+    _hdr "Workstation tmux plugins"
+    check_dir ~/.tmux/plugins/tmux-fzf  "tmux-fzf"
+    check_dir ~/.tmux/plugins/tmux-cpu  "tmux-cpu"
 fi
 
 # ── 13. Profile-specific: nosudo ──────────────────────────────────────────────
@@ -217,11 +221,11 @@ if [ "$PROFILE" = "nosudo" ]; then
         local p="$HOME/.local/bin/$cmd"
         if [ -x "$p" ]; then
             _ok "$label  →  $p  ($("$p" --version 2>&1 | head -1))"
-        elif command -v "$cmd" &>/dev/null; then
-            # Acceptable: binary on PATH even if not in ~/.local/bin
-            _ok "$label  →  $(command -v "$cmd")  ($(${cmd} --version 2>&1 | head -1))"
         else
-            _fail "$label not found (expected in ~/.local/bin)"
+            # Strict: must be in ~/.local/bin — not just anywhere on PATH.
+            # For nosudo-forced this verifies NOSUDO=1 was respected (sudo was
+            # available but binaries still landed in ~/.local/bin, not /usr/local/bin).
+            _fail "$label not found in ~/.local/bin (got: $(command -v "$cmd" 2>/dev/null || echo 'missing'))"
         fi
     }
 
@@ -233,11 +237,15 @@ if [ "$PROFILE" = "nosudo" ]; then
     check_local_bin delta  "git-delta"
     check_local_bin eza    "eza"
 
-    _hdr "No-sudo: sudo NOT available"
+    _hdr "No-sudo: sudo availability"
+    # nosudo-auto:   sudo binary absent → detect_sudo() auto-detected CAN_SUDO=false
+    # nosudo-forced: sudo binary present but NOSUDO=1 overrides it → install still
+    #                uses ~/.local/bin; sudo availability itself is not the invariant.
+    # The real invariant (NOSUDO respected) is already verified by check_local_bin above.
     if sudo -v 2>/dev/null; then
-        _fail "sudo is available — no-sudo test is invalid"
+        _ok "sudo available — NOSUDO=1 override mode (binaries forced to ~/.local/bin)"
     else
-        _ok "sudo not available (correct)"
+        _ok "sudo not available — auto-detect mode (CAN_SUDO=false)"
     fi
 
     _hdr "No-sudo: functional smoke tests"
@@ -245,7 +253,7 @@ if [ "$PROFILE" = "nosudo" ]; then
         check_run "ripgrep can search" bash -c 'echo hello | rg hello'
     fi
     if command -v fd &>/dev/null; then
-        check_run "fd can find files" bash -c 'fd --version'
+        check_run "fd can search files" bash -c 'fd . /tmp --max-depth 1 | grep -q .'
     fi
     if command -v jq &>/dev/null; then
         check_run "jq can parse JSON" bash -c 'echo "{\"x\":1}" | jq .x | grep -q 1'
@@ -256,6 +264,12 @@ if [ "$PROFILE" = "nosudo" ]; then
     fi
     if command -v zoxide &>/dev/null; then
         check_run "zoxide init" bash -c 'eval "$(zoxide init bash)"'
+    fi
+    if command -v eza &>/dev/null; then
+        check_run "eza can list files" bash -c 'eza /tmp | grep -q .'
+    fi
+    if command -v delta &>/dev/null; then
+        check_run "delta --version runs" delta --version
     fi
 fi
 
