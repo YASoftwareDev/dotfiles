@@ -14,7 +14,10 @@ CI tests all profile × Ubuntu-version combinations on every push.
 install.sh        entry point — profile selection, module orchestration
 update.sh         managed tool updates with --check mode + PATH shadow check
 test.sh           post-install validation suite (profile-aware)
+ci-local.sh       local Docker matrix runner — mirrors GitHub CI matrix
 get.sh            curl-pipe bootstrap (clones repo → runs install.sh)
+Dockerfile        bakes docker profile into an image at build time
+Dockerfile.nosudo parameterized no-sudo test image (two variants: forced/auto)
 lib/utils.sh      shared logging, sudo detection, GitHub helpers, binary utils
 modules/
   base.sh         apt packages + per-tool installers (fzf, zoxide, delta, eza, …)
@@ -316,10 +319,24 @@ bash test.sh [docker|minimal|workstation|nosudo]
 Exits 0 (all pass), 1 (any fail). Skips are not failures.
 Runs in CI after every install + again after update.sh.
 
+Core checks (all profiles): zsh, tmux, git, python3, fzf, ripgrep, git-delta,
+zoxide, jq, fd; fzf shell integration + functional filter; zsh syntax check;
+oh-my-zsh + plugins + powerlevel10k dirs; tmux detached session start; git config
+diff driver; zoxide init + add + query.
+
 Profile-specific checks:
-- `workstation` — nvim, delta, uv, cheat, config symlinks
-- `minimal` — ranger, tig, parallel
-- `nosudo` — all `~/.local/bin` binaries present + sudo NOT available
+- `workstation` — nvim, uv, cheat; config symlinks (nvim, ripgrep, ranger);
+  tmux plugin dirs (tmux-fzf, tmux-cpu)
+- `minimal` — ranger, tig, parallel, eza, shellcheck (all via apt)
+- `nosudo` — strict `~/.local/bin` presence check for all 7 GitHub binaries
+  (rg, fd, jq, fzf, zoxide, delta, eza); sudo availability info (not a failure
+  condition — nosudo-forced has sudo available); functional smoke tests for each
+
+Two nosudo scenarios are validated by `Dockerfile.nosudo`:
+- **nosudo-auto** — no `sudo` binary; `detect_sudo()` auto-detects `CAN_SUDO=false`
+  (`GRANT_SUDO=false NOSUDO_INSTALL=""` build args)
+- **nosudo-forced** — user has passwordless `sudo` but `NOSUDO=1` overrides it
+  (`GRANT_SUDO=true NOSUDO_INSTALL=1` build args)
 
 ---
 
@@ -330,10 +347,14 @@ Profile-specific checks:
 - testuser with passwordless sudo; curl auth via `~/.curlrc`
 - Flow: install → idempotency re-run → test → update → re-test
 
-**Job `install-nosudo`** (3 combinations):
-- Ubuntu 20.04 / 22.04 / 24.04
+**Job `install-nosudo`** (6 combinations — 3 Ubuntu × 2 variants):
+- Ubuntu 20.04 / 22.04 / 24.04 × variant `auto` / `forced`
 - Root pre-installs: git, curl, wget, ca-certificates, zsh, tmux, python3
-- Regular user with no sudo; `NOSUDO=1` path exercised
+- `auto`: no `sudo` binary installed; `detect_sudo()` auto-detects `CAN_SUDO=false`
+- `forced`: passwordless `sudo` installed, but `NOSUDO=1` overrides it
+- Flow: install → test → idempotency re-run → update → re-test
+
+**Total: 15 CI combinations** (9 regular + 6 nosudo)
 
 ---
 

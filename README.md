@@ -52,7 +52,7 @@ curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.s
 **nosudo** — any profile without apt/sudo; all tools land in `~/.local/bin` (~10–20 min)
 
 ```bash
-NOSUDO=1 curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash -s -- workstation
+curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash -s -- --nosudo workstation
 # or, after cloning:
 NOSUDO=1 ./install.sh workstation
 ```
@@ -237,8 +237,10 @@ cd ~/.dotfiles && ./update.sh
 ~/.dotfiles/
 ├── install.sh          # main entry point — profile wizard + runner
 ├── update.sh           # updater for all managed tools and plugins
-├── test.sh             # integration tests
-├── Dockerfile          # for testing the docker profile
+├── test.sh             # integration tests (profile-aware)
+├── ci-local.sh         # local Docker matrix runner — mirrors GitHub CI
+├── Dockerfile          # for baking dotfiles into a Docker image (docker profile)
+├── Dockerfile.nosudo   # parameterized test image for no-sudo install scenarios
 │
 ├── lib/
 │   └── utils.sh        # shared: logging, symlink, apt_install, GitHub helpers, checks
