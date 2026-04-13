@@ -12,3 +12,14 @@ parallel-*/
 nvim/.config/nvim/nvim
 # lazy-lock.json: plugin version lockfile — not tracked, always pull latest
 nvim/.config/nvim/lazy-lock.json
+
+# Sensitive files — never commit these
+.env
+.env.*
+*.pem
+*.key
+*.p12
+.netrc
+.curlrc
+id_rsa
+id_ed25519
