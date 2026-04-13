@@ -7,6 +7,7 @@
 #   ./install.sh workstation            # everything (default for non-interactive runs)
 #   ./install.sh docker                 # headless, CI-friendly, no shell change
 #   NOSUDO=1 ./install.sh workstation   # force user-local (~/.local/bin) installs, skip apt
+#   ./install.sh --nosudo workstation   # same as above via flag (works in curl-pipe)
 #
 
 set -euo pipefail
@@ -80,7 +81,16 @@ _link_git_config() {
 _banner
 
 # Determine profile: arg > wizard (if interactive) > default
-PROFILE="${1:-}"
+# Also accept --nosudo flag (needed when called from curl-pipe where env prefix
+# would only apply to curl, not bash: curl ... | bash -s -- --nosudo workstation)
+PROFILE=""
+for _arg in "$@"; do
+    case "$_arg" in
+        --nosudo) export NOSUDO=1 ;;
+        *)        PROFILE="$_arg" ;;
+    esac
+done
+unset _arg
 if [ -z "$PROFILE" ] && [ -t 0 ]; then
     PROFILE="$(_wizard)"
 elif [ -z "$PROFILE" ]; then

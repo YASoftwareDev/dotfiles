@@ -35,14 +35,21 @@ _install_ohmyzsh() {
         return
     fi
 
-    local installer
-    if has curl; then
-        installer="curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh"
-    else
-        installer="wget -qO- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh"
-    fi
+    local _omz_url="https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh"
+    local _omz_script
     log_info "oh-my-zsh: installing latest → ~/.oh-my-zsh"
-    RUNZSH=no CHSH=no sh -c "$($installer)" 2>/dev/null
+    # Download the installer into a variable first so that a network failure
+    # produces an explicit warning instead of silently running `sh -c ""` and
+    # reporting success.  (sh -c "" exits 0, masking the download failure.)
+    if has curl; then
+        _omz_script=$(curl -fsSL "$_omz_url") \
+            || { log_warn "oh-my-zsh: download failed — skipping"; return; }
+    else
+        _omz_script=$(wget -qO- "$_omz_url") \
+            || { log_warn "oh-my-zsh: download failed — skipping"; return; }
+    fi
+    RUNZSH=no CHSH=no sh -c "$_omz_script" 2>/dev/null \
+        || { log_warn "oh-my-zsh: installer failed — skipping"; return; }
     log_ok "oh-my-zsh installed"
 }
 

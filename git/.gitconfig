@@ -1,6 +1,7 @@
 [core]
     attributesFile = ~/.gitattributes
-    pager = delta
+	pager = bat --paging=always
+	editor = nvim
 
 [diff "zip"]
     textconv = unzip -p
@@ -35,9 +36,9 @@
     textconv = hexdump -v -C
 
 [init]
-    defaultBranch = main
+	defaultBranch = main
 [color]
-    ui = true
+	ui = auto
 
 [interactive]
     diffFilter = delta --color-only
@@ -51,6 +52,27 @@
 
 [include]
     path = ~/.gitconfig.local
+[user]
+	name = Wojciech Pędzimąż
+	email = wojciech.pedzimaz@techmo.pl
+[pull]
+	rebase = true
+[rebase]
+	autoStash = true
+[fetch]
+	prune = true
+[diff]
+	tool = vimdiff
 [credential "https://gitlab.gnome.org"]
-	helper = 
+	helper =
+	helper = !/usr/bin/glab auth git-credential
+[credential "https://github.com"]
+	helper =
+	helper = !/usr/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper =
+	helper = !/usr/bin/gh auth git-credential
+[url "https://gitlab.devtechmo.pl/"]
+	insteadOf = git@gitlab.devtechmo.pl:
+[credential "https://gitlab.devtechmo.pl"]
 	helper = !/usr/bin/glab auth git-credential

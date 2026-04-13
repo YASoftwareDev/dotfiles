@@ -43,9 +43,11 @@ trap 'rm -rf "$tmp"' EXIT
 url="https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.gz"
 log_info "Downloading git ${GIT_VERSION}…"
 if has curl; then
-    curl -sfL "$url" | tar -xz -C "$tmp"
+    curl -sfL "$url" | tar -xz -C "$tmp" \
+        || die "git: download/extraction failed (check network and version ${GIT_VERSION})"
 else
-    wget -qO- "$url" | tar -xz -C "$tmp"
+    wget -qO- "$url" | tar -xz -C "$tmp" \
+        || die "git: download/extraction failed (check network and version ${GIT_VERSION})"
 fi
 
 src="${tmp}/git-${GIT_VERSION}"

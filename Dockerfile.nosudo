@@ -1,0 +1,82 @@
+# Dockerfile.nosudo
+#
+# Covers two user-local install scenarios (both land all binaries in ~/.local/bin):
+#
+#   nosudo-auto   — user has NO sudo; detect_sudo() auto-detects CAN_SUDO=false.
+#                   Ubuntu base images ship without sudo, so no extra setup needed.
+#                   Build args: GRANT_SUDO=false (default), NOSUDO_INSTALL="" (default)
+#
+#   nosudo-forced — user HAS passwordless sudo but NOSUDO=1 overrides it.
+#                   Tests that the explicit override is respected even when sudo works.
+#                   Build args: GRANT_SUDO=true, NOSUDO_INSTALL=1
+#
+# Used automatically by ci-local.sh (runs both variants) or directly:
+#
+#   # nosudo-auto (default)
+#   docker build --build-arg UBUNTU=24.04 \
+#       -t dotfiles-test:24.04-nosudo-auto -f Dockerfile.nosudo .
+#
+#   # nosudo-forced
+#   docker build --build-arg UBUNTU=24.04 \
+#       --build-arg GRANT_SUDO=true --build-arg NOSUDO_INSTALL=1 \
+#       -t dotfiles-test:24.04-nosudo-forced -f Dockerfile.nosudo .
+#
+# Then run the test suite (ci-local.sh does this automatically):
+#   docker run --rm --user user -e TERM=xterm-256color \
+#       -e POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=true \
+#       <tag> bash -c \
+#       'export PATH="$HOME/.local/bin:$PATH"; cd ~/dotfiles && bash test.sh nosudo'
+
+ARG UBUNTU=24.04
+FROM ubuntu:${UBUNTU}
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TERM=xterm-256color
+ENV POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=true
+
+# ARGs re-declared after FROM so they are available in RUN instructions.
+# GRANT_SUDO=false : don't install sudo package (nosudo-auto)
+#                    sudo binary absent → detect_sudo() → CAN_SUDO=false
+# GRANT_SUDO=true  : install sudo + add user to sudoers (nosudo-forced)
+#                    sudo works, but NOSUDO=1 overrides below
+ARG GRANT_SUDO=false
+
+# NOSUDO_INSTALL="" : no override — detect_sudo() decides (nosudo-auto)
+# NOSUDO_INSTALL=1  : NOSUDO=1 passed to installer — forces user-local (nosudo-forced)
+ARG NOSUDO_INSTALL=
+
+# ── Step 1-2: Base prerequisites (always installed) ───────────────────────────
+RUN apt-get -yq update && \
+    apt-get -yq install --no-install-recommends \
+        apt-utils git curl wget ca-certificates zsh tmux python3 && \
+    rm -rf /var/lib/apt/lists/*
+
+# ── Step 2b: Optionally install sudo (nosudo-forced only) ─────────────────────
+# nosudo-auto intentionally omits the sudo binary so detect_sudo() auto-detects.
+# nosudo-forced needs a working sudo so the NOSUDO=1 override is meaningful.
+RUN if [ "${GRANT_SUDO}" = "true" ]; then \
+        apt-get -yq update && \
+        apt-get -yq install --no-install-recommends sudo && \
+        rm -rf /var/lib/apt/lists/*; \
+    fi
+
+# ── Step 3: Create non-root user; conditionally grant passwordless sudo ───────
+RUN useradd -m -s /bin/bash user && \
+    if [ "${GRANT_SUDO}" = "true" ]; then \
+        echo 'user ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers; \
+    fi
+
+# ── Step 4: Copy dotfiles source owned by the non-root user ──────────────────
+COPY --chown=user:user . /home/user/dotfiles
+
+# ── Step 5: Switch to non-privileged user ─────────────────────────────────────
+USER user
+WORKDIR /home/user
+
+# ── Step 6: Install ────────────────────────────────────────────────────────────
+# NOSUDO="${NOSUDO_INSTALL}" is "" for nosudo-auto (detect_sudo decides)
+#                          and "1" for nosudo-forced (overrides working sudo).
+# 'minimal' profile: zsh, tmux, git config + ~7 GitHub-tarball binaries.
+RUN cd dotfiles && NOSUDO="${NOSUDO_INSTALL}" bash install.sh minimal
+
+CMD ["bash"]
