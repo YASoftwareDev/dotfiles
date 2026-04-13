@@ -143,9 +143,11 @@ install_neovim() {
     trap "rm -rf '$tmp'" RETURN
 
     if has curl; then
-        curl -sfL "$url" | tar -xz -C "$tmp"
+        curl -sfL "$url" | tar -xz -C "$tmp" \
+            || { log_warn "neovim: download/extraction failed — skipping"; return; }
     else
-        wget -qO- "$url" | tar -xz -C "$tmp"
+        wget -qO- "$url" | tar -xz -C "$tmp" \
+            || { log_warn "neovim: download/extraction failed — skipping"; return; }
     fi
 
     # Tarball extracts to nvim-linux-x86_64/ or nvim-linux-arm64/

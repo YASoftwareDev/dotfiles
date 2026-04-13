@@ -13,8 +13,8 @@
 #     curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash -s -- docker
 #
 #   force user-local installs (no apt, ~/.local/bin only) — useful on shared machines:
-#     NOSUDO=1 bash get.sh workstation
-#     (NOSUDO=1 is forwarded automatically to install.sh via exec)
+#     curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash -s -- --nosudo workstation
+#     (or, if you have the file locally: NOSUDO=1 bash get.sh workstation)
 #
 # Or inspect first, then run (also gives you the interactive wizard):
 #   curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh -o get.sh
@@ -37,7 +37,16 @@ set -euo pipefail
 
 REPO="https://github.com/YASoftwareDev/dotfiles.git"
 DEST="${DOTFILES_DIR:-$HOME/.dotfiles}"
-PROFILE="${1:-}"
+
+# Parse args: [--nosudo] [profile]
+PROFILE=""
+for _arg in "$@"; do
+    case "$_arg" in
+        --nosudo) export NOSUDO=1 ;;
+        *)        PROFILE="$_arg" ;;
+    esac
+done
+unset _arg
 
 # ── Colour helpers ─────────────────────────────────────────────────────────────
 BOLD='\033[1m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; NC='\033[0m'

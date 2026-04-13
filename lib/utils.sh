@@ -236,19 +236,23 @@ _download_tar_bin() {
     mkdir -p "$(dirname "$dest")"
     local tmp
     tmp=$(mktemp -d)
+    # shellcheck disable=SC2064
+    trap "rm -rf '$tmp'" RETURN
     local -a tar_flags
     case "$url" in
         *.tar.xz|*.txz) tar_flags=(-xJ) ;;
         *)               tar_flags=(-xz) ;;
     esac
-    if has curl; then curl -sfL "$url" | tar "${tar_flags[@]}" -C "$tmp"
-    else wget -qO- "$url" | tar "${tar_flags[@]}" -C "$tmp"; fi
+    # Use || return 1 so a pipe failure returns to the caller instead of
+    # triggering set -e and exiting the whole script — callers' || handlers
+    # would never execute if set -e exits inside this function.
+    if has curl; then curl -sfL "$url" | tar "${tar_flags[@]}" -C "$tmp" || return 1
+    else wget -qO- "$url" | tar "${tar_flags[@]}" -C "$tmp" || return 1; fi
     local found
     found=$(find "$tmp" -name "$binname" -type f | head -1)
-    if [ -z "$found" ]; then rm -rf "$tmp"; return 1; fi
+    [ -z "$found" ] && return 1
     mv "$found" "$dest"
     chmod +x "$dest"
-    rm -rf "$tmp"
 }
 
 # Return 0 (true) if version string $1 is strictly older than $2.

@@ -69,7 +69,7 @@ jobs:
         run: su -s /bin/bash -c 'HOME=/home/testuser; export HOME; export TERM=xterm-256color; cd ~/dotfiles && bash test.sh ${{ matrix.profile }}' testuser
 
   install-nosudo:
-    name: "nosudo @ Ubuntu ${{ matrix.ubuntu }}"
+    name: "nosudo-${{ matrix.variant }} @ Ubuntu ${{ matrix.ubuntu }}"
     runs-on: ubuntu-latest
     timeout-minutes: 40
     container:
@@ -79,6 +79,9 @@ jobs:
       fail-fast: false
       matrix:
         ubuntu: ["20.04", "22.04", "24.04"]
+        variant:
+          - auto    # user has NO sudo binary; detect_sudo() auto-detects CAN_SUDO=false
+          - forced  # user HAS passwordless sudo but NOSUDO=1 overrides it
 
     steps:
       - name: Bootstrap prerequisites (as root — mirrors a shared host)
@@ -87,7 +90,14 @@ jobs:
           apt-get -yq update
           apt-get -yq install apt-utils git curl wget ca-certificates zsh tmux python3
 
-      - name: Create non-root user WITHOUT sudo
+      - name: Install sudo and grant to user (nosudo-forced only)
+        if: matrix.variant == 'forced'
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get -yq install --no-install-recommends sudo
+          echo 'user ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+      - name: Create non-root user
         run: useradd -m -s /bin/bash user
 
       - name: Checkout dotfiles
@@ -105,10 +115,17 @@ jobs:
           chown user:user /home/user/.curlrc
           chmod 600 /home/user/.curlrc
 
-      - name: Install — no-sudo path (minimal profile)
+      - name: Install (${{ matrix.variant }})
+        env:
+          VARIANT: ${{ matrix.variant }}
         run: |
+          if [ "$VARIANT" = "forced" ]; then
+            install_cmd="NOSUDO=1 bash install.sh minimal"
+          else
+            install_cmd="bash install.sh minimal"
+          fi
           su -s /bin/bash -c \
-            'HOME=/home/user; export HOME; export PATH="$HOME/.local/bin:$PATH"; cd ~/dotfiles && bash install.sh minimal' \
+            "HOME=/home/user; export HOME; export PATH=\"\$HOME/.local/bin:\$PATH\"; cd ~/dotfiles && $install_cmd" \
             user
 
       - name: Run test suite (nosudo profile)
@@ -118,7 +135,26 @@ jobs:
             user
 
       - name: Idempotency — re-run install.sh
+        env:
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          if [ "$VARIANT" = "forced" ]; then
+            install_cmd="NOSUDO=1 bash install.sh minimal"
+          else
+            install_cmd="bash install.sh minimal"
+          fi
+          su -s /bin/bash -c \
+            "HOME=/home/user; export HOME; export PATH=\"\$HOME/.local/bin:\$PATH\"; cd ~/dotfiles && $install_cmd" \
+            user
+
+      - name: Run update.sh
         run: |
           su -s /bin/bash -c \
-            'HOME=/home/user; export HOME; export PATH="$HOME/.local/bin:$PATH"; cd ~/dotfiles && bash install.sh minimal' \
+            'HOME=/home/user; export HOME; export PATH="$HOME/.local/bin:$PATH"; cd ~/dotfiles && bash update.sh' \
+            user
+
+      - name: Re-run test suite after update
+        run: |
+          su -s /bin/bash -c \
+            'HOME=/home/user; export HOME; export PATH="$HOME/.local/bin:$PATH"; export TERM=xterm-256color; cd ~/dotfiles && bash test.sh nosudo' \
             user

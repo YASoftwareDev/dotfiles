@@ -50,6 +50,7 @@ source "$ZSH/oh-my-zsh.sh"
 
 # ── Environment ───────────────────────────────────────────────────────────────
 export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
 export EDITOR=nvim
 export VISUAL=nvim
 
@@ -121,3 +122,13 @@ fgl() {
 # ── Local overrides (machine-specific, not tracked) ───────────────────────────
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
 
+
+# bun completions
+[ -s "/home/devuser/.bun/_bun" ] && source "/home/devuser/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+# Generated for envman. Do not edit.
+[ -s "$HOME/.config/envman/load.sh" ] && source "$HOME/.config/envman/load.sh"
