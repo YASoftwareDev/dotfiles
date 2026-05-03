@@ -135,6 +135,23 @@ if [ -f ~/.fzf.zsh ]; then
     check_run "~/.fzf.zsh sources without error" zsh -c "source ~/.fzf.zsh"
 fi
 
+# Catch the magog regression: ~/.fzf cloned but ~/.local/bin/fzf symlink
+# missing → an older /usr/local/bin/fzf wins PATH and `fzf --zsh` errors on
+# every shell startup. Strict: managed binary must resolve to ~/.local/bin/fzf.
+if [ -d ~/.fzf ]; then
+    if [ -L ~/.local/bin/fzf ] && [ "$(readlink ~/.local/bin/fzf)" = "$HOME/.fzf/bin/fzf" ]; then
+        _ok "~/.local/bin/fzf symlinked → ~/.fzf/bin/fzf"
+    else
+        _fail "~/.local/bin/fzf missing or wrong target — older /usr/local/bin/fzf will shadow modern ~/.fzf/bin/fzf"
+    fi
+    _resolved_fzf=$(command -v fzf 2>/dev/null || echo "(none)")
+    if [ "$_resolved_fzf" = "$HOME/.local/bin/fzf" ] || [ "$_resolved_fzf" = "$HOME/.fzf/bin/fzf" ]; then
+        _ok "fzf on PATH resolves to managed install ($_resolved_fzf)"
+    else
+        _fail "fzf on PATH resolves to $_resolved_fzf — unmanaged binary is shadowing the managed install"
+    fi
+fi
+
 # ── 5. fzf functional ─────────────────────────────────────────────────────────
 _hdr "fzf functional"
 
