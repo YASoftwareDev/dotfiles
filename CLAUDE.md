@@ -277,16 +277,22 @@ warns and bails rather than creating a link inside it.
 ## fzf integration
 
 fzf is installed via **git clone** to `~/.fzf/` (not apt, not a binary release).
-The installer generates `~/.fzf.zsh` which adds `~/.fzf/bin` to PATH and registers
-`Ctrl+T`/`Ctrl+R`/`Alt+C` bindings.
-
-`~/.fzf.zsh` is sourced **explicitly** in `.zshrc`:
+The installer generates `~/.fzf.zsh` which contains `source <(fzf --zsh)` (modern
+fzf integration, fzf ≥ 0.48) and is sourced **explicitly** in `.zshrc`:
 ```bash
 [[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh
 ```
 The oh-my-zsh `fzf` plugin was removed — this explicit source line is the **only**
 thing that activates fzf shell integration. Do not remove it. Do not re-add the
 oh-my-zsh `fzf` plugin without removing this line first.
+
+**Load-bearing invariant**: `~/.local/bin/fzf` must symlink to `~/.fzf/bin/fzf`.
+Because `~/.fzf.zsh` calls `fzf --zsh` at shell startup, an older system fzf at
+`/usr/local/bin/fzf` or `/usr/bin/fzf` shadowing the managed install will print
+`unknown option: --zsh` on every login. `_install_fzf` in `modules/base.sh` and
+the fzf section of `update.sh` both **always reconcile this symlink** (idempotent
+`ln -sf` after the existence check), even when the clone is already present —
+so re-runs over partial state self-heal. `test.sh` carries a regression guard.
 
 ---
 
