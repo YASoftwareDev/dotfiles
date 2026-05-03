@@ -115,8 +115,6 @@ case "$PROFILE" in
     *) die "Unknown profile: '$PROFILE'. Valid options: minimal | workstation | docker" ;;
 esac
 
-verify_managed_binaries
-
 echo ""
 log_ok "Setup complete!"
 echo ""
