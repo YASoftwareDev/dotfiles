@@ -15,13 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and an older system fzf could win PATH lookup — breaking modern
   `~/.fzf.zsh` integration with "unknown option: --zsh" on every shell
   startup. Now always reconciles the symlink.
+- `update.sh` fzf section: same self-heal — reconciles the symlink after
+  every update, fixing existing broken installs from older dotfiles
+  versions without requiring a full re-install.
 
 ### Added
-- `verify_managed_binaries` (`lib/utils.sh`): read-only check, run at end
-  of `install.sh` and `update.sh`, warns when an unmanaged binary shadows
-  a managed `~/.local/bin/<tool>`. Complements `_check_path_shadows`
-  which only covers `/usr/local/bin/{nvim,xcape}`.
-- `test.sh`: regression guard verifying `~/.local/bin/fzf` symlink target.
+- `test.sh`: regression guard verifying `~/.local/bin/fzf` symlink target —
+  fails CI if the symlink reconciliation is ever removed from the installer.
 
 ## [1.4.0] - 2026-04-13
 
