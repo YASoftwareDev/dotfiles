@@ -388,6 +388,10 @@ if _should_run fzf; then
             else
                 log_warn "fzf: git pull failed - skipping"
             fi
+            # Self-heal the symlink in case an older dotfiles version (where
+            # _install_fzf returned early when ~/.fzf existed) left it missing.
+            mkdir -p ~/.local/bin
+            ln -sf ~/.fzf/bin/fzf ~/.local/bin/fzf
         fi
     elif has fzf; then
         log_warn "fzf: not managed as a git clone at ~/.fzf - skipping (update manually)"
@@ -553,10 +557,6 @@ fi
 
 # ── PATH shadow check (always runs - read-only) ───────────────────────────────
 _check_path_shadows
-
-# Complements _check_path_shadows above (which targets /usr/local/bin tools)
-# by warning when a stale system binary shadows a ~/.local/bin managed tool.
-verify_managed_binaries
 
 echo ""
 if $CHECK_ONLY; then

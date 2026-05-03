@@ -281,30 +281,6 @@ _verify_dest() {
     fi
 }
 
-# Warn when a managed ~/.local/bin/<tool> is shadowed by an unmanaged binary
-# elsewhere on PATH. Read-only; silent on clean systems. Only flags tools that
-# actually exist at ~/.local/bin/<tool> (skipped silently otherwise - e.g. when
-# delta/eza came from apt at /usr/bin instead).
-#
-# PATH is prefixed with ~/.local/bin so the answer matches what the user's
-# interactive zsh resolves (zshrc prepends it), not install-time bash.
-verify_managed_binaries() {
-    log_step "Verify managed binaries on PATH"
-    local issues=0 tool want resolved
-    for tool in fzf rg fd jq zoxide delta eza; do
-        want="$HOME/.local/bin/$tool"
-        [ -L "$want" ] || [ -e "$want" ] || continue
-        resolved=$(PATH="$HOME/.local/bin:$PATH" command -v "$tool" 2>/dev/null) || resolved=""
-        if [ "$resolved" != "$want" ]; then
-            log_warn "$tool: PATH → '${resolved:-<missing>}', expected $want"
-            log_warn "  Stale unmanaged binary is shadowing your managed install."
-            log_warn "  Remove it after confirming with 'dpkg -S $resolved'."
-            issues=$((issues+1))
-        fi
-    done
-    [ "$issues" -eq 0 ] && log_ok "All managed binaries resolve correctly"
-}
-
 # Print current vs latest version comparison (check mode).
 # Usage: _report_version NAME CURRENT LATEST
 _report_version() {
