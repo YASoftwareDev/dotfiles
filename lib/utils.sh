@@ -281,54 +281,28 @@ _verify_dest() {
     fi
 }
 
-# Verify managed binaries resolve to their expected install path.
-# Catches PATH shadowing by unmanaged binaries (e.g. an old /usr/local/bin/fzf
-# left over from a previous install masking ~/.local/bin/fzf when the symlink
-# is missing). Silent on a clean system; warns when a shadow is detected.
+# Warn when a managed ~/.local/bin/<tool> is shadowed by an unmanaged binary
+# elsewhere on PATH. Read-only; silent on clean systems. Only flags tools that
+# actually exist at ~/.local/bin/<tool> (skipped silently otherwise — e.g. when
+# delta/eza came from apt at /usr/bin instead).
 #
-# We approximate the user's interactive zsh PATH (~/.zshrc puts ~/.local/bin
-# ahead of system dirs) so the check predicts what shell startup will resolve,
-# not what install-time bash sees.
-#
-# Usage: verify_managed_binaries TOOL1 PATH1 TOOL2 PATH2 ...
+# PATH is prefixed with ~/.local/bin so the answer matches what the user's
+# interactive zsh resolves (zshrc prepends it), not install-time bash.
 verify_managed_binaries() {
     log_step "Verify managed binaries on PATH"
-
-    local _orig_path="$PATH"
-    # Mirror .zshrc line 7 ordering. Harmless if already in $PATH.
-    export PATH="$HOME/go/bin:$HOME/.local/bin:$HOME/bin:/usr/local/bin:$PATH"
-
-    local _any_issue=false _any_checked=false
-    while [ "$#" -ge 2 ]; do
-        local _tool="$1" _want="$2"
-        shift 2
-        # Tool not installed at managed location → not our concern (skip silently).
-        # Use -e so a valid symlink to a missing target is still flagged below.
-        [ -e "$_want" ] || [ -L "$_want" ] || continue
-        _any_checked=true
-
-        local _active
-        _active=$(command -v "$_tool" 2>/dev/null || true)
-        if [ -z "$_active" ]; then
-            log_warn "$_tool: installed at $_want but not on PATH"
-            log_warn "  Fix: ensure $(dirname "$_want") is on PATH (re-login if zsh sets it)"
-            _any_issue=true
-        elif [ "$_active" != "$_want" ]; then
-            log_warn "$_tool: PATH lookup → $_active  (managed install: $_want)"
-            log_warn "  An unmanaged binary at $_active is shadowing your managed install."
-            log_warn "  Inspect ownership: dpkg -S $_active 2>/dev/null  ||  echo 'manual install'"
-            log_warn "  Fix: remove the shadow ($_active) or fix PATH order"
-            _any_issue=true
+    local issues=0 tool want resolved
+    for tool in fzf rg fd jq zoxide delta eza; do
+        want="$HOME/.local/bin/$tool"
+        [ -L "$want" ] || [ -e "$want" ] || continue
+        resolved=$(PATH="$HOME/.local/bin:$PATH" command -v "$tool" 2>/dev/null) || resolved=""
+        if [ "$resolved" != "$want" ]; then
+            log_warn "$tool: PATH → '${resolved:-<missing>}', expected $want"
+            log_warn "  Stale unmanaged binary is shadowing your managed install."
+            log_warn "  Remove it after confirming with 'dpkg -S $resolved'."
+            issues=$((issues+1))
         fi
     done
-
-    export PATH="$_orig_path"
-
-    if ! $_any_checked; then
-        log_info "No managed binaries to verify"
-    elif ! $_any_issue; then
-        log_ok "All managed binaries resolve to their managed location"
-    fi
+    [ "$issues" -eq 0 ] && log_ok "All managed binaries resolve correctly"
 }
 
 # Print current vs latest version comparison (check mode).
