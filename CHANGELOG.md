@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-05-03
+
+### Fixed
+- `modules/base.sh` `_install_fzf`: short-circuited before creating
+  `~/.local/bin/fzf` whenever `~/.fzf` was already present from a previous
+  install. With the symlink missing, any older unmanaged `/usr/local/bin/fzf`
+  (e.g. left over from a prior manual install) won PATH lookup. Modern
+  `~/.fzf.zsh` shell integration emits `source <(fzf --zsh)`, which the older
+  binary rejects with `unknown option: --zsh` on every shell startup. The
+  installer is now idempotent: it always reconciles `~/.local/bin/fzf` ->
+  `~/.fzf/bin/fzf`, even when the clone already exists.
+
+### Added
+- `lib/utils.sh` `verify_managed_binaries`: post-install / post-update check
+  that simulates the user's interactive zsh PATH and warns when a managed
+  `~/.local/bin/<tool>` binary is shadowed by an unmanaged binary elsewhere on
+  PATH (or is missing entirely). Covers `fzf`, `rg`, `fd`, `jq`, `zoxide`,
+  `delta`, `eza`. Quiet on a clean system.
+- `install.sh`: invokes `verify_managed_binaries` after install completes.
+- `update.sh`: invokes `verify_managed_binaries` alongside the existing
+  `_check_path_shadows` (which only covered `/usr/local/bin/{nvim,xcape}` -
+  the inverse failure mode for `~/.local/bin` tools was previously uncaught).
+- `test.sh`: strict resolution check for `fzf` - verifies `~/.local/bin/fzf`
+  symlink target and that `command -v fzf` resolves to a managed location.
+  Catches the regression class above before it ships.
+
 ## [1.4.0] - 2026-04-13
 
 ### Added

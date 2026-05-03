@@ -554,6 +554,20 @@ fi
 # ── PATH shadow check (always runs - read-only) ───────────────────────────────
 _check_path_shadows
 
+# ── Managed-binary resolution check (always runs - read-only) ─────────────────
+# Complements _check_path_shadows: that function targets /usr/local/bin tools
+# (nvim, xcape); this one targets ~/.local/bin tools and detects the inverse
+# failure mode where a stale unmanaged binary at /usr/local/bin or /usr/bin
+# wins because the managed ~/.local/bin/X is missing (e.g. broken symlink).
+verify_managed_binaries \
+    fzf    "$HOME/.local/bin/fzf"    \
+    rg     "$HOME/.local/bin/rg"     \
+    fd     "$HOME/.local/bin/fd"     \
+    jq     "$HOME/.local/bin/jq"     \
+    zoxide "$HOME/.local/bin/zoxide" \
+    delta  "$HOME/.local/bin/delta"  \
+    eza    "$HOME/.local/bin/eza"
+
 echo ""
 if $CHECK_ONLY; then
     log_ok "Check complete"
