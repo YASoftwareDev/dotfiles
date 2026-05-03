@@ -410,18 +410,26 @@ _install_jq() {
 # fzf: install via git clone so shell integration (~/.fzf.zsh) is generated
 # automatically by the installer. This matches how update.sh manages fzf and
 # what .zshrc expects (`source ~/.fzf.zsh`).
-# A ~/.local/bin/fzf symlink is created so fzf is on PATH without sourcing
-# ~/.fzf.zsh (important for install.sh and test.sh which don't source it).
+# The ~/.local/bin/fzf symlink is what wins PATH lookup over any older system
+# fzf at /usr/local/bin or /usr/bin — and ~/.fzf.zsh's `source <(fzf --zsh)`
+# (modern fzf integration style) needs the new fzf to win, otherwise it errors
+# with "unknown option: --zsh" on every shell startup. So always (re)create
+# the symlink, even when the clone is already present.
 _install_fzf() {
+    local skip_clone=false
     if [ -d ~/.fzf ]; then
-        log_ok "fzf already installed — skipping"
-        return
+        log_ok "fzf already installed — skipping clone"
+        skip_clone=true
     fi
-    log_step "fzf (git clone)"
-    log_info "fzf: installing latest → ~/.fzf/ (shell integration via ~/.fzf.zsh, binary symlinked to ~/.local/bin/fzf)"
-    git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf --quiet
-    ~/.fzf/install --no-update-rc --key-bindings --completion
+    if ! $skip_clone; then
+        log_step "fzf (git clone)"
+        log_info "fzf: installing latest → ~/.fzf/ (shell integration via ~/.fzf.zsh, binary symlinked to ~/.local/bin/fzf)"
+        git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf --quiet
+        ~/.fzf/install --no-update-rc --key-bindings --completion
+    fi
     mkdir -p ~/.local/bin
-    ln -sf ~/.fzf/bin/fzf ~/.local/bin/fzf
-    log_ok "fzf installed → ~/.fzf (symlinked to ~/.local/bin/fzf)"
+    if [ ! -L ~/.local/bin/fzf ] || [ "$(readlink ~/.local/bin/fzf)" != "$HOME/.fzf/bin/fzf" ]; then
+        ln -sf ~/.fzf/bin/fzf ~/.local/bin/fzf
+        log_ok "fzf: symlinked ~/.local/bin/fzf → ~/.fzf/bin/fzf"
+    fi
 }
