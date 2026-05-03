@@ -388,6 +388,10 @@ if _should_run fzf; then
             else
                 log_warn "fzf: git pull failed - skipping"
             fi
+            # Self-heal the symlink in case an older dotfiles version (where
+            # _install_fzf returned early when ~/.fzf existed) left it missing.
+            mkdir -p ~/.local/bin
+            ln -sf ~/.fzf/bin/fzf ~/.local/bin/fzf
         fi
     elif has fzf; then
         log_warn "fzf: not managed as a git clone at ~/.fzf - skipping (update manually)"
