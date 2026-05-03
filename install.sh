@@ -115,6 +115,18 @@ case "$PROFILE" in
     *) die "Unknown profile: '$PROFILE'. Valid options: minimal | workstation | docker" ;;
 esac
 
+# Catch broken installations where an unmanaged system binary shadows a managed
+# install (e.g. a stale /usr/local/bin/fzf masking ~/.local/bin/fzf). Quiet on
+# clean systems; loud when something is wrong.
+verify_managed_binaries \
+    fzf    "$HOME/.local/bin/fzf"    \
+    rg     "$HOME/.local/bin/rg"     \
+    fd     "$HOME/.local/bin/fd"     \
+    jq     "$HOME/.local/bin/jq"     \
+    zoxide "$HOME/.local/bin/zoxide" \
+    delta  "$HOME/.local/bin/delta"  \
+    eza    "$HOME/.local/bin/eza"
+
 echo ""
 log_ok "Setup complete!"
 echo ""
