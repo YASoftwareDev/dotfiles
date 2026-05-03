@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-05-03
+
+### Fixed
+- `_install_fzf`: skipped symlink reconciliation when `~/.fzf` already
+  existed, so re-runs over partial state left `~/.local/bin/fzf` missing
+  and an older system fzf could win PATH lookup — breaking modern
+  `~/.fzf.zsh` integration with "unknown option: --zsh" on every shell
+  startup. Now always reconciles the symlink.
+- `update.sh` fzf section: same self-heal — reconciles the symlink after
+  every update, fixing existing broken installs from older dotfiles
+  versions without requiring a full re-install.
+
+### Added
+- `test.sh`: regression guard verifying `~/.local/bin/fzf` symlink target —
+  fails CI if the symlink reconciliation is ever removed from the installer.
+
 ## [1.4.0] - 2026-04-13
 
 ### Added

@@ -135,6 +135,13 @@ if [ -f ~/.fzf.zsh ]; then
     check_run "~/.fzf.zsh sources without error" zsh -c "source ~/.fzf.zsh"
 fi
 
+# Regression guard: ~/.fzf cloned without the ~/.local/bin/fzf symlink lets an
+# older system fzf win PATH; modern ~/.fzf.zsh then fails with "unknown option:
+# --zsh" on every shell startup.
+if [ -d ~/.fzf ] && [ "$(readlink ~/.local/bin/fzf 2>/dev/null)" != "$HOME/.fzf/bin/fzf" ]; then
+    _fail "~/.local/bin/fzf missing or wrong target (got: $(readlink ~/.local/bin/fzf 2>/dev/null || echo none))"
+fi
+
 # ── 5. fzf functional ─────────────────────────────────────────────────────────
 _hdr "fzf functional"
 
