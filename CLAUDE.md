@@ -274,6 +274,26 @@ warns and bails rather than creating a link inside it.
 
 ---
 
+## Neovim config
+
+`nvim/.config/nvim/init.lua` is a single-file config using lazy.nvim.
+
+**Command aliases** — the bottom of `init.lua` registers mixed-case variants of
+common Ex commands so accidental Shift-holding doesn't fail:
+
+| Typed | Runs |
+|-------|------|
+| `W` | `w` |
+| `Wq`, `WQ` | `wq` |
+| `Wqa`, `WQa`, `WQA` | `wqa` |
+| `Q` | `q` |
+| `Qa`, `QA` | `qa` |
+
+Add new aliases to the `pairs({…})` table at the bottom of `init.lua` — one line,
+no per-command boilerplate.
+
+---
+
 ## fzf integration
 
 fzf is installed via **git clone** to `~/.fzf/` (not apt, not a binary release).
