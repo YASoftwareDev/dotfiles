@@ -713,6 +713,7 @@ map('n', '<leader>L', '<cmd>Lazy<CR>', { desc = 'Lazy UI' })
 -- ══════════════════════════════════════════════════════════════════════════════
 -- Commands
 -- ══════════════════════════════════════════════════════════════════════════════
-for lhs, rhs in pairs({ W = 'w', WQ = 'wq', Wq = 'wq', Q = 'q', Qa = 'qa', QA = 'qa' }) do
+for lhs, rhs in pairs({ W = 'w', WQ = 'wq', Wq = 'wq', Q = 'q', Qa = 'qa', QA = 'qa',
+                         Wqa = 'wqa', WQa = 'wqa', WQA = 'wqa' }) do
   vim.api.nvim_create_user_command(lhs, rhs, {})
 end
