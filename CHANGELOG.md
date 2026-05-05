@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-05-05
+
+### Added
+- `nvim/init.lua`: `Wqa`, `WQa`, `WQA` command aliases mapping to `wqa`
+  (write-quit-all), completing the mixed-case alias set alongside the existing
+  `Wq`/`WQ` aliases. Resolves #21.
+- `AGENTS.md`: new agent-facing codebase guide summarising the key rules, file
+  layout, and Neovim command alias table for Codex / Copilot / other AI agents.
+
 ## [1.4.1] - 2026-05-03
 
 ### Fixed
