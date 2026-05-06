@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.5] - 2026-05-06
+
+### Fixed
+- `README.md`: Update section now documents `NOSUDO=1 ./update.sh` for skipping
+  apt and updating only user-local binaries in `~/.local/bin`.
+
 ## [1.6.4] - 2026-05-06
 
 ### Added
