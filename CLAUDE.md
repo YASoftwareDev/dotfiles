@@ -15,7 +15,9 @@ install.sh        entry point — profile selection, module orchestration
 update.sh         managed tool updates with --check mode + PATH shadow check
 test.sh           post-install validation suite (profile-aware)
 ci-local.sh       local Docker matrix runner — mirrors GitHub CI matrix
-get.sh            curl-pipe bootstrap (clones repo → runs install.sh)
+get.sh            curl-pipe bootstrap (clones repo → runs install.sh);
+                  on existing clones auto-stashes local modifications, pulls,
+                  then restores the stash — only aborts on stash-pop conflicts
 Dockerfile        bakes docker profile into an image at build time
 Dockerfile.nosudo parameterized no-sudo test image (two variants: forced/auto)
 lib/utils.sh      shared logging, sudo detection, GitHub helpers, binary utils
