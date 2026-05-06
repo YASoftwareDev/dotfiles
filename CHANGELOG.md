@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-05-06
+
+### Fixed
+- `get.sh`: on existing installs with local modifications, the installer now
+  automatically stashes changes, pulls the latest, and restores the stash instead
+  of aborting with a manual-steps error. Only aborts if the stash pop itself has
+  merge conflicts (content disagreement requiring human judgment). Resolves #25.
+
 ## [1.5.1] - 2026-05-06
 
 ### Fixed
