@@ -270,6 +270,9 @@ already at the highest dotfiles-managed PATH priority.
 | `git/.gitconfig` | `~/.gitconfig` |
 | `git/.gitattributes` | `~/.gitattributes` |
 | `git/.gitconfig.local.example` | reference only — copy to `~/.gitconfig.local` and fill in name/email/credentials (never committed; included at end of `.gitconfig` so it can override anything) |
+| `zsh/.zshrc.local.example` | reference only — copy to `~/.zshrc.local`; sourced at end of `.zshrc` |
+| `tmux/.tmux.conf.server.example` | reference only — copy to `~/.tmux.conf.server`; sourced at end of `.tmux.conf.local` |
+| `nvim/.config/nvim/local.lua.example` | reference only — copy to `~/.config/nvim/local.lua`; sourced at end of `init.lua` via `dofile` if readable |
 | `ripgrep/rc` | `~/.config/ripgrep/rc` |
 | `ranger/rc.conf`, `rifle.conf`, `scope.sh`, `commands*.py` | `~/.config/ranger/` (individual files) |
 | `x11/.xprofile` | `~/.xprofile` |

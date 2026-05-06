@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.4] - 2026-05-06
+
+### Added
+- Machine-local override files for all major tools, with example templates:
+  - `~/.zshrc.local` — already sourced by `.zshrc`; added `zsh/.zshrc.local.example`
+  - `~/.tmux.conf.server` — already sourced by `.tmux.conf.local`; added `tmux/.tmux.conf.server.example`
+  - `~/.config/nvim/local.lua` — new: sourced at end of `init.lua` via `dofile` if readable; added `nvim/.config/nvim/local.lua.example`
+- `README.md`: Machine-specific config section now lists all four override files in a table with example template paths.
+- `CLAUDE.md`: Symlink layout table extended with the three new example files.
+
 ## [1.6.3] - 2026-05-06
 
 ### Fixed
