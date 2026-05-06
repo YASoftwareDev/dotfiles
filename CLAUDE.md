@@ -269,6 +269,7 @@ already at the highest dotfiles-managed PATH priority.
 | `nvim/.config/nvim` | `~/.config/nvim` (directory symlink) |
 | `git/.gitconfig` | `~/.gitconfig` |
 | `git/.gitattributes` | `~/.gitattributes` |
+| `git/.gitconfig.local.example` | reference only — copy to `~/.gitconfig.local` and fill in name/email/credentials (never committed; included at end of `.gitconfig` so it can override anything) |
 | `ripgrep/rc` | `~/.config/ripgrep/rc` |
 | `ranger/rc.conf`, `rifle.conf`, `scope.sh`, `commands*.py` | `~/.config/ranger/` (individual files) |
 | `x11/.xprofile` | `~/.xprofile` |

@@ -50,11 +50,6 @@
 [merge]
     conflictstyle = zdiff3
 
-[include]
-    path = ~/.gitconfig.local
-[user]
-	name = Wojciech Pędzimąż
-	email = wojciech.pedzimaz@techmo.pl
 [pull]
 	rebase = true
 [rebase]
@@ -63,16 +58,6 @@
 	prune = true
 [diff]
 	tool = vimdiff
-[credential "https://gitlab.gnome.org"]
-	helper =
-	helper = !/usr/bin/glab auth git-credential
-[credential "https://github.com"]
-	helper =
-	helper = !/usr/bin/gh auth git-credential
-[credential "https://gist.github.com"]
-	helper =
-	helper = !/usr/bin/gh auth git-credential
-[url "https://gitlab.devtechmo.pl/"]
-	insteadOf = git@gitlab.devtechmo.pl:
-[credential "https://gitlab.devtechmo.pl"]
-	helper = !/usr/bin/glab auth git-credential
+
+[include]
+    path = ~/.gitconfig.local

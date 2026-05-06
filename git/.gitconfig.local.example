@@ -1,0 +1,29 @@
+# ~/.gitconfig.local — machine-specific git settings (never committed)
+#
+# Copy this file to ~/.gitconfig.local and fill in your values.
+# It is included at the end of git/.gitconfig so it can override anything.
+#
+# Minimum required:
+#
+# [user]
+#     name  = Your Name
+#     email = you@example.com
+#
+# Credential helpers (add only what you have installed):
+#
+# [credential "https://github.com"]
+#     helper =
+#     helper = !/path/to/gh auth git-credential
+#
+# [credential "https://gist.github.com"]
+#     helper =
+#     helper = !/path/to/gh auth git-credential
+#
+# [credential "https://gitlab.example.com"]
+#     helper =
+#     helper = !/path/to/glab auth git-credential
+#
+# URL rewrites (e.g. to force HTTPS for a specific host):
+#
+# [url "https://gitlab.example.com/"]
+#     insteadOf = git@gitlab.example.com:
