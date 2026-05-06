@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-05-06
+
+### Fixed
+- `install.sh`: the "Activate zsh for this session: exec zsh" advisory was shown
+  even when the installer ran non-interactively (e.g. `curl ... | bash`). In that
+  context the bash process is ephemeral - the user's real terminal session was
+  already in zsh. A new `NXS_STDIN_IS_TTY` flag (`[ -t 0 ]`) gates the exec-zsh
+  advice so it only appears in live interactive sessions.
+
 ## [1.6.0] - 2026-05-06
 
 ### Added
