@@ -1,0 +1,19 @@
+# ~/.tmux.conf.server - machine-specific tmux overrides
+# Sourced at the very end of ~/.tmux.conf.local. Never committed to the dotfiles repo.
+# Copy this file to ~/.tmux.conf.server and uncomment/add what you need.
+
+# Override the status bar colours for this machine (useful to tell machines apart)
+# set -g status-bg colour235
+# set -g status-fg colour136
+
+# Change the prefix key on this host
+# set -gu prefix2
+# unbind C-a
+# set -g prefix C-b
+# bind C-b send-prefix
+
+# Longer history on machines with lots of RAM
+# set -g history-limit 50000
+
+# SSH agent forwarding for this machine
+# set-environment -g SSH_AUTH_SOCK "$HOME/.ssh/ssh_auth_sock"

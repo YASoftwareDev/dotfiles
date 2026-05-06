@@ -1,0 +1,21 @@
+# ~/.zshrc.local - machine-specific zsh overrides
+# Sourced at the very end of ~/.zshrc. Never committed to the dotfiles repo.
+# Copy this file to ~/.zshrc.local and uncomment/add what you need.
+
+# Aliases
+# alias ll='ls -lAhF'
+# alias gs='git status'
+
+# Environment variables
+# export GOPATH="$HOME/go"
+# export PATH="$GOPATH/bin:$PATH"
+
+# Work-specific tooling (e.g. nvm, rbenv, pyenv)
+# export NVM_DIR="$HOME/.nvm"
+# [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
+
+# SSH agent / keys
+# ssh-add ~/.ssh/id_ed25519 2>/dev/null
+
+# Machine-specific prompt tweak (overrides p10k settings)
+# POWERLEVEL9K_CONTEXT_TEMPLATE='%n@workname'
