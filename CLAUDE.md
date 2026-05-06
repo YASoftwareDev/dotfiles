@@ -93,13 +93,19 @@ die "message"             # log_error + exit 1
 
 ## Shell scripting rules
 
-**`set -euo pipefail`** — all scripts use strict mode. Key implication:
+**`set -euo pipefail`** — all scripts use strict mode. Key implications:
 ```bash
 # WRONG — (( expr )) exits with status 1 when result is 0 (falsy), triggers set -e
 (( count++ ))
 
 # CORRECT
 count=$(( count + 1 ))
+
+# WRONG — cmd && var=true exits 1 when cmd is false (condition not met), triggers set -e
+[ -f ~/.p10k.zsh ] && CONFIGURED=true
+
+# CORRECT — if/then consumes the condition exit code without propagating it
+if [ -f ~/.p10k.zsh ]; then CONFIGURED=true; fi
 ```
 
 **`local` declarations** — every variable inside a function MUST be declared
