@@ -1,0 +1,18 @@
+-- ~/.config/nvim/local.lua - machine-specific Neovim overrides
+-- Sourced at the very end of init.lua. Never committed to the dotfiles repo.
+-- Copy this file to ~/.config/nvim/local.lua and uncomment/add what you need.
+
+-- Override colorscheme
+-- vim.cmd.colorscheme('catppuccin')
+
+-- Machine-specific LSP extras (e.g. rust-analyzer only on dev machines)
+-- require('lspconfig').rust_analyzer.setup({})
+
+-- Increase font size (GUI only, e.g. Neovide)
+-- vim.o.guifont = 'MesloLGS NF:h14'
+
+-- Disable a plugin on this machine
+-- require('lazy').disable('copilot.lua')
+
+-- Extra keymaps
+-- vim.keymap.set('n', '<leader>rr', '<cmd>!make run<CR>', { desc = 'Run project' })
