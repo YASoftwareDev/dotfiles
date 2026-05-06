@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-05-06
+
+### Added
+- `install.sh`: post-install "Next steps" summary is now context-aware. A new
+  `_compute_next_steps_state()` function reads actual system state after every
+  install - login shell (from `/etc/passwd` by UID, not the stale `$SHELL` env
+  var), current process type (`ZSH_VERSION`), p10k config presence, SSH session
+  detection, font installation state (four values: `installed`, `cache_stale`,
+  `missing`, `unknown_remote`), and local X11 session vs SSH X-forwarding.
+  Only steps that genuinely require action are shown; steps already complete are
+  suppressed. When running over SSH the font advisory is shown as a lightweight
+  reminder (not counted as an action item) after the main summary, because fonts
+  live on the local terminal, not the remote host. Resolves #27.
+
 ## [1.5.2] - 2026-05-06
 
 ### Fixed
