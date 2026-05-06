@@ -98,22 +98,27 @@ _compute_next_steps_state() {
 
     # Managed exec-zsh shim - match the exact line written by _patch_bashrc_for_docker.
     # Uses fixed-string (-F) to avoid treating shell metacharacters as regex.
+    # if/then form required: `cmd && var=true` exits 1 when cmd is false, tripping set -e.
     NXS_BASHRC_EXECZSH=false
-    grep -qF '[ -z "$ZSH_VERSION" ] && [ -t 0 ] && exec zsh' \
-        "${HOME}/.bashrc" 2>/dev/null && NXS_BASHRC_EXECZSH=true
+    if grep -qF '[ -z "$ZSH_VERSION" ] && [ -t 0 ] && exec zsh' \
+            "${HOME}/.bashrc" 2>/dev/null; then
+        NXS_BASHRC_EXECZSH=true
+    fi
 
     # Current running process is zsh (ZSH_VERSION is set for all zsh invocation modes)
     NXS_IN_ZSH=false
-    [ -n "${ZSH_VERSION:-}" ] && NXS_IN_ZSH=true
+    if [ -n "${ZSH_VERSION:-}" ]; then NXS_IN_ZSH=true; fi
 
     # p10k wizard has been run before?
     NXS_P10K_CONFIGURED=false
-    [ -f "${HOME}/.p10k.zsh" ] && NXS_P10K_CONFIGURED=true
+    if [ -f "${HOME}/.p10k.zsh" ]; then NXS_P10K_CONFIGURED=true; fi
 
     # Running over SSH?
     NXS_OVER_SSH=false
-    { [ -n "${SSH_CLIENT:-}" ] || [ -n "${SSH_TTY:-}" ] \
-        || [ -n "${SSH_CONNECTION:-}" ]; } && NXS_OVER_SSH=true
+    if [ -n "${SSH_CLIENT:-}" ] || [ -n "${SSH_TTY:-}" ] \
+            || [ -n "${SSH_CONNECTION:-}" ]; then
+        NXS_OVER_SSH=true
+    fi
 
     # Font state - four values, because over SSH we can only observe the remote host,
     # not the local terminal that actually renders glyphs:
@@ -139,13 +144,14 @@ _compute_next_steps_state() {
     # install-x11.sh installs autostart hooks for the remote machine's own login
     # session; showing it for SSH X-forwarding would be confusing and wrong.
     NXS_X11_LOCAL=false
-    [ -n "${DISPLAY:-}" ] && ! $NXS_OVER_SSH && NXS_X11_LOCAL=true
+    if [ -n "${DISPLAY:-}" ] && ! $NXS_OVER_SSH; then NXS_X11_LOCAL=true; fi
 
     # Caps-Lock remap fully installed?
     NXS_CAPS_REMAP_DONE=false
-    { command -v xcape &>/dev/null \
-        && [ -f "${HOME}/.config/autostart/caps-remap.desktop" ]; } \
-        && NXS_CAPS_REMAP_DONE=true
+    if command -v xcape &>/dev/null \
+            && [ -f "${HOME}/.config/autostart/caps-remap.desktop" ]; then
+        NXS_CAPS_REMAP_DONE=true
+    fi
 }
 
 # ── Main ──────────────────────────────────────────────────────────────────────
