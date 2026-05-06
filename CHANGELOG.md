@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.6] - 2026-05-06
+
+### Fixed
+- `update.sh`: `_do_update_neovim()` now checks glibc version before downloading
+  the latest Neovim binary. On systems with glibc < 2.32 (Ubuntu 20.04 and older)
+  it pins to the legacy v0.9.5 binary and skips the update, preventing the update
+  path from silently replacing a working legacy install with an incompatible binary.
+  Also removes any broken `~/.local/bin/nvim` shadow binary that would mask a
+  working `/usr/local/bin/nvim` on the same system.
+
 ## [1.6.5] - 2026-05-06
 
 ### Fixed
