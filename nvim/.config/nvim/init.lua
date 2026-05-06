@@ -723,3 +723,9 @@ for lhs, rhs in pairs({ W = 'w', WQ = 'wq', Wq = 'wq', Q = 'q', Qa = 'qa', QA = 
                          Wqa = 'wqa', WQa = 'wqa', WQA = 'wqa' }) do
   vim.api.nvim_create_user_command(lhs, rhs, {})
 end
+
+-- ══════════════════════════════════════════════════════════════════════════════
+-- Machine-local overrides
+-- ══════════════════════════════════════════════════════════════════════════════
+local _local = vim.fn.expand('~/.config/nvim/local.lua')
+if vim.fn.filereadable(_local) == 1 then dofile(_local) end
