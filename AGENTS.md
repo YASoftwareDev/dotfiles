@@ -41,6 +41,11 @@ W → w    Wq/WQ → wq    Wqa/WQa/WQA → wqa    Q → q    Qa/QA → qa
 
 Add new aliases to the `pairs({...})` table - one line, no boilerplate.
 
+**Mason LSP servers** - `pyright` and `bash-language-server` are npm-based.
+They are wrapped in `vim.fn.executable('npm') == 1` so hosts without npm (e.g.
+GPU servers) skip them silently. Do not remove this guard or add new npm-dependent
+servers outside of it.
+
 ## Version bump rules
 
 - `fix:` commits -> patch (`X.Y.Z+1`)
