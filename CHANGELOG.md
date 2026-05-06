@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-05-06
+
+### Fixed
+- `nvim/init.lua`: Mason no longer attempts to install `pyright` and
+  `bash-language-server` on hosts without npm/Node.js. Both servers use npm as
+  their install backend; the unconditional `ensure_installed` caused two noisy
+  failure messages on every Neovim launch on GPU servers. They are now guarded
+  behind `vim.fn.executable('npm') == 1`. Resolves #23.
+
+### Changed
+- `AGENTS.md`: documented the Mason npm-conditional LSP server
+  guard so agents and humans know not to remove it or add new npm-dependent
+  servers outside of it.
+
 ## [1.5.0] - 2026-05-05
 
 ### Added
