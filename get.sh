@@ -175,20 +175,32 @@ if [ -d "$DEST/.git" ]; then
         _die "Repo at $DEST is in an unfinished merge/rebase state.\n  Resolve it first: git -C '$DEST' status\n  Then: bash '$DEST/install.sh' ${PROFILE:-workstation}"
     fi
 
-    # Local modifications would be overwritten by pull
+    # Local modifications would be overwritten by pull - auto-stash, pull, restore
     if ! git -C "$DEST" diff --quiet HEAD 2>/dev/null; then
-        _warn "Local modifications detected - cannot pull cleanly:"
+        _warn "Local modifications detected - auto-stashing before pull:"
         git -C "$DEST" diff --name-only HEAD 2>/dev/null | while IFS= read -r f; do _warn "  $f"; done
-        _warn "Resolve manually, then run install.sh directly (get.sh is gone after curl-pipe):"
-        _warn "  git -C '$DEST' stash"
-        _warn "  git -C '$DEST' pull"
-        _warn "  git -C '$DEST' stash pop"
-        _warn "  # WARNING: if stash pop has conflicts, ~/.zshrc may break."
-        _warn "  # If that happens: exec bash (use bash until resolved)"
-        _warn "  # Accept upstream: git -C '$DEST' checkout -- <file>"
-        _warn "  # Then: git -C '$DEST' stash drop"
-        _warn "  bash '$DEST/install.sh' ${PROFILE:-workstation}"
-        _die "Aborting - resolve local changes first."
+
+        if ! git -C "$DEST" stash 2>&1; then
+            _die "git stash failed - resolve manually, then:\n  bash '$DEST/install.sh' ${PROFILE:-workstation}"
+        fi
+        _ok "Local changes stashed"
+
+        if ! git -C "$DEST" pull --ff-only 2>&1; then
+            git -C "$DEST" stash pop 2>/dev/null || true
+            _die "Pull failed (stash restored) - resolve manually:\n  git -C '$DEST' pull\n  bash '$DEST/install.sh' ${PROFILE:-workstation}"
+        fi
+        _ok "Pulled latest"
+
+        if ! git -C "$DEST" stash pop 2>&1; then
+            _warn "Stash pop has conflicts - your local changes conflict with what was pulled."
+            _warn "  See conflicts:     git -C '$DEST' status"
+            _warn "  Accept upstream:   git -C '$DEST' checkout -- <file>"
+            _warn "  Drop the stash:    git -C '$DEST' stash drop"
+            _warn "  Then install:      bash '$DEST/install.sh' ${PROFILE:-workstation}"
+            _warn "  If shell is broken: exec bash"
+            _die "Resolve stash pop conflicts manually."
+        fi
+        _ok "Local changes restored after pull"
     fi
 
     # Local commits ahead of upstream (clean tree but diverged)
