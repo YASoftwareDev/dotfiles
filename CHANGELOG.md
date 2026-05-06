@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.2] - 2026-05-06
+
+### Fixed
+- `git/.gitconfig`: removed private `[user]`, `[credential *]`, and `[url *]`
+  sections that were committed to the public repo. These belong in
+  `~/.gitconfig.local`, which is already included at the end of `.gitconfig`
+  and is never tracked by git. Also moved `[pull]`, `[rebase]`, `[fetch]`,
+  and `[diff]` tool settings above the `[include]` line so local settings can
+  override them.
+
+### Added
+- `git/.gitconfig.local.example`: template showing the structure for
+  `~/.gitconfig.local` (user identity, credential helpers, URL rewrites).
+
 ## [1.6.1] - 2026-05-06
 
 ### Fixed
