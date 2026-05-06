@@ -292,6 +292,13 @@ common Ex commands so accidental Shift-holding doesn't fail:
 Add new aliases to the `pairs({…})` table at the bottom of `init.lua` — one line,
 no per-command boilerplate.
 
+**Mason LSP servers** — `pyright` and `bash-language-server` are installed by
+Mason via npm. The config guards them behind `vim.fn.executable('npm') == 1` so
+`ensure_installed` only includes them when npm is present on the host. Hosts
+without Node.js (e.g. GPU servers) still get `clangd` and `lua_ls` (no npm
+needed). Do not remove this guard or add other npm-dependent servers without
+wrapping them in the same check.
+
 ---
 
 ## fzf integration
