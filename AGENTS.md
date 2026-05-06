@@ -24,6 +24,8 @@ updates (`update.sh`), post-install test suite (`test.sh`), and CI matrix coveri
 ## Critical rules (never violate)
 
 - All scripts use `set -euo pipefail`. Use `count=$(( count + 1 ))` — never `(( count++ ))`.
+  Also avoid `[ cond ] && var=true` — when the condition is false, the expression exits with 1 and
+  trips `set -e`. Use `if [ cond ]; then var=true; fi` instead.
 - Every function variable must be declared `local` (or `local -a` for arrays).
 - Never construct GitHub release asset URLs manually — use `_gh_release_info` or
   `_gh_latest_release` from `lib/utils.sh`; asset names change between releases.
