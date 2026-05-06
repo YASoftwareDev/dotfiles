@@ -21,6 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reminder (not counted as an action item) after the main summary, because fonts
   live on the local terminal, not the remote host. Resolves #27.
 
+### Fixed
+- `install.sh`: boolean assignments in `_compute_next_steps_state()` now use
+  `if/then` form instead of `cmd && var=true`. The `&&` form exits with status 1
+  when the condition is false, tripping `set -euo pipefail` and aborting the
+  installer immediately after the git config step.
+
 ## [1.5.2] - 2026-05-06
 
 ### Fixed
