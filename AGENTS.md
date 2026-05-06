@@ -13,6 +13,7 @@ updates (`update.sh`), post-install test suite (`test.sh`), and CI matrix coveri
 
 | File | Role |
 |------|------|
+| `get.sh` | curl-pipe bootstrap; auto-stashes local modifications on existing clones before pulling |
 | `install.sh` | Entry point — profile selection, module orchestration |
 | `update.sh` | Tool updates with `--check` mode and PATH shadow detection |
 | `test.sh` | Post-install validation (run after every install and update) |
