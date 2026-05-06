@@ -140,6 +140,52 @@ _do_update_neovim() {
         aarch64) nvim_arch="linux-arm64"  ;;
         *)       log_warn "neovim: unsupported arch $ARCH — skipping"; return ;;
     esac
+    # Prebuilt binaries since v0.10.0 require glibc ≥ 2.32 (Ubuntu 22.04+).
+    # On older systems keep/restore the legacy v0.9.5 binary instead.
+    local glibc_ver
+    glibc_ver=$(ldd --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+$' || echo "0.0")
+    if _ver_older_than "$glibc_ver" "2.32"; then
+        log_warn "neovim: system glibc $glibc_ver < 2.32 — pinned to legacy v0.9.5"
+        local nvim_dest
+        if $CAN_SUDO; then nvim_dest=/usr/local/bin/nvim; else nvim_dest=$HOME/.local/bin/nvim; fi
+        if $CHECK_ONLY; then
+            local cur_leg; cur_leg=$(_cmd_version nvim --version) || cur_leg="none"
+            log_info "  neovim: $cur_leg (legacy; cannot upgrade on glibc $glibc_ver)"
+            return
+        fi
+        # Remove any shadow binary in ~/.local/bin that is broken (GLIBC mismatch)
+        # and would mask a working /usr/local/bin/nvim.
+        local shadow="$HOME/.local/bin/nvim"
+        if [ -f "$shadow" ] && ! "$shadow" --version >/dev/null 2>&1; then
+            rm -f "$shadow"
+            log_info "neovim: removed incompatible shadow binary at $shadow"
+        fi
+        if "$nvim_dest" --version >/dev/null 2>&1; then
+            local leg_v; leg_v=$("$nvim_dest" --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+            log_ok "neovim $leg_v already installed (glibc-compatible) — skipping"
+            return
+        fi
+        # Binary is broken (overwritten by a prior update run). Restore v0.9.5.
+        if [ "$ARCH" != "x86_64" ]; then
+            log_warn "neovim: legacy binary only available for x86_64 — skipping"
+            return
+        fi
+        local leg_url="https://github.com/neovim/neovim/releases/download/v0.9.5/nvim-linux64.tar.gz"
+        log_info "neovim: restoring v0.9.5 (glibc 2.17+ compatible)"
+        local tmp; tmp=$(mktemp -d)
+        # shellcheck disable=SC2064
+        trap "rm -rf '$tmp'" RETURN
+        if has curl; then curl -sfL "$leg_url" | tar -xz -C "$tmp" \
+            || { log_warn "neovim: legacy download failed — skipping"; return; }
+        else wget -qO- "$leg_url" | tar -xz -C "$tmp" \
+            || { log_warn "neovim: legacy download failed — skipping"; return; }; fi
+        local leg_extracted; leg_extracted=$(find "$tmp" -maxdepth 1 -type d -name 'nvim-*' | head -1)
+        [ -z "$leg_extracted" ] && { log_warn "neovim: unexpected archive layout — skipping"; return; }
+        if $CAN_SUDO; then $SUDO cp -r "$leg_extracted"/. /usr/local/; else cp -r "$leg_extracted"/. "$HOME/.local/"; fi
+        log_ok "neovim restored → $("$nvim_dest" --version 2>/dev/null | head -1)"
+        return
+    fi
+
     local latest_tag="" nvim_url=""
     read -r latest_tag nvim_url < <(_gh_release_info "neovim/neovim" "nvim-${nvim_arch}.tar.gz") || true
     local latest="${latest_tag#v}"
