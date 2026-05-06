@@ -336,7 +336,7 @@ so re-runs over partial state self-heal. `test.sh` carries a regression guard.
 | Flag | Set by | Read by |
 |------|--------|---------|
 | `_SHELL_IS_ZSH` | `_set_default_shell()` in `modules/zsh.sh` | logging during install (not used by next-steps summary) |
-| `NXS_*` | `_compute_next_steps_state()` in `install.sh` | `install.sh` "next steps" — reads actual system state (passwd, ZSH_VERSION, fc-list, …) rather than install-time flags |
+| `NXS_*` | `_compute_next_steps_state()` in `install.sh` | `install.sh` "next steps" — reads actual system state (passwd, ZSH_VERSION, fc-list, …) rather than install-time flags; `NXS_STDIN_IS_TTY` gates "exec zsh" advice that is noise in curl-pipe / CI contexts |
 | `CAN_SUDO` | `detect_sudo()` in `lib/utils.sh` | everywhere |
 | `CHECK_ONLY` | `--check` arg in `update.sh` | update.sh per-tool blocks |
 | `DOTFILES_DIR` | top of each script | modules, symlink helpers |
