@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.3] - 2026-05-06
+
+### Fixed
+- `README.md`: Update section now shows the correct two-step flow - `git pull`
+  first (to get config file changes), then `./update.sh` (to upgrade tool binaries
+  and plugins). The previous single-command version was misleading: `update.sh`
+  does not pull the dotfiles repo and does not install tools added in newer
+  versions. Also documents `get.sh` as the simpler alternative and `--check` mode.
+- `README.md`: Machine-specific config section now lists `~/.gitconfig.local`
+  alongside `~/.zshrc.local` and `~/.p10k.zsh`, with a pointer to
+  `git/.gitconfig.local.example`.
+
 ## [1.6.2] - 2026-05-06
 
 ### Fixed
