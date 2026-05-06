@@ -152,6 +152,11 @@ _compute_next_steps_state() {
             && [ -f "${HOME}/.config/autostart/caps-remap.desktop" ]; then
         NXS_CAPS_REMAP_DONE=true
     fi
+
+    # Interactive terminal? False when piped (curl | bash) or in CI.
+    # Used to suppress "exec zsh" advice that makes no sense outside a live session.
+    NXS_STDIN_IS_TTY=false
+    if [ -t 0 ]; then NXS_STDIN_IS_TTY=true; fi
 }
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -216,18 +221,27 @@ case "$PROFILE" in
         elif $NXS_IN_ZSH; then
             : # Already running in zsh — nothing needed
         elif $NXS_ZSH_IS_DEFAULT; then
-            # Login shell is zsh but this session is not (common on re-runs from bash)
-            echo "    • Activate zsh for this session:  exec zsh"
-            _nxs_action=$(( _nxs_action + 1 ))
+            # Login shell is zsh but this process is bash.
+            # In a live terminal (tty) the user can exec zsh now — worth showing.
+            # In a curl-pipe the bash process is ephemeral; the user's real session
+            # is already in zsh, so this message is noise — suppress it.
+            if $NXS_STDIN_IS_TTY; then
+                echo "    • Activate zsh for this session:  exec zsh"
+                _nxs_action=$(( _nxs_action + 1 ))
+            fi
         elif $NXS_BASHRC_EXECZSH; then
             # Docker shim present — interactive bash will auto-exec zsh
             echo "    • Interactive bash sessions auto-exec zsh (via .bashrc)"
-            echo "      Activate now:  exec zsh"
+            if $NXS_STDIN_IS_TTY; then
+                echo "      Activate now:  exec zsh"
+            fi
             _nxs_action=$(( _nxs_action + 1 ))
         else
-            # Login shell is not yet zsh and no shim
+            # Login shell is not yet zsh and no shim — always show (real pending action)
             echo "    • Set default shell to zsh:  chsh -s ${NXS_ZSH_BIN}  (next login)"
-            echo "      Or activate now:            exec zsh"
+            if $NXS_STDIN_IS_TTY; then
+                echo "      Or activate now:            exec zsh"
+            fi
             _nxs_action=$(( _nxs_action + 1 ))
         fi
 
