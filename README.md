@@ -254,6 +254,13 @@ fzf, ripgrep, fd, shellcheck, zoxide, delta, eza, uv/uvx, ruff, neovim, cheat, x
 > bash ~/.dotfiles/install.sh workstation
 > ```
 
+To skip apt and update only the user-local binaries in `~/.local/bin` (useful on
+shared machines or accounts with sudo that you prefer not to use):
+
+```bash
+cd ~/.dotfiles && NOSUDO=1 ./update.sh
+```
+
 To check what would be updated without making changes:
 
 ```bash
