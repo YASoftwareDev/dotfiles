@@ -142,13 +142,16 @@ require('lazy').setup({
       -- Server configs defined once; registration method differs by nvim version.
       -- nvim 0.11+: vim.lsp.config/enable (new built-in API, no lspconfig on_attach)
       -- nvim 0.9–0.10: lspconfig.server.setup() (classic API)
-      local servers = {
+      -- pyright and bashls install via npm; skip ensure_installed on hosts without npm.
+      local npm_servers = vim.fn.executable('npm') == 1 and {
         pyright = {
           capabilities = capabilities,
           settings = { python = { analysis = { useLibraryCodeForTypes = true } } },
         },
-        clangd = { capabilities = capabilities },
         bashls = { capabilities = capabilities },
+      } or {}
+      local servers = vim.tbl_extend('force', {
+        clangd = { capabilities = capabilities },
         lua_ls = {
           capabilities = capabilities,
           settings = {
@@ -159,7 +162,7 @@ require('lazy').setup({
             },
           },
         },
-      }
+      }, npm_servers)
 
       if vim.fn.has('nvim-0.11') == 1 then
         require('mason-lspconfig').setup({
