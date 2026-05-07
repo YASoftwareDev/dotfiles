@@ -341,12 +341,14 @@ set -g default-terminal "tmux-256color"
 set -ga terminal-overrides ",xterm-256color:Tc"
 
 # modern tmux features
+%if #{>=:#{version},3.2}
 set -g extended-keys on        # proper Ctrl+Shift+key sequences
+%endif
 set -g detach-on-destroy off   # switch to next session instead of exiting tmux
 set -g bell-action any         # propagate bells from all windows to status bar
 
-# -- fzf session/window switcher -----------------------------------------------
-
+# -- fzf session/window switcher (tmux >= 3.2) ---------------------------------
+%if #{>=:#{version},3.2}
 # fuzzy session switcher (requires fzf)
 bind C-j display-popup -E "tmux list-sessions -F '#{session_name}' | fzf --reverse --prompt='session> ' | xargs -r tmux switch-client -t"
 
@@ -360,6 +362,7 @@ bind g display-popup -E "zoxide query -l | fzf --reverse --prompt='dir> ' | xarg
 
 # open new pane in a zoxide frecency-ranked directory
 bind C-z display-popup -E "zoxide query -l | fzf --reverse --prompt='dir> ' | xargs -r tmux split-window -c"
+%endif
 
 # replace C-b by C-a instead of using both prefixes
 # set -gu prefix2
