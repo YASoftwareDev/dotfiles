@@ -80,6 +80,10 @@ zstyle ':completion:*' menu no
 zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza --color=always -1 $realpath 2>/dev/null || ls --color=always -1 $realpath 2>/dev/null'
 zstyle ':fzf-tab:*' switch-group '<' '>'
 zstyle ':fzf-tab:*' popup-min-size 30 8
+# display-popup requires tmux >= 3.2; fall back to inline fzf on older hosts
+if [[ -n "$TMUX_PANE" ]] && tmux -V 2>/dev/null | awk '{exit !($2+0 >= 3.2)}'; then
+  zstyle ':fzf-tab:*' fzf-command ftb-tmux-popup
+fi
 
 # ── Aliases ───────────────────────────────────────────────────────────────────
 # fd: search everything including gitignored and hidden by default
