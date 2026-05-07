@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.8] - 2026-05-07
+
+### Fixed
+- `zsh/.zshrc`: gate `fzf-tab` tmux popup mode (`fzf-command ftb-tmux-popup`)
+  behind a runtime tmux version check (`>= 3.2`). On hosts with tmux < 3.2
+  (e.g. Ubuntu 20.04 system tmux 3.0a) the `ftb-tmux-popup` script called
+  `tmux popup` which does not exist, producing an `unknown command: popup`
+  error on every TAB completion. The guard falls back to inline fzf silently.
+
 ## [1.6.7] - 2026-05-07
 
 ### Fixed
