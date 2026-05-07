@@ -124,12 +124,18 @@ install_neovim() {
             rm -f "$prefix/bin/nvim"
             log_info "neovim: removed incompatible binary from $prefix/bin/nvim"
         fi
-        # Keep any already-working compatible binary (e.g. v0.9.5 from a prior run).
+        # Keep any already-working compatible binary only when its runtime also
+        # matches — a leftover 0.10+ runtime alongside a 0.9.x binary causes
+        # E15 errors ($' interpolated strings in csv.vim) and osc52 failures.
         if "$prefix/bin/nvim" --version >/dev/null 2>&1; then
-            local legacy_cur
+            local legacy_cur csv_vim
             legacy_cur=$("$prefix/bin/nvim" --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-            log_ok "neovim $legacy_cur already installed (glibc-compatible) — skipping"
-            return
+            csv_vim="$prefix/share/nvim/runtime/syntax/csv.vim"
+            if ! grep -qF "\$'" "$csv_vim" 2>/dev/null; then
+                log_ok "neovim $legacy_cur already installed (glibc-compatible) — skipping"
+                return
+            fi
+            log_info "neovim: 0.10+ runtime detected alongside $legacy_cur binary — reinstalling"
         fi
         [ "$arch" = "x86_64" ] && _neovim_legacy_binary "$prefix" || _neovim_apt
         return
