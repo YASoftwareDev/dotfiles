@@ -13,7 +13,7 @@
 #     curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash -s -- docker
 #
 #   force user-local installs (no apt, ~/.local/bin only) - useful on shared machines:
-#     curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash -s -- --nosudo workstation
+#     curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | NOSUDO=1 bash -s -- workstation
 #     (or, if you have the file locally: NOSUDO=1 bash get.sh workstation)
 #
 # Or inspect first, then run (also gives you the interactive wizard):
