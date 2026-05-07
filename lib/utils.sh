@@ -354,13 +354,17 @@ _gh_update_binary() {
 # Update a git-managed plugin directory.
 # Usage: _update_plugin NAME PATH
 _update_plugin() {
-    local name="$1" path="$2"
+    local name="$1" path="$2" url="${3:-}"
     if [ -d "$path" ]; then
         if git -C "$path" pull --quiet --rebase; then
             log_ok "$name updated"
         else
             log_warn "$name: git pull failed - skipping (local changes or network issue?)"
         fi
+    elif [ -n "$url" ]; then
+        log_info "$name: not found - cloning → $path"
+        git clone "$url" "$path" --quiet
+        log_ok "$name installed → $path"
     else
         log_warn "$name not found at $path - skipping"
     fi

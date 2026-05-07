@@ -165,7 +165,12 @@ _do_update_neovim() {
             log_ok "neovim $leg_v already installed (glibc-compatible) - skipping"
             return
         fi
-        # Binary is broken (overwritten by a prior update run). Restore v0.9.5.
+        # Skip if never installed - update.sh updates existing tools, not installs new ones.
+        if [ ! -e "$nvim_dest" ]; then
+            log_info "neovim: not installed on this host - skipping (run install.sh workstation to install)"
+            return
+        fi
+        # Binary exists but is broken (overwritten by a prior update run). Restore v0.9.5.
         if [ "$ARCH" != "x86_64" ]; then
             log_warn "neovim: legacy binary only available for x86_64 - skipping"
             return
@@ -411,10 +416,10 @@ if _should_run zsh-plugins; then
         _check_git_updates "fast-syntax-highlighting" "$ZSH_CUSTOM/plugins/fast-syntax-highlighting"
         _check_git_updates "fzf-tab"                  "$ZSH_CUSTOM/plugins/fzf-tab"
     else
-        _update_plugin "powerlevel10k"            "$ZSH_CUSTOM/themes/powerlevel10k"
-        _update_plugin "zsh-autosuggestions"      "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
-        _update_plugin "fast-syntax-highlighting" "$ZSH_CUSTOM/plugins/fast-syntax-highlighting"
-        _update_plugin "fzf-tab"                  "$ZSH_CUSTOM/plugins/fzf-tab"
+        _update_plugin "powerlevel10k"            "$ZSH_CUSTOM/themes/powerlevel10k"            "https://github.com/romkatv/powerlevel10k"
+        _update_plugin "zsh-autosuggestions"      "$ZSH_CUSTOM/plugins/zsh-autosuggestions"     "https://github.com/zsh-users/zsh-autosuggestions"
+        _update_plugin "fast-syntax-highlighting" "$ZSH_CUSTOM/plugins/fast-syntax-highlighting" "https://github.com/zdharma-continuum/fast-syntax-highlighting"
+        _update_plugin "fzf-tab"                  "$ZSH_CUSTOM/plugins/fzf-tab"                 "https://github.com/Aloxaf/fzf-tab"
     fi
 fi
 
