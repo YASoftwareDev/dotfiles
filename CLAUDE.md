@@ -200,6 +200,11 @@ zoxide delta eza uv ruff neovim cheat pre-commit xcape
 _should_run "toolname" || return 0
 ```
 
+**`_update_plugin NAME PATH [URL]`** — git-pull a cloned plugin. When the directory is
+missing and `URL` is provided, clones it instead of skipping. Pass the URL for zsh plugins
+(see update.sh `zsh-plugins` block) so that `update.sh zsh-plugins` self-heals a machine
+that received the dotfiles after a plugin was added.
+
 **`_update_std_tool` helper** covers standard single-binary GitHub tarball tools:
 ```bash
 # Usage: _update_std_tool CMD LABEL REPO GNU_ARM [BINARY] [ASSET_PREFIX]
