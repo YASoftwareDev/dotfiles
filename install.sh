@@ -107,7 +107,14 @@ _compute_next_steps_state() {
 
     # Current running process is zsh (ZSH_VERSION is set for all zsh invocation modes)
     NXS_IN_ZSH=false
-    if [ -n "${ZSH_VERSION:-}" ]; then NXS_IN_ZSH=true; fi
+    if [ -n "${ZSH_VERSION:-}" ]; then
+        NXS_IN_ZSH=true
+    else
+        # Script runs under bash even when invoked from zsh - check parent process
+        local _parent
+        _parent=$(ps -p "${PPID:-0}" -o comm= 2>/dev/null || true)
+        case "${_parent}" in *zsh*) NXS_IN_ZSH=true ;; esac
+    fi
 
     # p10k wizard has been run before?
     NXS_P10K_CONFIGURED=false
