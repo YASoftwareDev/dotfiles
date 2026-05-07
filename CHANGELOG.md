@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.7] - 2026-05-07
+
+### Fixed
+- `tmux/.tmux.conf.local`: gate `extended-keys` and `display-popup` behind
+  `%if #{>=:#{version},3.2}` so the config loads cleanly on tmux < 3.2
+  (e.g. Ubuntu 20.04 system tmux). Both features are silently unavailable
+  on older installs rather than producing parse errors.
+- `modules/neovim.sh`: detect runtime/binary version mismatch on
+  glibc-pinned hosts. A 0.10+ runtime left alongside a glibc-pinned 0.9.x
+  binary caused `E15` (`csv.vim` `$'...'` syntax) and osc52 nil-field
+  errors on every file open. Now checks for the 0.10+ syntax in `csv.vim`
+  and reinstalls to overwrite the mismatched runtime if found.
+- `update.sh` / `lib/utils.sh`: `_update_plugin` now accepts an optional
+  third URL argument. When the plugin directory is missing and a URL is
+  provided, it clones the plugin instead of skipping with a warning. The
+  `zsh-plugins` block in `update.sh` passes URLs for all four zsh plugins,
+  so `./update.sh zsh-plugins` self-heals machines that received the
+  dotfiles after a plugin was added (e.g. `fast-syntax-highlighting` missing
+  on a host that was never re-installed).
+
 ## [1.6.6] - 2026-05-06
 
 ### Fixed
