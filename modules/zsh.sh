@@ -96,7 +96,7 @@ _set_default_shell() {
         log_warn "zsh not found in PATH — cannot set default shell"
         return 0
     fi
-    if [ "${SHELL:-}" = "$zsh_path" ]; then
+    if [ "${SHELL:-}" = "$zsh_path" ] || [ -n "${ZSH_VERSION:-}" ]; then
         log_ok "zsh is already the default shell"
         _SHELL_IS_ZSH=true
         return
