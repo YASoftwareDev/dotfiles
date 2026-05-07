@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   so `./update.sh zsh-plugins` self-heals machines that received the
   dotfiles after a plugin was added (e.g. `fast-syntax-highlighting` missing
   on a host that was never re-installed).
+- `update.sh`: `_do_update_neovim` no longer tries to restore the legacy
+  v0.9.5 binary when neovim was never installed on the host. On profiles
+  that do not install neovim (e.g. `minimal`) on glibc < 2.32 systems,
+  the update step now skips gracefully instead of failing with a `cp` error
+  against `/usr/local/man`.
 
 ## [1.6.6] - 2026-05-06
 

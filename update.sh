@@ -165,7 +165,12 @@ _do_update_neovim() {
             log_ok "neovim $leg_v already installed (glibc-compatible) - skipping"
             return
         fi
-        # Binary is broken (overwritten by a prior update run). Restore v0.9.5.
+        # Skip if never installed - update.sh updates existing tools, not installs new ones.
+        if [ ! -e "$nvim_dest" ]; then
+            log_info "neovim: not installed on this host - skipping (run install.sh workstation to install)"
+            return
+        fi
+        # Binary exists but is broken (overwritten by a prior update run). Restore v0.9.5.
         if [ "$ARCH" != "x86_64" ]; then
             log_warn "neovim: legacy binary only available for x86_64 - skipping"
             return
