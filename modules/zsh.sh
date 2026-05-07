@@ -110,11 +110,8 @@ _set_default_shell() {
         $SUDO usermod -s "$zsh_path" "$(id -un)"
         log_ok "Default shell set to zsh (restart your session)"
         _SHELL_IS_ZSH=true
-    elif chsh -s "$zsh_path" 2>/dev/null; then
-        log_ok "Default shell set to zsh (restart your session)"
-        _SHELL_IS_ZSH=true
     else
-        log_warn "Could not change shell - run: chsh -s $zsh_path"
+        log_warn "Could not change shell (no sudo) - run manually: chsh -s $zsh_path"
         _SHELL_IS_ZSH=false
     fi
 }
