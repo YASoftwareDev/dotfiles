@@ -52,7 +52,7 @@ curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.s
 **nosudo** — any profile without apt/sudo; all tools land in `~/.local/bin` (~10–20 min)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | bash -s -- --nosudo workstation
+curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.sh | NOSUDO=1 bash -s -- workstation
 # or, after cloning:
 NOSUDO=1 ./install.sh workstation
 ```
