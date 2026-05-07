@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.9] - 2026-05-07
+
+### Fixed
+- `modules/zsh.sh`: skip `chsh` in nosudo mode (`CAN_SUDO=false`) to avoid
+  stalling on a password prompt. `chsh` reads its password via `/dev/tty`
+  directly, so `2>/dev/null` does not suppress it. A plain warning with the
+  manual command is emitted instead.
+- `modules/zsh.sh`: detect current zsh session via `$ZSH_VERSION` in addition
+  to `$SHELL`. When `install.sh` is invoked as `bash install.sh` from inside
+  zsh, `$SHELL` still points to the login shell entry in `/etc/passwd`, causing
+  a spurious shell-change attempt even though zsh is already running.
+- `install.sh`: detect parent zsh process via `ps -p $PPID` when the script
+  runs under bash. Previously `NXS_IN_ZSH` was always `false` for
+  `bash install.sh` invocations, causing a stale "exec zsh" hint in the
+  next-steps summary even when the invoking shell was already zsh.
+
+### Changed
+- `README.md`, `get.sh`: nosudo one-liner now uses `NOSUDO=1 bash -s --`
+  env-var form for consistency with all other `NOSUDO=1` usages in the docs.
+
 ## [1.6.8] - 2026-05-07
 
 ### Fixed
