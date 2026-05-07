@@ -14,7 +14,7 @@ updates (`update.sh`), post-install test suite (`test.sh`), and CI matrix coveri
 |------|------|
 | `get.sh` | curl-pipe bootstrap; auto-stashes local modifications on existing clones before pulling |
 | `install.sh` | Entry point - profile selection, module orchestration |
-| `update.sh` | Tool updates with `--check` mode and PATH shadow detection |
+| `update.sh` | Tool updates with `--check` mode, PATH shadow detection, and plugin auto-heal |
 | `test.sh` | Post-install validation (run after every install and update) |
 | `lib/utils.sh` | Shared helpers: logging, sudo detection, GitHub release fetching |
 | `modules/` | Per-concern installers: base, zsh, tmux, neovim, tools |
@@ -48,6 +48,14 @@ Add new aliases to the `pairs({...})` table - one line, no boilerplate.
 They are wrapped in `vim.fn.executable('npm') == 1` so hosts without npm (e.g.
 GPU servers) skip them silently. Do not remove this guard or add new npm-dependent
 servers outside of it.
+
+## update.sh helpers
+
+- **`_update_plugin NAME PATH [URL]`** - pulls the plugin at `PATH`; if `PATH` is missing and
+  `URL` is given, clones it. The zsh-plugins block passes URLs so `update.sh zsh-plugins`
+  can self-heal machines that missed a plugin install.
+- **`_update_std_tool CMD LABEL REPO GNU_ARM [BINARY] [ASSET_PREFIX]`** - covers standard
+  single-binary GitHub tarball tools (rg, eza, fd, ...).
 
 ## Version bump rules
 
