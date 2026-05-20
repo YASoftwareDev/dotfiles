@@ -338,6 +338,12 @@ the fzf section of `update.sh` both **always reconcile this symlink** (idempoten
 `ln -sf` after the existence check), even when the clone is already present —
 so re-runs over partial state self-heal. `test.sh` carries a regression guard.
 
+`~/.fzf.zsh` itself is also self-healed: if `~/.fzf/` already exists but
+`~/.fzf.zsh` is missing, `_install_fzf` re-runs `~/.fzf/install --no-update-rc
+--key-bindings --completion` to regenerate the integration file. Without it the
+`[[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh` source line in `.zshrc` silently
+no-ops and Ctrl+R is not bound to fzf history search.
+
 ---
 
 ## Global flags
