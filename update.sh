@@ -443,6 +443,13 @@ if _should_run fzf; then
             # _install_fzf returned early when ~/.fzf existed) left it missing.
             mkdir -p ~/.local/bin
             ln -sf ~/.fzf/bin/fzf ~/.local/bin/fzf
+            # Self-heal ~/.fzf.zsh too. Without it, .zshrc's
+            # `[[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh` silently no-ops and
+            # Ctrl+R is not bound to fzf history search.
+            if [ ! -f ~/.fzf.zsh ]; then
+                log_info "fzf: ~/.fzf.zsh missing - regenerating"
+                ~/.fzf/install --no-update-rc --key-bindings --completion >/dev/null
+            fi
         fi
     elif has fzf; then
         log_warn "fzf: not managed as a git clone at ~/.fzf - skipping (update manually)"
