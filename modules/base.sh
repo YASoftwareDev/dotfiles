@@ -413,12 +413,18 @@ _install_jq() {
 # ~/.fzf.zsh's `source <(fzf --zsh)` (modern fzf integration style) needs the
 # new fzf to win, otherwise shell startup errors with "unknown option: --zsh".
 # Always reconcile the symlink, even when the clone already exists, so re-runs
-# over partial state self-heal.
+# over partial state self-heal. Also regenerate ~/.fzf.zsh whenever it is
+# missing - without it, .zshrc's `[[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh`
+# silently no-ops and Ctrl+R is not bound to fzf history search.
 _install_fzf() {
     if [ ! -d ~/.fzf ]; then
         log_step "fzf (git clone)"
         log_info "fzf: installing latest → ~/.fzf/"
         git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf --quiet
+        ~/.fzf/install --no-update-rc --key-bindings --completion
+    elif [ ! -f ~/.fzf.zsh ]; then
+        log_step "fzf (regenerate shell integration)"
+        log_info "fzf: ~/.fzf.zsh missing - regenerating"
         ~/.fzf/install --no-update-rc --key-bindings --completion
     else
         log_ok "fzf already installed - skipping clone"
