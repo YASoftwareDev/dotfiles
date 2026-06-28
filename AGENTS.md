@@ -7,7 +7,8 @@ See `CLAUDE.md` for the full reference — everything below is a summary.
 
 Personal dotfiles for Ubuntu/Debian: one-command install (`install.sh`), managed
 updates (`update.sh`), post-install test suite (`test.sh`), and CI matrix covering
-3 Ubuntu versions × 3 install profiles + 2 no-sudo variants.
+3 Ubuntu versions × 3 install profiles + 3 no-sudo variants (auto / forced /
+nonsudoer) — 18 cells total.
 
 ## Key files
 
@@ -17,7 +18,7 @@ updates (`update.sh`), post-install test suite (`test.sh`), and CI matrix coveri
 | `install.sh` | Entry point — profile selection, module orchestration |
 | `update.sh` | Tool updates with `--check` mode, PATH shadow detection, and plugin auto-heal |
 | `test.sh` | Post-install validation (run after every install and update) |
-| `lib/utils.sh` | Shared helpers: logging, sudo detection, GitHub release fetching |
+| `lib/utils.sh` | Shared helpers: logging, sudo detection (`detect_sudo` uses `sudo -n -v` to tell a real sudoer from a user not in sudoers), GitHub release fetching |
 | `modules/` | Per-concern installers: base, zsh, tmux, neovim, tools |
 | `nvim/.config/nvim/init.lua` | Single-file Neovim config (lazy.nvim) |
 

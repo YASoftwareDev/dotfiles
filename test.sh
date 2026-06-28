@@ -244,14 +244,21 @@ if [ "$PROFILE" = "nosudo" ]; then
     check_local_bin yazi   "yazi"
 
     _hdr "No-sudo: sudo availability"
-    # nosudo-auto:   sudo binary absent → detect_sudo() auto-detected CAN_SUDO=false
-    # nosudo-forced: sudo binary present but NOSUDO=1 overrides it → install still
-    #                uses ~/.local/bin; sudo availability itself is not the invariant.
-    # The real invariant (NOSUDO respected) is already verified by check_local_bin above.
-    if sudo -v 2>/dev/null; then
-        _ok "sudo available — NOSUDO=1 override mode (binaries forced to ~/.local/bin)"
+    # nosudo-auto:      sudo binary absent → detect_sudo() auto-detected CAN_SUDO=false
+    # nosudo-forced:    sudo binary present + usable but NOSUDO=1 overrides it → install
+    #                   still uses ~/.local/bin.
+    # nosudo-nonsudoer: sudo binary present but user NOT in sudoers → detect_sudo() must
+    #                   auto-detect CAN_SUDO=false (the case the old code misclassified).
+    # Sudo availability itself is not the invariant — the real one (binaries landed in
+    # ~/.local/bin) is already verified by check_local_bin above. This block is purely
+    # informational, so all three branches report _ok. `sudo -n true` is non-interactive
+    # (never prompts): exit 0 only when sudo is genuinely usable (forced uses NOPASSWD).
+    if ! command -v sudo >/dev/null 2>&1; then
+        _ok "sudo binary absent — auto-detect mode (CAN_SUDO=false)"
+    elif sudo -n true 2>/dev/null; then
+        _ok "sudo usable (passwordless) — NOSUDO=1 override mode (binaries forced to ~/.local/bin)"
     else
-        _ok "sudo not available — auto-detect mode (CAN_SUDO=false)"
+        _ok "sudo present but unauthorised — auto-detect mode (CAN_SUDO=false)"
     fi
 
     _hdr "No-sudo: functional smoke tests"
