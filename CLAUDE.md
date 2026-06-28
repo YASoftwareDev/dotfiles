@@ -8,6 +8,51 @@ CI tests all profile × Ubuntu-version combinations on every push.
 
 ---
 
+## Testing & verification policy (enforced — do not skip)
+
+**Any task that changes code in this repo is not complete until it is verified.**
+"Code" = shell scripts (`*.sh`), `modules/`, `lib/`, `install.sh`, `update.sh`,
+`test.sh`, `ci-local.sh`, and tracked configs (`*.lua`, `*.zsh`, `*.toml`, tmux/
+ripgrep/git configs). Doc-only changes (`*.md`, `CHANGELOG`) are exempt.
+
+There are two layers — one automatic, one your responsibility:
+
+**1. Automatic static gate (Claude Code Stop hook).**
+`.claude/settings.json` registers `.claude/hooks/verify-on-stop.sh`, which runs on
+every turn-end in this repo. For each *changed, tracked* script it runs `bash -n`,
+`zsh -n`, and `shellcheck -S warning` — the latter **baseline-compared against
+HEAD**, so only *new* findings block (a file's pre-existing warnings never trap an
+unrelated edit). On a regression it blocks completion and feeds the reason back.
+This is automatic; you cannot rely on remembering it, but you also must not work
+around it — fix the finding.
+
+**2. Functional suite (your responsibility — the hook cannot do this reliably).**
+`test.sh` validates the live/*installed* state, not the working-tree diff, so it is
+only a trustworthy green/red signal inside a fresh container — which is what
+`ci-local.sh` provides. Before declaring a code task complete:
+- Run `bash test.sh <profile>` (workstation on the dev box) and read the result
+  with judgment — a failure that predates your change (e.g. a tool not installed
+  on this machine) is machine drift, not your regression; a *new* failure is.
+- For changes to `install.sh` / `update.sh` / `modules/*` / `lib/*` (install/update
+  logic that `test.sh` alone can't see until re-installed), run a relevant
+  `ci-local.sh` subset in clean containers and only consider the task complete
+  when it passes:
+  ```bash
+  bash ci-local.sh --ubuntu 24.04 --profile <affected> --skip-nosudo
+  bash ci-local.sh --ubuntu 24.04 --profile nosudo-auto   # if nosudo is affected
+  ```
+
+**Known limit — GitHub API rate limit.** Running the *full* local nosudo matrix
+(6 cells) unauthenticated trips GitHub's 60-req/hr API cap: API-based installers
+(rg, fd, jq, zoxide, delta, eza) then report `could not find release URL — skipping`
+and `test.sh` fails with missing binaries — a **false** failure, not a real one.
+yazi is immune (it uses no-API `releases/latest/download` URLs). Locally, prefer
+`--skip-nosudo` or a single nosudo variant, or run with authenticated GitHub
+access. The GitHub Actions CI is authenticated and remains the full 15-cell gate —
+**never weaken or remove it.**
+
+---
+
 ## Directory layout
 
 ```
@@ -22,11 +67,11 @@ Dockerfile        bakes docker profile into an image at build time
 Dockerfile.nosudo parameterized no-sudo test image (two variants: forced/auto)
 lib/utils.sh      shared logging, sudo detection, GitHub helpers, binary utils
 modules/
-  base.sh         apt packages + per-tool installers (fzf, zoxide, delta, eza, …)
+  base.sh         apt packages + per-tool installers (fzf, zoxide, delta, eza, yazi, …)
   zsh.sh          oh-my-zsh, plugins, .zshrc symlink, default shell
   tmux.sh         tmux config symlinks, plugin cloning
   neovim.sh       GitHub binary release, config symlink, shadow detection
-  tools.sh        uv, ruff, cheat, ripgrep/ranger config
+  tools.sh        uv, ruff, cheat, ripgrep/yazi config
 scripts/
   install-fonts.sh   MesloLGS NF installer (local workstation only)
   install-x11.sh     Caps Lock remapping (X11 only)
@@ -35,7 +80,7 @@ nvim/             .config/nvim/ (lazy.nvim, LSP, treesitter, etc.)
 git/              .gitconfig, .gitattributes
 tmux/             .tmux.conf, .tmux.conf.local
 ripgrep/          .config/ripgrep/rc
-ranger/           .config/ranger/ (individual file symlinks, not directory)
+yazi/             .config/yazi/ (individual file symlinks, not directory)
 x11/              .xprofile, caps-remap.sh, autostart .desktop
 VERSION           semver string
 CHANGELOG.md      keep-a-changelog format
@@ -191,7 +236,7 @@ Key helpers in `lib/utils.sh`:
 **Known tools list** — `_KNOWN_TOOLS` array at the top of `update.sh`:
 ```
 apt omz tmux-plugins zsh-plugins fzf rg fd shellcheck
-zoxide delta eza uv ruff neovim cheat pre-commit xcape
+zoxide delta eza yazi uv ruff neovim cheat pre-commit xcape
 ```
 **When adding a new tool, add its name here** — the arg parser rejects unknown names.
 
@@ -279,12 +324,15 @@ already at the highest dotfiles-managed PATH priority.
 | `tmux/.tmux.conf.server.example` | reference only — copy to `~/.tmux.conf.server`; sourced at end of `.tmux.conf.local` |
 | `nvim/.config/nvim/local.lua.example` | reference only — copy to `~/.config/nvim/local.lua`; sourced at end of `init.lua` via `dofile` if readable |
 | `ripgrep/rc` | `~/.config/ripgrep/rc` |
-| `ranger/rc.conf`, `rifle.conf`, `scope.sh`, `commands*.py` | `~/.config/ranger/` (individual files) |
+| `yazi/yazi.toml` (+ optional `keymap.toml`, `theme.toml`) | `~/.config/yazi/` (individual files) |
 | `x11/.xprofile` | `~/.xprofile` |
 | `x11/.config/autostart/caps-remap.desktop` | `~/.config/autostart/caps-remap.desktop` |
 
-Ranger is linked file-by-file (not as a directory) to keep runtime state
-(`bookmarks`, `history`, `tags`) out of git.
+yazi is linked file-by-file (not as a directory). yazi writes runtime state to
+`~/.local/state/yazi/` rather than the config dir, so the config stays git-clean.
+yazi is **not in apt** — `_install_yazi` (modules/base.sh) always fetches the
+GitHub release (`sxyazi/yazi`), a `.zip` (not tarball) carrying two binaries
+(`yazi` + the `ya` CLI), extracted via `unzip` or a `python3 -m zipfile` fallback.
 
 Nvim: if `~/.config/nvim` is a real directory (not a symlink), `link_nvim_config`
 warns and bails rather than creating a link inside it.
@@ -382,12 +430,14 @@ oh-my-zsh + plugins + powerlevel10k dirs; tmux detached session start; git confi
 diff driver; zoxide init + add + query.
 
 Profile-specific checks:
-- `workstation` — nvim, uv, cheat; config symlinks (nvim, ripgrep, ranger);
+- `workstation` — nvim, uv, cheat; config symlinks (nvim, ripgrep, yazi);
   tmux plugin dirs (tmux-fzf, tmux-cpu)
-- `minimal` — ranger, tig, parallel, eza, shellcheck (all via apt)
-- `nosudo` — strict `~/.local/bin` presence check for all 7 GitHub binaries
-  (rg, fd, jq, fzf, zoxide, delta, eza); sudo availability info (not a failure
-  condition — nosudo-forced has sudo available); functional smoke tests for each
+- `minimal` — yazi, tig, parallel, eza, shellcheck (yazi is a GitHub binary; rest via apt)
+- `nosudo` — strict `~/.local/bin` presence check for all 8 GitHub binaries
+  (rg, fd, jq, fzf, zoxide, delta, eza, yazi); sudo availability info (not a
+  failure condition — nosudo-forced has sudo available); functional smoke tests
+  for each. (yazi is installed in no-sudo too — unlike the old apt-only ranger,
+  which was unavailable without sudo.)
 
 Two nosudo scenarios are validated by `Dockerfile.nosudo`:
 - **nosudo-auto** — no `sudo` binary; `detect_sudo()` auto-detects `CAN_SUDO=false`
