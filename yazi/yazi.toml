@@ -1,0 +1,23 @@
+# yazi configuration - https://yazi-rs.github.io/docs/configuration/yazi
+# Section is [mgr] (renamed from [manager] in yazi 25.x+).
+# Keybinds use yazi's vim-like defaults; this file only tweaks behaviour/layout.
+# Override per-machine by copying keys into ~/.config/yazi/yazi.toml is not
+# needed - add keymap.toml / theme.toml alongside this file (they are symlinked
+# automatically by modules/tools.sh when present).
+
+[mgr]
+ratio          = [1, 4, 3]   # parent : current : preview column widths
+sort_by        = "natural"   # natural ordering (file2 before file10)
+sort_sensitive = false
+sort_reverse   = false
+sort_dir_first = true        # directories before files
+linemode       = "size"      # show file size in the right margin
+show_hidden    = false       # toggle at runtime with `.`
+show_symlink   = true        # show -> target for symlinks
+scrolloff      = 5           # keep N lines of context above/below the cursor
+
+[preview]
+wrap       = "no"
+tab_size   = 2
+max_width  = 600
+max_height = 900

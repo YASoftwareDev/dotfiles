@@ -9,7 +9,7 @@
 #
 # Available tools (pass one or more to update only those):
 #   apt  omz  tmux-plugins  zsh-plugins  fzf  rg  fd  shellcheck
-#   zoxide  delta  eza  uv  ruff  neovim  cheat  pre-commit  xcape
+#   zoxide  delta  eza  yazi  uv  ruff  neovim  cheat  pre-commit  xcape
 #
 # A PATH shadow check always runs at the end (read-only). It detects older
 # binaries at higher-priority PATH locations that would hide managed versions
@@ -48,7 +48,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 _KNOWN_TOOLS=(apt omz tmux-plugins zsh-plugins fzf rg fd shellcheck
-              zoxide delta eza uv ruff neovim cheat pre-commit xcape)
+              zoxide delta eza yazi uv ruff neovim cheat pre-commit xcape)
 
 # Validate SELECTED against known tool names.
 for _sel in "${SELECTED[@]+"${SELECTED[@]}"}"; do
@@ -507,6 +507,56 @@ _update_std_tool delta "delta" "dandavison/delta" gnu
 # ── eza ────────────────────────────────────────────────────────────────────────────────
 # Asset pattern has an eza_ prefix before the arch triple.
 _update_std_tool eza "eza" "eza-community/eza" musl eza "eza_"
+
+# ── yazi ───────────────────────────────────────────────────────────────────────
+# Custom: ships a .zip (not a tarball) containing two binaries - yazi + ya.
+if _should_run yazi; then
+    log_step "yazi"
+    # Recognize a managed ~/.local/bin install even when that dir is not on PATH
+    # (update.sh does not prepend it), mirroring how the cheat block gates on a
+    # file test. `has yazi` still covers a yazi found elsewhere on PATH (e.g. cargo).
+    if has yazi || [ -x "$HOME/.local/bin/yazi" ]; then
+        case "$ARCH" in
+            x86_64)  yazi_arch="x86_64-unknown-linux-musl"  ;;
+            aarch64) yazi_arch="aarch64-unknown-linux-musl" ;;
+            *)       yazi_arch="" ;;
+        esac
+        if [ -z "$yazi_arch" ]; then
+            log_warn "yazi: unsupported arch $ARCH - skipping"
+        elif $CHECK_ONLY; then
+            current=$(_cmd_version yazi --version) || current=""
+            latest=$(_gh_latest_tag_noapi "sxyazi/yazi") || latest=""
+            _report_version yazi "$current" "${latest:-unknown}"
+        else
+            # Stable asset name -> use latest/download direct URL (no API call).
+            yazi_url="https://github.com/sxyazi/yazi/releases/latest/download/yazi-${yazi_arch}.zip"
+            yazi_dest=$(_resolve_dest yazi ~/.local/bin/yazi)
+            ya_dest=$(_resolve_dest ya ~/.local/bin/ya)
+            yazi_tmp=$(mktemp -d)
+            _yazi_ok=true
+            if has curl; then curl -sfL "$yazi_url" -o "$yazi_tmp/yazi.zip" || _yazi_ok=false
+            else wget -qO "$yazi_tmp/yazi.zip" "$yazi_url" || _yazi_ok=false; fi
+            if $_yazi_ok; then
+                if has unzip; then unzip -qo "$yazi_tmp/yazi.zip" -d "$yazi_tmp" || _yazi_ok=false
+                elif has python3; then python3 -m zipfile -e "$yazi_tmp/yazi.zip" "$yazi_tmp" || _yazi_ok=false
+                else log_warn "yazi: no unzip or python3 to extract - skipping"; _yazi_ok=false; fi
+            fi
+            if $_yazi_ok; then
+                yazi_found=$(find "$yazi_tmp" -name yazi -type f | head -1)
+                [ -n "$yazi_found" ] && mv "$yazi_found" "$yazi_dest" && chmod +x "$yazi_dest"
+                ya_found=$(find "$yazi_tmp" -name ya -type f | head -1)
+                [ -n "$ya_found" ] && mv "$ya_found" "$ya_dest" && chmod +x "$ya_dest"
+                log_ok "yazi updated → $yazi_dest ($(_cmd_version "$yazi_dest" --version || echo '?'))"
+                _verify_dest yazi "$yazi_dest"
+            else
+                log_warn "yazi: download/extraction failed - skipping"
+            fi
+            rm -rf "$yazi_tmp"
+        fi
+    else
+        log_warn "yazi not installed - run install.sh first"
+    fi
+fi
 
 # ── uv ───────────────────────────────────────────────────────────────────────────
 # Custom: installs two binaries (uv + uvx) from a single tarball.
