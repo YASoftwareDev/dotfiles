@@ -15,6 +15,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   integration - `[[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh` no-ops and
   Ctrl+R falls back to plain zsh history search instead of the fzf popup.
 
+### Changed
+- Replaced **ranger** with **yazi** as the terminal file manager.
+  - `modules/base.sh`: removed `ranger` from the apt package list; added
+    `_install_yazi`, a GitHub-release installer (`sxyazi/yazi`, musl build) that
+    extracts the `.zip` (carrying both `yazi` and the `ya` CLI) via `unzip` with a
+    `python3 -m zipfile` fallback. Runs for the `minimal` and `workstation`
+    profiles (and no-sudo) since yazi is not packaged in apt.
+  - `modules/tools.sh`: `_link_ranger_config` -> `_link_yazi_config`
+    (symlinks `~/.config/yazi/{yazi.toml,keymap.toml,theme.toml}` when present).
+  - `zsh/.zshrc`: removed the `ranger` cd-on-exit alias; added the official yazi
+    `y` shell wrapper that cd's into the last visited directory on exit.
+  - `update.sh`: added `yazi` to `_KNOWN_TOOLS` and a custom update block
+    (zip archive, two binaries).
+  - Added `yazi/yazi.toml`; removed the `ranger/` config directory.
+  - `test.sh` and docs (`README.md`) updated accordingly.
+
 ## [1.6.9] - 2026-05-07
 
 ### Fixed

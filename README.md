@@ -246,7 +246,7 @@ cd ~/.dotfiles && ./update.sh
 ```
 
 `update.sh` upgrades: system packages (apt), oh-my-zsh, tmux plugins, zsh plugins,
-fzf, ripgrep, fd, shellcheck, zoxide, delta, eza, uv/uvx, ruff, neovim, cheat, xcape.
+fzf, ripgrep, fd, shellcheck, zoxide, delta, eza, yazi, uv/uvx, ruff, neovim, cheat, xcape.
 
 > **Note:** `update.sh` only upgrades tools that are already installed. If a new
 > version of the dotfiles adds a tool, re-run `install.sh` to install it:
@@ -285,7 +285,7 @@ cd ~/.dotfiles && ./update.sh --check
 │   ├── base.sh         # apt packages + fzf shell integration
 │   ├── zsh.sh          # oh-my-zsh, plugins, powerlevel10k, .zshrc symlink
 │   ├── tmux.sh         # tmux config symlinks + plugin cloning
-│   ├── tools.sh        # uv, ruff, cheat, ripgrep/ranger config symlinks
+│   ├── tools.sh        # uv, ruff, cheat, ripgrep/yazi config symlinks
 │   └── neovim.sh       # neovim binary install + nvim config symlink
 │
 ├── scripts/
@@ -309,8 +309,8 @@ cd ~/.dotfiles && ./update.sh --check
 │   ├── caps-remap.sh   # remapping script (single source of truth)
 │   ├── .xprofile       # symlinked to ~/.xprofile - calls caps-remap at X login
 │   └── .config/autostart/caps-remap.desktop  # GNOME autostart (re-fires after gnome-settings-daemon)
-└── ranger/
-    └── rc.conf ...       # individual files symlinked to ~/.config/ranger/
+└── yazi/
+    └── yazi.toml       # symlinked to ~/.config/yazi/yazi.toml
 ```
 
 ## Symlink map
@@ -324,12 +324,12 @@ cd ~/.dotfiles && ./update.sh --check
 | `git/.gitconfig` | `~/.gitconfig` |
 | `git/.gitattributes` | `~/.gitattributes` |
 | `ripgrep/rc` | `~/.config/ripgrep/rc` |
-| `ranger/rc.conf` etc. | `~/.config/ranger/rc.conf` etc. |
+| `yazi/yazi.toml` | `~/.config/yazi/yazi.toml` |
 | `x11/.xprofile` | `~/.xprofile` |
 | `x11/caps-remap.sh` | `~/.local/bin/caps-remap` |
 | `x11/.config/autostart/caps-remap.desktop` | `~/.config/autostart/caps-remap.desktop` |
 
-> **Note:** ranger config files are symlinked individually (not the directory) so ranger's runtime state files (bookmarks, history, tagged) are written to `~/.config/ranger/` and not tracked by git.
+> **Note:** yazi config files are symlinked individually (not the directory). yazi keeps runtime state in `~/.local/state/yazi/`, so the config dir stays clean and git-tracked.
 
 ## What's included
 
@@ -370,7 +370,7 @@ cd ~/.dotfiles && ./update.sh --check
 
 ### Other tools
 
-- **ranger** - terminal file manager (config symlinked individually)
+- **yazi** - blazing-fast terminal file manager (GitHub binary; config symlinked individually). Launch with `y` to cd into the last visited dir on exit.
 - **tig** - terminal git UI
 - **cheat** - command cheatsheets (`cheat <command>`)
 - **jq** - JSON processor
@@ -447,7 +447,7 @@ tree        # eza --tree --level=3 (directory tree)
 fd          # fd -I -L (include gitignored + follow symlinks)
 rgm         # rg match-only, no filename/heading (good for scripting)
 stats       # sort | uniq -c | sort -n (frequency count from pipe)
-ranger      # cd to last visited dir on exit
+y           # yazi file manager; cd to last visited dir on exit
 serve       # python3 -m http.server (serve current dir)
 mkcd <dir>  # mkdir -p + cd
 fgl         # fzf git log with git show preview

@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# Extra tools: uv, ruff, cheat, ripgrep config, ranger config
+# Extra tools: uv, ruff, cheat, ripgrep config, yazi config
 # Most tools are now installed via apt in base.sh - this handles:
 #   - uv (Python package manager / venv tool, not in apt)
 #   - ruff (Python linter/formatter, installed via uv tool)
 #   - cheat (not in standard apt)
-#   - Config file symlinks for ripgrep and ranger
+#   - Config file symlinks for ripgrep and yazi
 
 install_tools() {
     _install_uv
     _install_ruff
     _install_cheat
     _link_ripgrep_config
-    _link_ranger_config
+    _link_yazi_config
 }
 
 _install_ruff() {
@@ -131,14 +131,16 @@ _link_ripgrep_config() {
     log_ok "ripgrep config linked"
 }
 
-_link_ranger_config() {
-    log_step "ranger config"
-    # Symlink individual files, not the whole directory.
-    # Symlinking the directory would cause ranger to write runtime state
-    # (bookmarks, history, tagged) into the git-tracked dotfiles repo.
-    mkdir -p ~/.config/ranger
-    for f in rc.conf rifle.conf commands.py commands_full.py scope.sh; do
-        [ -f "${DOTFILES_DIR}/ranger/$f" ] && symlink "${DOTFILES_DIR}/ranger/$f" ~/.config/ranger/"$f"
+_link_yazi_config() {
+    log_step "yazi config"
+    # Symlink individual files, not the whole directory. yazi keeps runtime state
+    # in ~/.local/state/yazi/ (not the config dir), but linking files individually
+    # keeps the layout consistent with the rest of the repo and future-proof
+    # against any state files yazi might write into ~/.config/yazi later.
+    mkdir -p ~/.config/yazi
+    local f
+    for f in yazi.toml keymap.toml theme.toml; do
+        [ -f "${DOTFILES_DIR}/yazi/$f" ] && symlink "${DOTFILES_DIR}/yazi/$f" ~/.config/yazi/"$f"
     done
-    log_ok "ranger config linked"
+    log_ok "yazi config linked"
 }

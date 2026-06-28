@@ -191,7 +191,7 @@ check_run "zoxide add + query" \
 # ── 11. Profile-specific: minimal ─────────────────────────────────────────────
 if [ "$PROFILE" = "minimal" ] || [ "$PROFILE" = "workstation" ]; then
     _hdr "Minimal tools"
-    check_cmd ranger
+    check_cmd yazi
     check_cmd tig
     check_cmd parallel
     check_cmd eza
@@ -208,9 +208,7 @@ if [ "$PROFILE" = "workstation" ]; then
     _hdr "Workstation config symlinks"
     check_link ~/.config/nvim
     check_link ~/.config/ripgrep/rc
-    check_link ~/.config/ranger/rc.conf
-    check_link ~/.config/ranger/rifle.conf
-    check_link ~/.config/ranger/scope.sh
+    check_link ~/.config/yazi/yazi.toml
 
     _hdr "Workstation tmux plugins"
     check_dir ~/.tmux/plugins/tmux-fzf  "tmux-fzf"
@@ -243,6 +241,7 @@ if [ "$PROFILE" = "nosudo" ]; then
     check_local_bin zoxide "zoxide"
     check_local_bin delta  "git-delta"
     check_local_bin eza    "eza"
+    check_local_bin yazi   "yazi"
 
     _hdr "No-sudo: sudo availability"
     # nosudo-auto:   sudo binary absent -> detect_sudo() auto-detected CAN_SUDO=false
@@ -277,6 +276,9 @@ if [ "$PROFILE" = "nosudo" ]; then
     fi
     if command -v delta &>/dev/null; then
         check_run "delta --version runs" delta --version
+    fi
+    if command -v yazi &>/dev/null; then
+        check_run "yazi --version runs" yazi --version
     fi
 fi
 
