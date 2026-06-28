@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-06-27
+
 ### Fixed
 - `modules/base.sh`, `update.sh`: regenerate `~/.fzf.zsh` when missing on
   re-runs. Previously `_install_fzf` took the "already installed" branch
@@ -30,6 +32,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     (zip archive, two binaries).
   - Added `yazi/yazi.toml`; removed the `ranger/` config directory.
   - `test.sh` and docs (`README.md`, `CLAUDE.md`) updated accordingly.
+
+### Added
+- Automatic test-enforcement gate for code changes: a project Claude Code Stop
+  hook (`.claude/settings.json` + `.claude/hooks/verify-on-stop.sh`) runs
+  `bash -n`, `zsh -n`, and baseline-compared `shellcheck` on changed tracked
+  scripts and blocks turn completion on a *new* regression (pre-existing warnings
+  never trap unrelated edits); bounded per-session loop guard; fails open.
+  `CLAUDE.md` gains an enforced "Testing & verification policy" section covering
+  the functional suite (`test.sh` in fresh `ci-local.sh` containers) and the
+  GitHub API rate-limit caveat for local nosudo matrix runs.
 
 ## [1.6.9] - 2026-05-07
 
