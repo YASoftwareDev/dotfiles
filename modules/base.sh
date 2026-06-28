@@ -13,7 +13,7 @@ install_base() {
             locales
             git curl wget
             zsh tmux neovim
-            ranger jq
+            jq
             man-db gnupg
             python3 python3-venv
             ripgrep fd-find tig
@@ -50,6 +50,7 @@ install_base() {
     _install_zoxide
     _install_delta
     _install_eza
+    _install_yazi
 
     if ! $CAN_SUDO; then
         log_warn "Binaries installed to ~/.local/bin — ensure it is on your PATH:"
@@ -302,6 +303,75 @@ _install_eza() {
             log_warn "eza: download failed — skipping"
         fi
     fi
+}
+
+# yazi: not in apt — always a GitHub binary release. Ships a .zip (not a tarball)
+# containing both the `yazi` TUI and its `ya` CLI companion, so it needs a custom
+# installer rather than _download_tar_bin. musl build → runs on any glibc version.
+_install_yazi() {
+    log_step "yazi"
+    if has yazi; then
+        log_ok "yazi already installed — skipping"
+        return
+    fi
+
+    local arch; arch=$(uname -m)
+    local yazi_arch
+    case "$arch" in
+        x86_64)  yazi_arch="x86_64-unknown-linux-musl"  ;;
+        aarch64) yazi_arch="aarch64-unknown-linux-musl" ;;
+        *)
+            log_warn "yazi: unsupported arch $arch — skipping"
+            return
+            ;;
+    esac
+
+    # yazi asset names carry no version (e.g. yazi-x86_64-unknown-linux-musl.zip),
+    # so the latest/download URL is stable — no GitHub API call needed (avoids
+    # rate limits), same approach as uv and cheat.
+    local url="https://github.com/sxyazi/yazi/releases/latest/download/yazi-${yazi_arch}.zip"
+
+    log_info "yazi: installing latest → ~/.local/bin/{yazi,ya}"
+    mkdir -p ~/.local/bin
+    local tmp
+    tmp=$(mktemp -d)
+    # shellcheck disable=SC2064
+    trap "rm -rf '$tmp'" RETURN
+
+    local zip="$tmp/yazi.zip"
+    local download_ok=true
+    if has curl; then curl -sfL "$url" -o "$zip" || download_ok=false
+    else wget -qO "$zip" "$url" || download_ok=false; fi
+    if ! $download_ok; then
+        log_warn "yazi: download failed — skipping (network issue?)"
+        return
+    fi
+
+    # Extract — prefer unzip, fall back to python3's zipfile module (python3 is a
+    # base dependency, so this works even where unzip is absent, e.g. no-sudo).
+    if has unzip; then
+        unzip -qo "$zip" -d "$tmp" || { log_warn "yazi: unzip failed — skipping"; return; }
+    elif has python3; then
+        python3 -m zipfile -e "$zip" "$tmp" || { log_warn "yazi: extraction failed — skipping"; return; }
+    else
+        log_warn "yazi: no unzip or python3 available to extract archive — skipping"
+        return
+    fi
+
+    local b found
+    for b in yazi ya; do
+        found=$(find "$tmp" -name "$b" -type f | head -1)
+        if [ -n "$found" ]; then
+            mv "$found" ~/.local/bin/"$b"
+            chmod +x ~/.local/bin/"$b"
+        fi
+    done
+
+    if [ ! -x ~/.local/bin/yazi ]; then
+        log_warn "yazi: binary not found in archive — archive structure may have changed"
+        return
+    fi
+    log_ok "yazi installed → ~/.local/bin/yazi ($(~/.local/bin/yazi --version 2>/dev/null | head -1))"
 }
 
 # ripgrep: GitHub tarball — binary is 'rg'

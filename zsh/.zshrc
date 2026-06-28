@@ -96,8 +96,16 @@ alias rgmw='rg -No -L --no-filename --no-heading -w'
 # quick frequency count: cmd | stats
 alias stats='sort --parallel=6 | uniq -c | sort -n'
 
-# ranger: return to last visited directory on exit (graceful fallback if ranger crashes)
-alias ranger='ranger --choosedir="$HOME/.rangerdir"; cd "$(cat "$HOME/.rangerdir" 2>/dev/null || echo .)"'
+# yazi: `y` launches yazi and cd's to the last visited directory on exit.
+# Official wrapper — https://yazi-rs.github.io/docs/quick-start/#shell-wrapper
+y() {
+    local tmp cwd
+    tmp="$(mktemp -t "yazi-cwd.XXXXXX")"
+    yazi "$@" --cwd-file="$tmp"
+    IFS= read -r -- cwd < "$tmp"
+    [ -n "$cwd" ] && [ "$cwd" != "$PWD" ] && builtin cd -- "$cwd"
+    rm -f -- "$tmp"
+}
 
 # serve current directory over HTTP
 alias serve='python3 -m http.server'
