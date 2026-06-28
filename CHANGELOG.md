@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-06-28
+
+### Fixed
+- `lib/utils.sh` (`detect_sudo`): auto-detect when the user is **not in the sudo
+  group / sudoers**. Previously, when a `sudo` binary was present but the
+  passwordless probe failed, `CAN_SUDO=true` was set optimistically — because
+  `sudo -n true` reports `"a password is required"` to non-sudoers too (sudo
+  authenticates before authorising a command), so a non-sudoer was
+  indistinguishable from a real sudoer needing a password and was misclassified as
+  `sudo_password`. The install would then attempt `sudo apt` and fail. Detection
+  now runs `sudo -n -v` (validate, non-interactive, `LC_ALL=C`): a genuine sudoer
+  still gets `sudo_password`, while a non-sudoer (`"… may not run sudo"`) is
+  correctly set to `CAN_SUDO=false` / `nosudo`, so tools are fetched to
+  `~/.local/bin` exactly as in no-sudo mode.
+
+### Added
+- `Dockerfile.nosudo`, `ci-local.sh`, `.github/workflows/install.yml`: new
+  **nosudo-nonsudoer** test variant (sudo binary present, user not in sudoers, no
+  `NOSUDO` override) — the scenario the fix above addresses, which previously had
+  zero regression coverage. `Dockerfile.nosudo` gains an `INSTALL_SUDO` build arg
+  that installs the sudo binary without granting sudoers membership. CI matrix
+  grows from 15 to 18 cells (9 regular + 9 nosudo).
+
+### Changed
+- `test.sh` (nosudo profile): the sudo-availability line now reports three
+  accurate states — binary absent / usable-but-overridden / present-but-
+  unauthorised — instead of a binary available/not-available message.
+
 ## [1.7.0] - 2026-06-27
 
 ### Fixed

@@ -24,7 +24,9 @@ apt_install() {
 }
 
 # Check if we can use sudo (sets globals SUDO, CAN_SUDO, SUDO_STATUS).
-# Pure probe — no output, no sudo -v, never prompts interactively.
+# Pure probe — no output; uses only non-interactive `sudo -n` forms so it
+# never prompts. A non-interactive `sudo -n -v` distinguishes a real sudoer
+# who needs a password from a user who is not in sudoers at all.
 # SUDO_STATUS values: root | sudo_passwordless | sudo_password | nosudo
 detect_sudo() {
     if [ -n "${NOSUDO:-}" ]; then
@@ -43,12 +45,31 @@ detect_sudo() {
         CAN_SUDO=true
         SUDO_STATUS=sudo_passwordless
     elif command -v sudo &>/dev/null; then
-        # sudo binary found but -n probe failed. Cannot distinguish "needs password"
-        # from "not in sudoers" without prompting. CAN_SUDO=true is set optimistically;
-        # the first $SUDO call will fail loudly if the user is not actually in sudoers.
-        SUDO="sudo"
-        CAN_SUDO=true
-        SUDO_STATUS=sudo_password
+        # sudo binary found but the passwordless probe failed. `sudo -n true`
+        # cannot tell "needs password" from "not in sudoers": sudo authenticates
+        # before authorising a command, so it answers "a password is required" to
+        # non-sudoers too. `sudo -n -v` (validate) instead probes *authorisation*
+        # and answers "user X may not run sudo" when the user is not in sudoers.
+        # LC_ALL=C pins the wording to English; -n keeps it non-interactive (never
+        # prompts). Match the positive "password" token with a pure-bash glob (no
+        # pipe, no subprocess) — failing safe: an unrecognised message yields
+        # nosudo, never a false sudo_password that would make `sudo apt` fail.
+        local probe
+        probe=$(LC_ALL=C sudo -n -v 2>&1 || true)
+        case "$probe" in
+            *[Pp]assword*)
+                # Authorised but a password is required (apt will prompt for it).
+                SUDO="sudo"
+                CAN_SUDO=true
+                SUDO_STATUS=sudo_password
+                ;;
+            *)
+                # Not in sudoers — treat exactly like having no sudo at all.
+                SUDO=""
+                CAN_SUDO=false
+                SUDO_STATUS=nosudo
+                ;;
+        esac
     else
         SUDO=""
         CAN_SUDO=false

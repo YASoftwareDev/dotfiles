@@ -1,16 +1,23 @@
 # Dockerfile.nosudo
 #
-# Covers two user-local install scenarios (both land all binaries in ~/.local/bin):
+# Covers three user-local install scenarios (all land binaries in ~/.local/bin):
 #
-#   nosudo-auto   — user has NO sudo; detect_sudo() auto-detects CAN_SUDO=false.
-#                   Ubuntu base images ship without sudo, so no extra setup needed.
-#                   Build args: GRANT_SUDO=false (default), NOSUDO_INSTALL="" (default)
+#   nosudo-auto      — user has NO sudo; detect_sudo() auto-detects CAN_SUDO=false.
+#                      Ubuntu base images ship without sudo, so no extra setup needed.
+#                      Build args: GRANT_SUDO=false (default), NOSUDO_INSTALL="" (default)
 #
-#   nosudo-forced — user HAS passwordless sudo but NOSUDO=1 overrides it.
-#                   Tests that the explicit override is respected even when sudo works.
-#                   Build args: GRANT_SUDO=true, NOSUDO_INSTALL=1
+#   nosudo-forced    — user HAS passwordless sudo but NOSUDO=1 overrides it.
+#                      Tests that the explicit override is respected even when sudo works.
+#                      Build args: GRANT_SUDO=true, NOSUDO_INSTALL=1
 #
-# Used automatically by ci-local.sh (runs both variants) or directly:
+#   nosudo-nonsudoer — sudo binary IS installed but the user is NOT in sudoers, and
+#                      NO override is set. Tests that detect_sudo() auto-detects
+#                      CAN_SUDO=false via `sudo -n -v` instead of optimistically
+#                      assuming sudo works. This is the scenario the older code
+#                      misclassified as sudo_password.
+#                      Build args: INSTALL_SUDO=true, GRANT_SUDO=false, NOSUDO_INSTALL=""
+#
+# Used automatically by ci-local.sh (runs all variants) or directly:
 #
 #   # nosudo-auto (default)
 #   docker build --build-arg UBUNTU=24.04 \
@@ -41,7 +48,13 @@ ENV POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=true
 #                    sudo works, but NOSUDO=1 overrides below
 ARG GRANT_SUDO=false
 
-# NOSUDO_INSTALL="" : no override — detect_sudo() decides (nosudo-auto)
+# INSTALL_SUDO=false : do not install the sudo binary unless GRANT_SUDO=true
+# INSTALL_SUDO=true  : install the sudo binary WITHOUT adding the user to sudoers
+#                      (nosudo-nonsudoer) — lets detect_sudo() face a present-but-
+#                      unauthorised sudo. Decoupled from GRANT_SUDO on purpose.
+ARG INSTALL_SUDO=false
+
+# NOSUDO_INSTALL="" : no override — detect_sudo() decides (nosudo-auto / -nonsudoer)
 # NOSUDO_INSTALL=1  : NOSUDO=1 passed to installer — forces user-local (nosudo-forced)
 ARG NOSUDO_INSTALL=
 
@@ -51,16 +64,20 @@ RUN apt-get -yq update && \
         apt-utils git curl wget ca-certificates zsh tmux python3 && \
     rm -rf /var/lib/apt/lists/*
 
-# ── Step 2b: Optionally install sudo (nosudo-forced only) ─────────────────────
+# ── Step 2b: Optionally install sudo ──────────────────────────────────────────
 # nosudo-auto intentionally omits the sudo binary so detect_sudo() auto-detects.
 # nosudo-forced needs a working sudo so the NOSUDO=1 override is meaningful.
-RUN if [ "${GRANT_SUDO}" = "true" ]; then \
+# nosudo-nonsudoer installs sudo (INSTALL_SUDO=true) but withholds sudoers
+# membership below, so detect_sudo() must auto-detect CAN_SUDO=false.
+RUN if [ "${GRANT_SUDO}" = "true" ] || [ "${INSTALL_SUDO}" = "true" ]; then \
         apt-get -yq update && \
         apt-get -yq install --no-install-recommends sudo && \
         rm -rf /var/lib/apt/lists/*; \
     fi
 
 # ── Step 3: Create non-root user; conditionally grant passwordless sudo ───────
+# Only GRANT_SUDO adds the sudoers entry. nosudo-nonsudoer deliberately skips it
+# so the user has a sudo binary it is not authorised to use.
 RUN useradd -m -s /bin/bash user && \
     if [ "${GRANT_SUDO}" = "true" ]; then \
         echo 'user ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers; \

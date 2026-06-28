@@ -43,12 +43,12 @@ only a trustworthy green/red signal inside a fresh container — which is what
   ```
 
 **Known limit — GitHub API rate limit.** Running the *full* local nosudo matrix
-(6 cells) unauthenticated trips GitHub's 60-req/hr API cap: API-based installers
+(9 cells) unauthenticated trips GitHub's 60-req/hr API cap: API-based installers
 (rg, fd, jq, zoxide, delta, eza) then report `could not find release URL — skipping`
 and `test.sh` fails with missing binaries — a **false** failure, not a real one.
 yazi is immune (it uses no-API `releases/latest/download` URLs). Locally, prefer
 `--skip-nosudo` or a single nosudo variant, or run with authenticated GitHub
-access. The GitHub Actions CI is authenticated and remains the full 15-cell gate —
+access. The GitHub Actions CI is authenticated and remains the full 18-cell gate —
 **never weaken or remove it.**
 
 ---
@@ -64,7 +64,7 @@ get.sh            curl-pipe bootstrap (clones repo → runs install.sh);
                   on existing clones auto-stashes local modifications, pulls,
                   then restores the stash — only aborts on stash-pop conflicts
 Dockerfile        bakes docker profile into an image at build time
-Dockerfile.nosudo parameterized no-sudo test image (two variants: forced/auto)
+Dockerfile.nosudo parameterized no-sudo test image (three variants: forced/auto/nonsudoer)
 lib/utils.sh      shared logging, sudo detection, GitHub helpers, binary utils
 modules/
   base.sh         apt packages + per-tool installers (fzf, zoxide, delta, eza, yazi, …)
@@ -177,6 +177,15 @@ SUDO=""/"sudo"          # prefix for privileged commands
 CAN_SUDO=true/false     # boolean for branching
 SUDO_STATUS=root|sudo_passwordless|sudo_password|nosudo
 ```
+
+Detection avoids a subtle trap: `sudo -n true` answers *"a password is required"*
+to **non-sudoers too** (sudo authenticates before authorising a command), so it
+cannot distinguish "needs password" from "not in sudoers". When the passwordless
+probe fails but a `sudo` binary exists, `detect_sudo` runs `sudo -n -v` (validate,
+non-interactive, `LC_ALL=C`): a real sudoer gets *"a password is required"* →
+`sudo_password`; a non-sudoer gets *"… may not run sudo"* → `nosudo` /
+`CAN_SUDO=false`. This is what lets a user outside the sudo group be auto-detected
+rather than optimistically assumed to have sudo.
 
 Patterns:
 ```bash
@@ -435,15 +444,22 @@ Profile-specific checks:
 - `minimal` — yazi, tig, parallel, eza, shellcheck (yazi is a GitHub binary; rest via apt)
 - `nosudo` — strict `~/.local/bin` presence check for all 8 GitHub binaries
   (rg, fd, jq, fzf, zoxide, delta, eza, yazi); sudo availability info (not a
-  failure condition — nosudo-forced has sudo available); functional smoke tests
-  for each. (yazi is installed in no-sudo too — unlike the old apt-only ranger,
-  which was unavailable without sudo.)
+  failure condition — reports binary-absent / usable-but-overridden / present-
+  but-unauthorised across the three variants); functional smoke tests for each.
+  (yazi is installed in no-sudo too — unlike the old apt-only ranger, which was
+  unavailable without sudo.)
 
-Two nosudo scenarios are validated by `Dockerfile.nosudo`:
+Three nosudo scenarios are validated by `Dockerfile.nosudo`:
 - **nosudo-auto** — no `sudo` binary; `detect_sudo()` auto-detects `CAN_SUDO=false`
   (`GRANT_SUDO=false NOSUDO_INSTALL=""` build args)
 - **nosudo-forced** — user has passwordless `sudo` but `NOSUDO=1` overrides it
   (`GRANT_SUDO=true NOSUDO_INSTALL=1` build args)
+- **nosudo-nonsudoer** — `sudo` binary present but the user is **not in sudoers**
+  and no override is set; `detect_sudo()` must auto-detect `CAN_SUDO=false` via the
+  `sudo -n -v` authorisation probe (`INSTALL_SUDO=true GRANT_SUDO=false
+  NOSUDO_INSTALL=""` build args). Guards the bug where a non-sudoer was
+  misclassified as `sudo_password` because `sudo -n true` says "a password is
+  required" to non-sudoers too.
 
 ---
 
@@ -454,14 +470,16 @@ Two nosudo scenarios are validated by `Dockerfile.nosudo`:
 - testuser with passwordless sudo; curl auth via `~/.curlrc`
 - Flow: install → idempotency re-run → test → update → re-test
 
-**Job `install-nosudo`** (6 combinations — 3 Ubuntu × 2 variants):
-- Ubuntu 20.04 / 22.04 / 24.04 × variant `auto` / `forced`
+**Job `install-nosudo`** (9 combinations — 3 Ubuntu × 3 variants):
+- Ubuntu 20.04 / 22.04 / 24.04 × variant `auto` / `forced` / `nonsudoer`
 - Root pre-installs: git, curl, wget, ca-certificates, zsh, tmux, python3
 - `auto`: no `sudo` binary installed; `detect_sudo()` auto-detects `CAN_SUDO=false`
 - `forced`: passwordless `sudo` installed, but `NOSUDO=1` overrides it
+- `nonsudoer`: `sudo` binary installed but the user is **not** added to sudoers and
+  no override is set; `detect_sudo()` must auto-detect `CAN_SUDO=false`
 - Flow: install → test → idempotency re-run → update → re-test
 
-**Total: 15 CI combinations** (9 regular + 6 nosudo)
+**Total: 18 CI combinations** (9 regular + 9 nosudo)
 
 ---
 
