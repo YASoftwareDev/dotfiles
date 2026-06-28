@@ -20,10 +20,12 @@ DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ALL_UBUNTU=(20.04 22.04 24.04)
 ALL_PROFILES=(docker minimal workstation)
 # nosudo variants use Dockerfile.nosudo with a non-root user.
-# forced: user HAS sudo but NOSUDO=1 overrides it  (tests the explicit override)
-# auto:   user has NO sudo binary; detect_sudo() auto-detects CAN_SUDO=false
+# forced:    user HAS sudo but NOSUDO=1 overrides it  (tests the explicit override)
+# auto:      user has NO sudo binary; detect_sudo() auto-detects CAN_SUDO=false
+# nonsudoer: sudo binary present but user NOT in sudoers; detect_sudo() must
+#            auto-detect CAN_SUDO=false via `sudo -n -v` (no override set)
 ALL_NOSUDO_UBUNTU=(20.04 22.04 24.04)
-ALL_NOSUDO_VARIANTS=(forced auto)
+ALL_NOSUDO_VARIANTS=(forced auto nonsudoer)
 FILTER_UBUNTU=()
 FILTER_PROFILES=()
 NO_CACHE=false
@@ -54,18 +56,20 @@ Options:
 
 Valid Ubuntu versions : ${ALL_UBUNTU[*]}
 Valid profiles        : ${ALL_PROFILES[*]}
-Valid nosudo variants : ${ALL_NOSUDO_VARIANTS[*]}  (or "nosudo" to run both)
+Valid nosudo variants : ${ALL_NOSUDO_VARIANTS[*]}  (or "nosudo" to run all)
 
-  nosudo-forced  user HAS sudo but NOSUDO=1 overrides it
-  nosudo-auto    user has NO sudo binary; detect_sudo() auto-detects
+  nosudo-forced     user HAS sudo but NOSUDO=1 overrides it
+  nosudo-auto       user has NO sudo binary; detect_sudo() auto-detects
+  nosudo-nonsudoer  sudo binary present but user NOT in sudoers; auto-detects
 
 Examples:
   bash ci-local.sh
   bash ci-local.sh --ubuntu 24.04 --profile minimal
   bash ci-local.sh --ubuntu 22.04 --ubuntu 24.04 --profile docker
-  bash ci-local.sh --ubuntu 24.04 --profile nosudo          # both variants
-  bash ci-local.sh --ubuntu 24.04 --profile nosudo-forced   # one variant
-  bash ci-local.sh --ubuntu 24.04 --profile nosudo-auto     # one variant
+  bash ci-local.sh --ubuntu 24.04 --profile nosudo             # all variants
+  bash ci-local.sh --ubuntu 24.04 --profile nosudo-forced      # one variant
+  bash ci-local.sh --ubuntu 24.04 --profile nosudo-auto        # one variant
+  bash ci-local.sh --ubuntu 24.04 --profile nosudo-nonsudoer   # one variant
   bash ci-local.sh --skip-nosudo
 EOF
 }
@@ -89,9 +93,9 @@ while [[ $# -gt 0 ]]; do
         --profile)
             case "$2" in
                 nosudo)
-                    # "nosudo" is shorthand for both variants
+                    # "nosudo" is shorthand for all variants
                     FILTER_NOSUDO=true; shift 2 ;;
-                nosudo-forced|nosudo-auto)
+                nosudo-forced|nosudo-auto|nosudo-nonsudoer)
                     FILTER_NOSUDO=true
                     FILTER_NOSUDO_VARIANTS+=("${2#nosudo-}"); shift 2 ;;
                 *)
@@ -219,7 +223,9 @@ run_combination() {
 }
 
 # ── No-sudo runner (uses Dockerfile.nosudo, non-root user) ───────────────────
-# variant: "forced" (has sudo, NOSUDO=1 override) | "auto" (no sudo binary)
+# variant: "forced"    (has sudo, NOSUDO=1 override)
+#        | "auto"      (no sudo binary)
+#        | "nonsudoer" (sudo binary present, user not in sudoers, no override)
 # Returns: 0=pass, 1=fail
 _build_nosudo() {
     local ubuntu="$1" variant="$2" tag logfile
@@ -228,8 +234,9 @@ _build_nosudo() {
     local -a cache_flag=() extra_args=()
     $NO_CACHE && cache_flag=(--no-cache)
     case "$variant" in
-        forced) extra_args=(--build-arg "GRANT_SUDO=true" --build-arg "NOSUDO_INSTALL=1") ;;
-        auto)   extra_args=(--build-arg "GRANT_SUDO=false" --build-arg "NOSUDO_INSTALL=") ;;
+        forced)    extra_args=(--build-arg "GRANT_SUDO=true"  --build-arg "NOSUDO_INSTALL=1") ;;
+        auto)      extra_args=(--build-arg "GRANT_SUDO=false" --build-arg "NOSUDO_INSTALL=") ;;
+        nonsudoer) extra_args=(--build-arg "GRANT_SUDO=false" --build-arg "INSTALL_SUDO=true" --build-arg "NOSUDO_INSTALL=") ;;
     esac
     echo -e "  ${BLUE}→${NC} building ${BOLD}${tag}${NC} (Dockerfile.nosudo, variant=${variant}) ..."
     if docker build \
@@ -254,11 +261,13 @@ run_nosudo() {
     tag=$(_tag "$ubuntu" "nosudo-${variant}")
     logfile="${LOG_DIR}/${ubuntu}-nosudo-${variant}.log"
 
-    # For idempotency re-run: nosudo-forced needs NOSUDO=1; nosudo-auto relies on
-    # the user genuinely having no sudo, so no flag needed.
+    # For idempotency re-run: nosudo-forced needs NOSUDO=1; nosudo-auto and
+    # nosudo-nonsudoer rely on detect_sudo() reaching CAN_SUDO=false on its own
+    # (no sudo binary / not in sudoers respectively), so no flag is needed.
     case "$variant" in
-        forced) install_cmd="NOSUDO=1 bash install.sh minimal" ;;
-        auto)   install_cmd="bash install.sh minimal" ;;
+        forced)    install_cmd="NOSUDO=1 bash install.sh minimal" ;;
+        auto)      install_cmd="bash install.sh minimal" ;;
+        nonsudoer) install_cmd="bash install.sh minimal" ;;
     esac
 
     mkdir -p "$LOG_DIR"

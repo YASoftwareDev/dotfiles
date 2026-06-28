@@ -80,8 +80,9 @@ jobs:
       matrix:
         ubuntu: ["20.04", "22.04", "24.04"]
         variant:
-          - auto    # user has NO sudo binary; detect_sudo() auto-detects CAN_SUDO=false
-          - forced  # user HAS passwordless sudo but NOSUDO=1 overrides it
+          - auto       # user has NO sudo binary; detect_sudo() auto-detects CAN_SUDO=false
+          - forced     # user HAS passwordless sudo but NOSUDO=1 overrides it
+          - nonsudoer  # sudo binary present but user NOT in sudoers; auto-detects CAN_SUDO=false
 
     steps:
       - name: Bootstrap prerequisites (as root - mirrors a shared host)
@@ -90,12 +91,17 @@ jobs:
           apt-get -yq update
           apt-get -yq install apt-utils git curl wget ca-certificates zsh tmux python3
 
-      - name: Install sudo and grant to user (nosudo-forced only)
-        if: matrix.variant == 'forced'
+      - name: Install sudo binary (forced + nonsudoer)
+        if: matrix.variant == 'forced' || matrix.variant == 'nonsudoer'
         run: |
           export DEBIAN_FRONTEND=noninteractive
           apt-get -yq install --no-install-recommends sudo
-          echo 'user ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+      - name: Grant passwordless sudo to user (forced only)
+        # nonsudoer deliberately leaves the user OUT of sudoers so detect_sudo()
+        # must auto-detect CAN_SUDO=false against a present-but-unauthorised sudo.
+        if: matrix.variant == 'forced'
+        run: echo 'user ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
       - name: Create non-root user
         run: useradd -m -s /bin/bash user
