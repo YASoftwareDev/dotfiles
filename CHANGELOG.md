@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-06-27
+
 ### Fixed
 - `modules/base.sh`, `update.sh`: regenerate `~/.fzf.zsh` when missing on
   re-runs. Previously `_install_fzf` took the "already installed" branch
