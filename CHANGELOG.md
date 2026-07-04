@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-07-04
+
 ### Added
 - `nvim/init.lua`: in-buffer markdown rendering via
   `MeanderingProgrammer/render-markdown.nvim` (lazy-loaded on `ft=markdown`).
