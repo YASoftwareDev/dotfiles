@@ -4,7 +4,7 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
 fi
 
 # ── PATH ──────────────────────────────────────────────────────────────────────
-export PATH="$HOME/.local/bin:$HOME/bin:/usr/local/bin:$PATH"
+export PATH="$HOME/go/bin:$HOME/.local/bin:$HOME/bin:/usr/local/bin:$PATH"
 
 # ── History ───────────────────────────────────────────────────────────────────
 HISTSIZE=1000000
