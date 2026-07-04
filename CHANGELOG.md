@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `nvim/init.lua`: native word-level inline diff - `diffopt` gains `inline:word`,
+  `algorithm:histogram` and `linematch:60` (nvim ≥ 0.11) for cleaner, per-word
+  diff highlighting. Adds `]c`/`[c` next/prev-change hunk motion inside diff
+  windows via buffer-local maps that shadow mini.bracketed's comment-navigation
+  only while `&diff` is on. Map sync is driven by `DiffUpdated` (fires on in-place
+  `:diffthis`/`:diffoff`, which `OptionSet` does not) plus `WinEnter`/`BufWinEnter`
+  (for `nvim -d` startup and window switches).
+
+### Removed
+- `nvim/init.lua`: `rickhowe/diffchar.vim` plugin - superseded by the native
+  `inline:word` diff highlighting above.
+
 ## [1.7.1] - 2026-06-28
 
 ### Fixed
