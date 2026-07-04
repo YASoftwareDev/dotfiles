@@ -31,9 +31,9 @@ require('lazy').setup({
   -- ── Colorschemes ─────────────────────────────────────────────────────────
   -- Switch live with <leader>cs (Telescope picker).
   -- To change default: update the colorscheme name in the ACTIVE block below.
-  { 'rebelot/kanagawa.nvim', event = 'VeryLazy' },
+  { 'rebelot/kanagawa.nvim',    event = 'VeryLazy' },
   {
-    'bluz71/vim-nightfly-colors',    -- ACTIVE
+    'bluz71/vim-nightfly-colors', -- ACTIVE
     name     = 'nightfly',
     lazy     = false,
     priority = 1000,
@@ -43,33 +43,40 @@ require('lazy').setup({
   },
   -- Installed (available via <leader>cs - all load at VeryLazy):
   -- ── dark/warm ───────────────────────────────────────────────────────────
-  { 'jacoborus/tender.vim',           event = 'VeryLazy' },                                    -- warm amber, vimscript classic
-  { 'ellisonleao/gruvbox.nvim',       event = 'VeryLazy' },                                    -- earthy retro
-  { 'sainnhe/gruvbox-material',       event = 'VeryLazy' },                                    -- softer gruvbox variant
-  { 'sainnhe/everforest',             event = 'VeryLazy' },                                    -- muted greens
-  { 'ribru17/bamboo.nvim',            event = 'VeryLazy' },                                    -- green-tinted, easy on eyes
+  { 'jacoborus/tender.vim',     event = 'VeryLazy' }, -- warm amber, vimscript classic
+  { 'ellisonleao/gruvbox.nvim', event = 'VeryLazy' }, -- earthy retro
+  { 'sainnhe/gruvbox-material', event = 'VeryLazy' }, -- softer gruvbox variant
+  { 'sainnhe/everforest',       event = 'VeryLazy' }, -- muted greens
+  { 'ribru17/bamboo.nvim',      event = 'VeryLazy' }, -- green-tinted, easy on eyes
   -- ── dark/cool ───────────────────────────────────────────────────────────
-  { 'catppuccin/nvim',                name = 'catppuccin', event = 'VeryLazy',
-    opts = { flavour = 'mocha' } },                                                            -- mocha/macchiato/frappe
-  { 'rose-pine/neovim',               name = 'rose-pine',   event = 'VeryLazy' },             -- rose-pine/moon
-  { 'folke/tokyonight.nvim',          event = 'VeryLazy',   opts = { style = 'night' } },     -- night/storm/moon
-  { 'EdenEast/nightfox.nvim',         event = 'VeryLazy' },                                    -- nightfox/duskfox/nordfox/terafox
-  { 'rmehri01/onenord.nvim',          event = 'VeryLazy' },                                    -- Nord palette, warmer
-  { 'shatur/neovim-ayu',              event = 'VeryLazy' },                                    -- ayu-dark/mirage
-  { 'oxfist/night-owl.nvim',          event = 'VeryLazy' },                                    -- Sarah Drasner's night owl
+  {
+    'catppuccin/nvim',
+    name = 'catppuccin',
+    event = 'VeryLazy',
+    opts = { flavour = 'mocha' }
+  },                                                                                   -- mocha/macchiato/frappe
+  { 'rose-pine/neovim',              name = 'rose-pine', event = 'VeryLazy' },         -- rose-pine/moon
+  { 'folke/tokyonight.nvim',         event = 'VeryLazy', opts = { style = 'night' } }, -- night/storm/moon
+  { 'EdenEast/nightfox.nvim',        event = 'VeryLazy' },                             -- nightfox/duskfox/nordfox/terafox
+  { 'rmehri01/onenord.nvim',         event = 'VeryLazy' },                             -- Nord palette, warmer
+  { 'shatur/neovim-ayu',             event = 'VeryLazy' },                             -- ayu-dark/mirage
+  { 'oxfist/night-owl.nvim',         event = 'VeryLazy' },                             -- Sarah Drasner's night owl
   -- ── OneDark family ──────────────────────────────────────────────────────
-  { 'navarasu/onedark.nvim',          event = 'VeryLazy' },                                    -- dark/darker/cool/deep/warm/warmer
-  { 'olimorris/onedarkpro.nvim',      event = 'VeryLazy' },                                    -- onedark_pro/vivid/dark
+  { 'navarasu/onedark.nvim',         event = 'VeryLazy' },                             -- dark/darker/cool/deep/warm/warmer
+  { 'olimorris/onedarkpro.nvim',     event = 'VeryLazy' },                             -- onedark_pro/vivid/dark
   -- ── high contrast / vivid ───────────────────────────────────────────────
-  { 'sainnhe/sonokai',                event = 'VeryLazy' },                                    -- default/atlantis/andromeda/shusia/maia/espresso
-  { 'Mofiqul/dracula.nvim',           event = 'VeryLazy' },                                    -- classic dracula
-  { 'scottmckendry/cyberdream.nvim',  event = 'VeryLazy' },                                    -- neon cyberpunk
-  { 'bluz71/vim-moonfly-colors',      name = 'moonfly',     event = 'VeryLazy' },              -- cool dark moonlit
+  { 'sainnhe/sonokai',               event = 'VeryLazy' },                             -- default/atlantis/andromeda/shusia/maia/espresso
+  { 'Mofiqul/dracula.nvim',          event = 'VeryLazy' },                             -- classic dracula
+  { 'scottmckendry/cyberdream.nvim', event = 'VeryLazy' },                             -- neon cyberpunk
+  { 'bluz71/vim-moonfly-colors',     name = 'moonfly',   event = 'VeryLazy' },         -- cool dark moonlit
   -- ── IDE-familiar ────────────────────────────────────────────────────────
-  { 'projekt0n/github-nvim-theme',    event = 'VeryLazy' },                                    -- github_dark/dark_dimmed/dark_colorblind/dark_high_contrast
-  { 'Mofiqul/vscode.nvim',            event = 'VeryLazy' },                                    -- VSCode dark+
-  { 'marko-cerovac/material.nvim',    event = 'VeryLazy',
-    opts = { style = 'palenight' } },                                                          -- darker/dark/palenight/oceanic
+  { 'projekt0n/github-nvim-theme',   event = 'VeryLazy' },                             -- github_dark/dark_dimmed/dark_colorblind/dark_high_contrast
+  { 'Mofiqul/vscode.nvim',           event = 'VeryLazy' },                             -- VSCode dark+
+  {
+    'marko-cerovac/material.nvim',
+    event = 'VeryLazy',
+    opts = { style = 'palenight' }
+  }, -- darker/dark/palenight/oceanic
 
   -- ── LSP ──────────────────────────────────────────────────────────────────
   -- nvim-lspconfig ≥ 2024-12 requires nvim 0.10 at the plugin level (not just
@@ -77,20 +84,20 @@ require('lazy').setup({
   -- fully; only LSP/completion is absent.
   {
     'neovim/nvim-lspconfig',
-    cond  = vim.fn.has('nvim-0.10') == 1,
-    lazy  = false,
+    cond         = vim.fn.has('nvim-0.10') == 1,
+    lazy         = false,
     dependencies = {
       'williamboman/mason.nvim',
       'williamboman/mason-lspconfig.nvim',
       'saghen/blink.cmp',
     },
-    config = function()
+    config       = function()
       require('mason').setup()
 
       -- blink.cmp requires nvim ≥ 0.10; fall back to plain capabilities on older.
       local capabilities = vim.fn.has('nvim-0.10') == 1
-        and require('blink.cmp').get_lsp_capabilities()
-        or vim.lsp.protocol.make_client_capabilities()
+          and require('blink.cmp').get_lsp_capabilities()
+          or vim.lsp.protocol.make_client_capabilities()
 
       -- Single LspAttach autocmd covers all servers - no per-server on_attach needed.
       vim.api.nvim_create_autocmd('LspAttach', {
@@ -102,18 +109,18 @@ require('lazy').setup({
           local map    = function(key, fn, desc)
             vim.keymap.set('n', key, fn, vim.tbl_extend('force', opts, { desc = desc }))
           end
-          map('gd', vim.lsp.buf.definition,      'Go to definition')
-          map('gD', vim.lsp.buf.declaration,     'Go to declaration')
-          map('gr', vim.lsp.buf.references,      'References')
-          map('gi', vim.lsp.buf.implementation,  'Go to implementation')
-          map('K',  vim.lsp.buf.hover,           'Hover docs')
-          map('<leader>rn', vim.lsp.buf.rename,      'Rename symbol')
+          map('gd', vim.lsp.buf.definition, 'Go to definition')
+          map('gD', vim.lsp.buf.declaration, 'Go to declaration')
+          map('gr', vim.lsp.buf.references, 'References')
+          map('gi', vim.lsp.buf.implementation, 'Go to implementation')
+          map('K', vim.lsp.buf.hover, 'Hover docs')
+          map('<leader>rn', vim.lsp.buf.rename, 'Rename symbol')
           map('<leader>ca', vim.lsp.buf.code_action, 'Code action')
-          map('<leader>d',  vim.diagnostic.open_float, 'Show diagnostics')
+          map('<leader>d', vim.diagnostic.open_float, 'Show diagnostics')
           -- vim.diagnostic.jump() was added in nvim 0.10
           if vim.fn.has('nvim-0.10') == 1 then
             map('[d', function() vim.diagnostic.jump({ count = -1 }) end, 'Prev diagnostic')
-            map(']d', function() vim.diagnostic.jump({ count = 1 }) end,  'Next diagnostic')
+            map(']d', function() vim.diagnostic.jump({ count = 1 }) end, 'Next diagnostic')
           else
             map('[d', vim.diagnostic.goto_prev, 'Prev diagnostic')
             map(']d', vim.diagnostic.goto_next, 'Next diagnostic')
@@ -187,7 +194,7 @@ require('lazy').setup({
   {
     'saghen/blink.cmp',
     cond         = vim.fn.has('nvim-0.10') == 1, -- uses vim.snippet built-in (nvim 0.10+)
-    version      = '*', -- use release tags (pre-built Rust binary)
+    version      = '*',                          -- use release tags (pre-built Rust binary)
     dependencies = { 'rafamadriz/friendly-snippets' },
     config       = function()
       require('blink.cmp').setup({
@@ -268,10 +275,13 @@ require('lazy').setup({
 
       -- Textobjects: move
       local mv = require('nvim-treesitter-textobjects.move')
-      vim.keymap.set('n', ']f', function() mv.goto_next_start('@function.outer', 'textobjects') end, { desc = 'Next function' })
-      vim.keymap.set('n', '[f', function() mv.goto_previous_start('@function.outer', 'textobjects') end, { desc = 'Prev function' })
+      vim.keymap.set('n', ']f', function() mv.goto_next_start('@function.outer', 'textobjects') end,
+        { desc = 'Next function' })
+      vim.keymap.set('n', '[f', function() mv.goto_previous_start('@function.outer', 'textobjects') end,
+        { desc = 'Prev function' })
       vim.keymap.set('n', ']C', function() mv.goto_next_start('@class.outer', 'textobjects') end, { desc = 'Next class' })
-      vim.keymap.set('n', '[C', function() mv.goto_previous_start('@class.outer', 'textobjects') end, { desc = 'Prev class' })
+      vim.keymap.set('n', '[C', function() mv.goto_previous_start('@class.outer', 'textobjects') end,
+        { desc = 'Prev class' })
     end,
   },
 
@@ -383,9 +393,9 @@ require('lazy').setup({
   -- ── File tree ────────────────────────────────────────────────────────────
   {
     'nvim-tree/nvim-tree.lua',
-    lazy         = true,
-    keys         = { { '<F6>', '<cmd>NvimTreeToggle<CR>', desc = 'File tree' } },
-    config       = function()
+    lazy   = true,
+    keys   = { { '<F6>', '<cmd>NvimTreeToggle<CR>', desc = 'File tree' } },
+    config = function()
       require('nvim-tree').setup({
         hijack_netrw       = false,              -- let netrw handle :e /dir
         hijack_directories = { enable = false }, -- no directory interception
@@ -444,9 +454,9 @@ require('lazy').setup({
     event  = 'BufWritePre',
     config = function()
       require('conform').setup({
-        notify_no_formatters = false, -- silence when formatter not installed
+        notify_no_formatters = false,                 -- silence when formatter not installed
         formatters_by_ft = {
-          lua        = { 'stylua' },          -- :MasonInstall stylua
+          lua        = { 'stylua' },                  -- :MasonInstall stylua
           python     = { 'ruff_fix', 'ruff_format' }, -- ruff replaces black+isort; respects pyproject.toml/ruff.toml per project
           cpp        = { 'clang_format' },
           c          = { 'clang_format' },
@@ -464,9 +474,9 @@ require('lazy').setup({
   },
 
   -- ── Editing helpers ──────────────────────────────────────────────────────
-  { 'kylechui/nvim-surround',  event = 'VeryLazy', config = function() require('nvim-surround').setup() end },
-  { 'tpope/vim-repeat',        event = 'VeryLazy' },
-  { 'andymass/vim-matchup',    event = 'BufReadPost' },
+  { 'kylechui/nvim-surround', event = 'VeryLazy',   config = function() require('nvim-surround').setup() end },
+  { 'tpope/vim-repeat',       event = 'VeryLazy' },
+  { 'andymass/vim-matchup',   event = 'BufReadPost' },
   {
     'echasnovski/mini.ai',
     cond   = vim.fn.has('nvim-0.10') == 1,
@@ -538,10 +548,12 @@ require('lazy').setup({
       })
     end,
   },
-  { 'mbbill/undotree',         cmd = 'UndotreeToggle',
-    keys = { { '<leader>u', '<cmd>UndotreeToggle<CR>', desc = 'Undo tree' } } },
-  { 'tpope/vim-eunuch',        cmd = { 'Move', 'Rename', 'Delete', 'SudoWrite', 'Chmod' } },
-  { 'rickhowe/diffchar.vim',   cmd = { 'DiffCharOn', 'DiffCharOff', 'DiffCharToggle' } },
+  {
+    'mbbill/undotree',
+    cmd = 'UndotreeToggle',
+    keys = { { '<leader>u', '<cmd>UndotreeToggle<CR>', desc = 'Undo tree' } }
+  },
+  { 'tpope/vim-eunuch',      cmd = { 'Move', 'Rename', 'Delete', 'SudoWrite', 'Chmod' } },
 
   -- ── Writing ──────────────────────────────────────────────────────────────
   {
@@ -557,11 +569,11 @@ require('lazy').setup({
     event = 'VeryLazy',
     opts  = {},
     keys  = {
-      { 's',     function() require('flash').jump()              end, mode = { 'n', 'x', 'o' }, desc = 'Flash jump' },
-      { 'S',     function() require('flash').treesitter()        end, mode = { 'n', 'x', 'o' }, desc = 'Flash treesitter' },
-      { 'r',     function() require('flash').remote()            end, mode = 'o',               desc = 'Flash remote' },
+      { 's',     function() require('flash').jump() end,              mode = { 'n', 'x', 'o' }, desc = 'Flash jump' },
+      { 'S',     function() require('flash').treesitter() end,        mode = { 'n', 'x', 'o' }, desc = 'Flash treesitter' },
+      { 'r',     function() require('flash').remote() end,            mode = 'o',               desc = 'Flash remote' },
       { 'R',     function() require('flash').treesitter_search() end, mode = { 'o', 'x' },      desc = 'Flash treesitter search' },
-      { '<C-s>', function() require('flash').toggle()            end, mode = 'c',               desc = 'Flash toggle search' },
+      { '<C-s>', function() require('flash').toggle() end,            mode = 'c',               desc = 'Flash toggle search' },
     },
   },
 
@@ -610,6 +622,9 @@ opt.wildmode      = 'list:longest'
 opt.termguicolors = true
 
 opt.matchpairs:append('<:>')
+-- Native word-level inline diff (nvim ≥ 0.11). inline:word highlights changed
+-- words within a line; linematch realigns hunks for cleaner inline diffs.
+opt.diffopt = 'internal,filler,closeoff,indent-heuristic,algorithm:histogram,inline:word,linematch:60'
 
 if vim.fn.executable('rg') == 1 then
   opt.grepprg    = 'rg --vimgrep'
@@ -643,6 +658,33 @@ autocmd('WinEnter', {
     vim.opt_local.cursorcolumn = true
   end,
 })
+
+-- In diff windows, reclaim ]c/[c for native next/prev-change hunk motion.
+-- mini.bracketed binds them globally to comment-block navigation; these
+-- buffer-local maps shadow it only while &diff is on, so comment nav is
+-- unaffected everywhere else. :normal! bypasses mappings -> built-in diff jump.
+local diff_grp = augroup('UserDiffNav', { clear = true })
+local function sync_diff_nav_maps()
+  local buf = vim.api.nvim_get_current_buf()
+  if vim.wo.diff then
+    for _, key in ipairs({ ']c', '[c' }) do
+      vim.keymap.set('n', key, function() vim.cmd('normal! ' .. vim.v.count1 .. key) end, {
+        buffer = buf,
+        silent = true,
+        desc   = 'Diff: ' .. (key == ']c' and 'next' or 'prev') .. ' change',
+      })
+    end
+  else
+    for _, key in ipairs({ ']c', '[c' }) do
+      pcall(vim.keymap.del, 'n', key, { buffer = buf })
+    end
+  end
+end
+-- DiffUpdated catches in-place :diffthis/:diffoff toggles (OptionSet does NOT
+-- fire for 'diff', so it can't); WinEnter/BufWinEnter catch `nvim -d` startup and
+-- window switches (where diff was already on before this autocmd could run).
+autocmd('DiffUpdated', { group = diff_grp, callback = sync_diff_nav_maps })
+autocmd({ 'WinEnter', 'BufWinEnter' }, { group = diff_grp, callback = sync_diff_nav_maps })
 
 -- ══════════════════════════════════════════════════════════════════════════════
 -- Keymaps
@@ -713,11 +755,13 @@ map('n', '<leader>j', '<cmd>Telescope jumplist<CR>', { desc = 'Jump list' })
 -- Plugin manager UI
 map('n', '<leader>L', '<cmd>Lazy<CR>', { desc = 'Lazy UI' })
 
+-- vim.keymap.set("n", "J", "elx", { noremap = true, silent = true })
+
 -- ══════════════════════════════════════════════════════════════════════════════
 -- Commands
 -- ══════════════════════════════════════════════════════════════════════════════
 for lhs, rhs in pairs({ W = 'w', WQ = 'wq', Wq = 'wq', Q = 'q', Qa = 'qa', QA = 'qa',
-                         Wqa = 'wqa', WQa = 'wqa', WQA = 'wqa' }) do
+  Wqa = 'wqa', WQa = 'wqa', WQA = 'wqa' }) do
   vim.api.nvim_create_user_command(lhs, rhs, {})
 end
 
