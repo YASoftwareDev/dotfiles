@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `zsh/.zshrc`: prepend `$HOME/go/bin` to `PATH` so `go install`-ed binaries are
+  found (no-op when the directory doesn't exist).
+
 ## [1.8.0] - 2026-07-04
 
 ### Added
