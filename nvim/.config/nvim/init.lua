@@ -240,7 +240,7 @@ require('lazy').setup({
       -- Ensure parsers are present on fresh installs (async, no-op if already installed).
       require('nvim-treesitter').install({
         'bash', 'c', 'cpp', 'css', 'go', 'html', 'javascript',
-        'json', 'lua', 'markdown', 'python', 'rust', 'toml',
+        'json', 'lua', 'markdown', 'markdown_inline', 'python', 'rust', 'toml',
         'typescript', 'vim', 'yaml',
       })
 
@@ -552,6 +552,32 @@ require('lazy').setup({
     dependencies = { 'folke/twilight.nvim' },
     opts         = { plugins = { twilight = { enabled = true } } },
     keys         = { { '<leader>z', '<cmd>ZenMode<CR>', desc = 'Zen mode' } },
+  },
+
+  -- ── Markdown rendering ─────────────────────────────────────────────────────
+  -- In-buffer prettified markdown: heading icons/backgrounds, list bullets,
+  -- checkboxes, code-block backgrounds, aligned tables, and concealed inline
+  -- markup (**, `, links). Terminal-native — no browser, works over SSH. The line
+  -- under the cursor un-renders in insert mode so editing stays unobstructed.
+  -- Needs the markdown + markdown_inline treesitter parsers (installed above).
+  {
+    'MeanderingProgrammer/render-markdown.nvim',
+    cond         = vim.fn.has('nvim-0.10') == 1, -- renders via extmarks (nvim 0.10+)
+    ft           = { 'markdown' },
+    dependencies = {
+      'nvim-treesitter/nvim-treesitter', -- markdown + markdown_inline parsers
+      'nvim-tree/nvim-web-devicons',     -- code-block language icons
+    },
+    opts         = {
+      -- Defaults are well-tuned; render is on by default. LaTeX math rendering
+      -- needs the `latex` parser + utftex/latex2text CLIs (not installed), so
+      -- disable it to avoid a checkhealth warning and stray `$…$` processing.
+      -- Re-enable + install those tools if you want inline math.
+      latex = { enabled = false },
+    },
+    keys         = {
+      { '<leader>tm', '<cmd>RenderMarkdown toggle<CR>', desc = 'Toggle markdown render' },
+    },
   },
   -- ── Motion ───────────────────────────────────────────────────────────────
   {
