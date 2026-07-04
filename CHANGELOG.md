@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `nvim/init.lua`: in-buffer markdown rendering via
+  `MeanderingProgrammer/render-markdown.nvim` (lazy-loaded on `ft=markdown`).
+  Prettifies markdown live in the terminal - heading icons/backgrounds, list
+  bullets, checkboxes, code-block backgrounds, aligned tables, and concealed
+  inline markup - un-rendering the line under the cursor while editing. Adds the
+  `markdown_inline` treesitter parser (needed for inline elements) and a
+  `<leader>tm` toggle (`:RenderMarkdown toggle`). LaTeX math support is disabled
+  (avoids a checkhealth warning; needs extra CLIs). Icons use the existing
+  `nvim-web-devicons`; no browser required, so it works over SSH.
 - `nvim/init.lua`: native word-level inline diff - `diffopt` gains `inline:word`,
   `algorithm:histogram` and `linematch:60` (nvim ≥ 0.11) for cleaner, per-word
   diff highlighting. Adds `]c`/`[c` next/prev-change hunk motion inside diff
