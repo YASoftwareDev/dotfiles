@@ -174,13 +174,15 @@ _build() {
     local ubuntu="$1" profile="$2" tag logfile
     tag=$(_tag "$ubuntu" "$profile")
     logfile="${LOG_DIR}/${ubuntu}-${profile}.log"
-    local -a cache_flag=()
+    local -a cache_flag=() secret_flag=()
     $NO_CACHE && cache_flag=(--no-cache)
+    [ -n "$GH_TOKEN_FILE" ] && secret_flag=(--secret "id=gh_token,src=${GH_TOKEN_FILE}")
     echo -e "  ${BLUE}→${NC} building ${BOLD}${tag}${NC} ..."
     if docker build \
         "${cache_flag[@]}" \
         --build-arg "UBUNTU=${ubuntu}" \
         --build-arg "PROFILE=${profile}" \
+        "${secret_flag[@]}" \
         -t "$tag" \
         "$DOTFILES_DIR" \
         >>"$logfile" 2>&1; then
@@ -235,7 +237,7 @@ run_combination() {
 
     # 2. Idempotency - re-run install.sh inside built image
     _run_step "$tag" "idempotency (re-run install.sh)" "$logfile" \
-        "cd /root/dotfiles && bash install.sh ${profile}" || return 1
+        "${_CURLRC_CMD}; cd /root/dotfiles && bash install.sh ${profile}" || return 1
 
     # 3. Test suite
     _run_step "$tag" "test.sh ${profile}" "$logfile" \
@@ -243,7 +245,7 @@ run_combination() {
 
     # 4. update.sh
     _run_step "$tag" "update.sh" "$logfile" \
-        "cd /root/dotfiles && bash update.sh" || return 1
+        "${_CURLRC_CMD}; cd /root/dotfiles && bash update.sh" || return 1
 
     # 5. Test suite again after update
     _run_step "$tag" "test.sh after update" "$logfile" \
@@ -374,6 +376,12 @@ elif $SKIP_NOSUDO; then
     NOSUDO_LIST=(); NOSUDO_ALMA_LIST=()
 else
     _resolve_nosudo_bases
+fi
+
+# --alma alone selects only AlmaLinux cells; regular profiles are apt-only
+# and have no Alma equivalent, so drop them unless explicitly requested.
+if [[ ${#FILTER_ALMA[@]} -gt 0 && ${#FILTER_UBUNTU[@]} -eq 0 && ${#FILTER_PROFILES[@]} -eq 0 ]]; then
+    PROFILE_LIST=()
 fi
 
 # Resolve which nosudo variants to run

@@ -65,7 +65,7 @@ of the box. The only requirement is that an administrator has preinstalled the
 base prerequisites:
 
 ```bash
-sudo dnf install -y git curl zsh tmux python3 tar gzip xz findutils
+sudo dnf install -y git curl zsh tmux python3 tar gzip xz findutils glibc-langpack-en
 ```
 
 <details>

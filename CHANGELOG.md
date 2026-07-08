@@ -12,7 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no-sudo accounts: a new `CAN_APT` global (sudo AND apt-get present, set by
   `detect_sudo`) gates every apt code path, so non-apt systems take the
   user-local binary path (`~/.local/bin`) with or without sudo instead of
-  dying on a missing `apt-get` under `set -e`. Prerequisite hints are now
+  dying on a missing `apt-get` under `set -e`. This includes neovim: on
+  non-apt systems `install.sh` and `update.sh` place it under `~/.local`
+  even when sudo is available (`/usr/local` remains the destination on apt
+  systems with sudo). Prerequisite hints are now
   package-manager-aware (`_pkg_install_hint`: apt/dnf/yum), `get.sh` bootstraps
   git/curl via dnf/yum when run as root on RHEL, and `_check_os`/`get.sh`
   recognise RHEL-family IDs instead of warning "not Ubuntu/Debian".

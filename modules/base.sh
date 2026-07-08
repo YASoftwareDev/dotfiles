@@ -43,7 +43,7 @@ install_base() {
         else
             log_warn "No sudo - skipping system packages; fetching tools as local binaries"
         fi
-        local _hint; _hint=$(_pkg_install_hint)
+        local _hint tool; _hint=$(_pkg_install_hint)
         for tool in git zsh tmux python3; do
             has "$tool" || log_warn "$tool not found - install it: ${_hint} $tool"
         done

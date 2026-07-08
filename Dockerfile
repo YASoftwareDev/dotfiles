@@ -29,7 +29,14 @@ RUN apt-get -yq update && \
 WORKDIR /root/dotfiles
 COPY . .
 
-RUN bash install.sh ${PROFILE} && \
-    chsh -s /usr/bin/zsh root
+# Optional gh_token secret -> ~/.curlrc auth header for the install only
+# (avoids GitHub's unauthenticated API rate limit); removed after install.
+RUN --mount=type=secret,id=gh_token,mode=0444,required=false \
+    tok="$(cat /run/secrets/gh_token 2>/dev/null || true)"; \
+    if [ -n "$tok" ]; then \
+        printf 'header = "Authorization: Bearer %s"\n' "$tok" > ~/.curlrc; \
+    fi; \
+    bash install.sh ${PROFILE} && chsh -s /usr/bin/zsh root; \
+    rc=$?; rm -f ~/.curlrc; exit $rc
 
 CMD ["zsh"]

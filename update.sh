@@ -147,7 +147,7 @@ _do_update_neovim() {
     if _ver_older_than "$glibc_ver" "2.32"; then
         log_warn "neovim: system glibc $glibc_ver < 2.32 - pinned to legacy v0.9.5"
         local nvim_dest
-        if $CAN_SUDO; then nvim_dest=/usr/local/bin/nvim; else nvim_dest=$HOME/.local/bin/nvim; fi
+        if $CAN_APT; then nvim_dest=/usr/local/bin/nvim; else nvim_dest=$HOME/.local/bin/nvim; fi
         if $CHECK_ONLY; then
             local cur_leg; cur_leg=$(_cmd_version nvim --version) || cur_leg="none"
             log_info "  neovim: $cur_leg (legacy; cannot upgrade on glibc $glibc_ver)"
@@ -186,7 +186,7 @@ _do_update_neovim() {
             || { log_warn "neovim: legacy download failed - skipping"; return; }; fi
         local leg_extracted; leg_extracted=$(find "$tmp" -maxdepth 1 -type d -name 'nvim-*' | head -1)
         [ -z "$leg_extracted" ] && { log_warn "neovim: unexpected archive layout - skipping"; return; }
-        if $CAN_SUDO; then $SUDO cp -r "$leg_extracted"/. /usr/local/; else cp -r "$leg_extracted"/. "$HOME/.local/"; fi
+        if $CAN_APT; then $SUDO cp -r "$leg_extracted"/. /usr/local/; else cp -r "$leg_extracted"/. "$HOME/.local/"; fi
         log_ok "neovim restored → $("$nvim_dest" --version 2>/dev/null | head -1)"
         return
     fi
@@ -201,10 +201,10 @@ _do_update_neovim() {
     fi
     if $CHECK_ONLY; then
         _report_version neovim "${current:-none}" "$latest_tag"
-        if $CAN_SUDO; then
-            log_info "  → update would install to /usr/local/ (sudo available)"
+        if $CAN_APT; then
+            log_info "  → update would install to /usr/local/"
         else
-            log_info "  → update would install to ~/.local/ (no sudo)"
+            log_info "  → update would install to ~/.local/"
         fi
         return
     fi
@@ -227,7 +227,7 @@ _do_update_neovim() {
     local extracted; extracted=$(find "$tmp" -maxdepth 1 -type d -name 'nvim-*' | head -1)
     if [ -z "$extracted" ]; then log_warn "neovim: unexpected archive layout - skipping"; return; fi
     local nvim_dest
-    if $CAN_SUDO; then
+    if $CAN_APT; then
         $SUDO cp -r "$extracted"/. /usr/local/
         nvim_dest=/usr/local/bin/nvim
     else
@@ -245,10 +245,10 @@ _do_update_xcape() {
         if $CHECK_ONLY; then
             _check_git_updates "xcape" "" 2>/dev/null || true
             log_info "xcape: installed at $(command -v xcape) - source-built from alols/xcape (no version tags)"
-            if $CAN_SUDO; then
+            if $CAN_APT; then
                 log_info "  → run './update.sh xcape' to rebuild from latest source"
             else
-                log_warn "  → sudo required to reinstall xcape"
+                log_warn "  → sudo + apt required to rebuild xcape"
             fi
         else
             if ! $CAN_APT; then

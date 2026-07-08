@@ -89,9 +89,11 @@ install_neovim() {
         | head -1)
     local latest="${latest_tag#v}"
 
-    # Install prefix: /usr/local with sudo, ~/.local without (needed for disclosure below)
+    # Install prefix: /usr/local on apt systems with sudo, ~/.local otherwise.
+    # Keyed on CAN_APT, not CAN_SUDO: on RHEL-family hosts all tools stay
+    # user-local even when sudo works.
     local prefix
-    if $CAN_SUDO; then prefix="/usr/local"; else prefix="$HOME/.local"; fi
+    if $CAN_APT; then prefix="/usr/local"; else prefix="$HOME/.local"; fi
 
     # Skip if already at latest version AND binary actually runs.
     # A version-matching but glibc-broken binary must not be skipped.
@@ -103,7 +105,7 @@ install_neovim() {
             # Shadow check still needed: `nvim` above may have resolved to a
             # user-local copy (e.g. ~/.local/bin/nvim) that shadows an existing
             # /usr/local/bin/nvim at the same version.
-            if $CAN_SUDO; then _nvim_warn_shadows /usr/local/bin/nvim; fi
+            if $CAN_APT; then _nvim_warn_shadows /usr/local/bin/nvim; fi
             return
         fi
         log_info "neovim: upgrading $current → $latest (installing to $prefix)"
@@ -141,7 +143,7 @@ install_neovim() {
         return
     fi
 
-    if ! $CAN_SUDO; then mkdir -p "$prefix"; fi
+    if [ "$prefix" != "/usr/local" ]; then mkdir -p "$prefix"; fi
 
     local tmp
     tmp=$(mktemp -d)
@@ -164,7 +166,7 @@ install_neovim() {
         return
     fi
 
-    if $CAN_SUDO; then
+    if [ "$prefix" = "/usr/local" ]; then
         # Refresh credential cache right before use - the download above may have
         # taken long enough for the 15-minute sudo cache to expire.
         if ! sudo -n true 2>/dev/null; then
@@ -179,7 +181,7 @@ install_neovim() {
     # Use the full path so the version shown is always the binary we just
     # installed, not whatever `nvim` resolves to in the install-time bash PATH.
     log_ok "neovim installed → $prefix ($($prefix/bin/nvim --version 2>/dev/null | head -1))"
-    if $CAN_SUDO; then _nvim_warn_shadows /usr/local/bin/nvim; fi
+    if $CAN_APT; then _nvim_warn_shadows /usr/local/bin/nvim; fi
 }
 
 # Download the last neovim release compatible with glibc < 2.32.
@@ -210,10 +212,11 @@ _neovim_legacy_binary() {
         return
     fi
 
-    if $CAN_SUDO; then
+    if [ "$prefix" = "/usr/local" ]; then
         [ -n "${SUDO:-}" ] && sudo -v 2>/dev/null || true
         $SUDO cp -r "$extracted"/. "$prefix/"
     else
+        mkdir -p "$prefix"
         cp -r "$extracted"/. "$prefix/"
     fi
     log_ok "neovim legacy $tag installed → $prefix ($($prefix/bin/nvim --version 2>/dev/null | head -1))"
