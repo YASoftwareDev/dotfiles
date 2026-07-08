@@ -68,26 +68,33 @@ install_base() {
 
 install_base_docker() {
     log_step "Base packages (docker mode)"
-    if ! $CAN_APT; then
-        log_warn "Skipping system packages (no sudo or no apt)"
-        return
-    fi
+    mkdir -p ~/.local/bin
 
-    local -a _pkgs=(
-        locales git curl wget
-        zsh tmux neovim
-        jq ripgrep fd-find shellcheck
-    )
-    log_info "Installing via apt: ${_pkgs[*]} (versions resolved by apt)"
-    $SUDO apt-get -yq update
-    apt_install "${_pkgs[@]}"
-    log_info "Generating locale: en_US.UTF-8"
-    $SUDO locale-gen en_US.UTF-8
-    $SUDO update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+    if $CAN_APT; then
+        local -a _pkgs=(
+            locales git curl wget
+            zsh tmux neovim
+            jq ripgrep fd-find shellcheck
+        )
+        log_info "Installing via apt: ${_pkgs[*]} (versions resolved by apt)"
+        $SUDO apt-get -yq update
+        apt_install "${_pkgs[@]}"
+        log_info "Generating locale: en_US.UTF-8"
+        $SUDO locale-gen en_US.UTF-8
+        $SUDO update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
 
-    if ! has fd && has fdfind; then
-        mkdir -p ~/.local/bin
-        ln -sf "$(command -v fdfind)" ~/.local/bin/fd
+        if ! has fd && has fdfind; then
+            ln -sf "$(command -v fdfind)" ~/.local/bin/fd
+        fi
+    else
+        log_warn "No apt - skipping system packages; fetching tools as local binaries"
+        local _hint tool; _hint=$(_pkg_install_hint)
+        for tool in git zsh tmux python3; do
+            has "$tool" || log_warn "$tool not found - install it: ${_hint} $tool"
+        done
+        _install_ripgrep
+        _install_fd
+        _install_jq
     fi
 
     _install_fzf

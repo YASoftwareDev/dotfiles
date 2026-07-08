@@ -122,6 +122,11 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+if $SKIP_NOSUDO && $FILTER_NOSUDO; then
+    echo "Error: --skip-nosudo contradicts a requested nosudo profile." >&2
+    exit 1
+fi
+
 # NOTE: "${arr[@]:-default}" inside double quotes collapses to a single string
 # element when arr is empty - use explicit length checks instead.
 if [[ ${#FILTER_UBUNTU[@]} -eq 0 ]]; then
@@ -378,9 +383,14 @@ else
     _resolve_nosudo_bases
 fi
 
-# --alma alone selects only AlmaLinux cells; regular profiles are apt-only
-# and have no Alma equivalent, so drop them unless explicitly requested.
-if [[ ${#FILTER_ALMA[@]} -gt 0 && ${#FILTER_UBUNTU[@]} -eq 0 && ${#FILTER_PROFILES[@]} -eq 0 ]]; then
+# Regular profiles are apt-only and have no Alma cells: with --alma and no
+# --ubuntu, drop them (none requested) or reject the unsatisfiable request.
+if [[ ${#FILTER_ALMA[@]} -gt 0 && ${#FILTER_UBUNTU[@]} -eq 0 ]]; then
+    if [[ ${#FILTER_PROFILES[@]} -gt 0 ]]; then
+        echo "Error: profiles '${FILTER_PROFILES[*]}' need apt and have no AlmaLinux cells." >&2
+        echo "Combine with --ubuntu, or use nosudo profiles with --alma." >&2
+        exit 1
+    fi
     PROFILE_LIST=()
 fi
 
@@ -393,6 +403,11 @@ fi
 
 nosudo_count=$(( (${#NOSUDO_LIST[@]} + ${#NOSUDO_ALMA_LIST[@]}) * ${#NOSUDO_VARIANT_LIST[@]} ))
 regular_count=$(( ${#UBUNTU_LIST[@]} * ${#PROFILE_LIST[@]} ))
+
+if (( regular_count + nosudo_count == 0 )); then
+    echo "Error: the given filters select zero cells - nothing to run." >&2
+    exit 1
+fi
 
 echo -e "  Ubuntu versions  : ${UBUNTU_LIST[*]}"
 echo -e "  Profiles         : ${PROFILE_LIST[*]:-none}"
