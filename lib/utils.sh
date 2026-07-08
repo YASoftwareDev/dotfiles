@@ -23,17 +23,22 @@ apt_install() {
     $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -yq "$@"
 }
 
-# Check if we can use sudo (sets globals SUDO, CAN_SUDO, SUDO_STATUS).
+# Check if we can use sudo (sets globals SUDO, CAN_SUDO, SUDO_STATUS, CAN_APT).
 # Pure probe - no output; uses only non-interactive `sudo -n` forms so it
 # never prompts. A non-interactive `sudo -n -v` distinguishes a real sudoer
 # who needs a password from a user who is not in sudoers at all.
 # SUDO_STATUS values: root | sudo_passwordless | sudo_password | nosudo
+# CAN_APT: privileged AND apt-based OS. The package-install paths are apt-only,
+# so non-apt distros (RHEL family: AlmaLinux, Rocky, Fedora, ...) must take the
+# user-local binary path even when sudo works - gate them on CAN_APT, never on
+# CAN_SUDO alone, or `apt-get` dies under set -e mid-install.
 detect_sudo() {
     if [ -n "${NOSUDO:-}" ]; then
         SUDO=""
         CAN_SUDO=false
         SUDO_STATUS=nosudo
-        export SUDO CAN_SUDO SUDO_STATUS
+        CAN_APT=false
+        export SUDO CAN_SUDO SUDO_STATUS CAN_APT
         return
     fi
     if [ "$(id -u)" -eq 0 ]; then
@@ -75,7 +80,21 @@ detect_sudo() {
         CAN_SUDO=false
         SUDO_STATUS=nosudo
     fi
-    export SUDO CAN_SUDO SUDO_STATUS
+    if $CAN_SUDO && command -v apt-get &>/dev/null; then
+        CAN_APT=true
+    else
+        CAN_APT=false
+    fi
+    export SUDO CAN_SUDO SUDO_STATUS CAN_APT
+}
+
+# Native package-manager install prefix for prerequisite hint messages.
+_pkg_install_hint() {
+    if command -v apt-get &>/dev/null; then echo "sudo apt install -y"
+    elif command -v dnf &>/dev/null;    then echo "sudo dnf install -y"
+    elif command -v yum &>/dev/null;    then echo "sudo yum install -y"
+    else echo "your package manager to install:"
+    fi
 }
 
 # Safe symlink: creates parent dir and force-overwrites existing link
@@ -166,20 +185,24 @@ run_checks() {
     detect_sudo
     case "$SUDO_STATUS" in
         root)
-            log_ok "Running as root - system packages will be installed directly" ;;
+            log_ok "Running as root - no sudo needed" ;;
         sudo_passwordless)
-            log_ok "sudo available (passwordless) - system packages will be installed via apt" ;;
+            log_ok "sudo available (passwordless)" ;;
         sudo_password)
-            log_info "sudo available - system packages will be installed via apt"
-            log_warn "sudo requires a password - you will be prompted when apt runs" ;;
+            log_info "sudo available"
+            log_warn "sudo requires a password - you will be prompted when it is used" ;;
         nosudo)
             if [ -n "${NOSUDO:-}" ]; then
                 log_info "NOSUDO=1 set - running in user-local mode (sudo disabled)"
             else
-                log_warn "No sudo - apt skipped; tools will be fetched as local binaries into ~/.local/bin"
+                log_warn "No sudo - system packages skipped; tools will be fetched as local binaries into ~/.local/bin"
             fi ;;
     esac
-    if $CAN_SUDO && [ -n "${PROFILE:-}" ]; then
+    if $CAN_SUDO && ! $CAN_APT; then
+        log_warn "No apt on this system - system packages skipped; tools will be fetched into ~/.local/bin"
+        log_warn "  Prerequisites (if missing): $(_pkg_install_hint) git curl zsh tmux python3 tar findutils"
+    fi
+    if $CAN_APT && [ -n "${PROFILE:-}" ]; then
         case "$PROFILE" in
             minimal)
                 log_info "sudo will be used for: apt packages, chsh/usermod (default shell)" ;;
@@ -188,6 +211,8 @@ run_checks() {
             docker)
                 log_info "sudo will be used for: apt packages" ;;
         esac
+    elif $CAN_SUDO && [ -n "${PROFILE:-}" ] && [ "$PROFILE" != "docker" ]; then
+        log_info "sudo will be used for: chsh/usermod (default shell)"
     fi
     log_ok "All checks passed"
 }
@@ -207,6 +232,10 @@ _check_os() {
             else
                 log_ok "OS: $PRETTY_NAME"
             fi
+            ;;
+        almalinux | rocky | rhel | centos | fedora)
+            log_ok "OS: $PRETTY_NAME"
+            log_info "RHEL-family OS: no apt - tools are fetched as user-local binaries into ~/.local/bin"
             ;;
         *)
             log_warn "OS '$ID' is not Ubuntu/Debian. Package installation may fail - proceeding anyway."

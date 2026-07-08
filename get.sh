@@ -70,27 +70,40 @@ fi
 echo -e "${BOLD}── Pre-flight checks ──${NC}"
 _preflight_ok=true
 
-# auto-bootstrap missing tools when running as root on apt-based systems
+# package-manager hint for error messages (apt on Debian family, dnf/yum on RHEL family)
+if command -v apt-get &>/dev/null; then _PKG_HINT="sudo apt install"
+elif command -v dnf &>/dev/null;    then _PKG_HINT="sudo dnf install"
+elif command -v yum &>/dev/null;    then _PKG_HINT="sudo yum install"
+else _PKG_HINT="your package manager:"
+fi
+
+# auto-bootstrap missing tools when running as root (apt or dnf/yum systems)
 _apt_updated=false
-_apt_bootstrap() {
+_pkg_bootstrap() {
     local pkg="$1"
-    if [ "$(id -u)" -ne 0 ] || ! command -v apt-get &>/dev/null; then
+    [ "$(id -u)" -eq 0 ] || return 1
+    if command -v apt-get &>/dev/null; then
+        if ! $_apt_updated; then
+            apt-get update -qq >/dev/null
+            _apt_updated=true
+        fi
+        DEBIAN_FRONTEND=noninteractive apt-get install -yq "$pkg" >/dev/null
+    elif command -v dnf &>/dev/null; then
+        dnf -yq install "$pkg" >/dev/null 2>&1
+    elif command -v yum &>/dev/null; then
+        yum -yq install "$pkg" >/dev/null 2>&1
+    else
         return 1
     fi
-    if ! $_apt_updated; then
-        apt-get update -qq >/dev/null
-        _apt_updated=true
-    fi
-    DEBIAN_FRONTEND=noninteractive apt-get install -yq "$pkg" >/dev/null
 }
 
 # git (hard requirement - needed to clone)
 if command -v git &>/dev/null; then
     _ok "git $(git --version | awk '{print $3}')"
-elif _apt_bootstrap git; then
+elif _pkg_bootstrap git; then
     _ok "git $(git --version | awk '{print $3}') (just installed)"
 else
-    echo -e "${RED}  ✗${NC} git - not found  →  sudo apt install git" >&2
+    echo -e "${RED}  ✗${NC} git - not found  →  ${_PKG_HINT} git" >&2
     _preflight_ok=false
 fi
 
@@ -99,10 +112,10 @@ if command -v curl &>/dev/null; then
     _ok "curl $(curl --version | awk 'NR==1{print $2}')"
 elif command -v wget &>/dev/null; then
     _ok "wget $(wget --version 2>&1 | awk 'NR==1{print $3}')"
-elif _apt_bootstrap curl; then
+elif _pkg_bootstrap curl; then
     _ok "curl $(curl --version | awk 'NR==1{print $2}') (just installed)"
 else
-    echo -e "${RED}  ✗${NC} curl/wget - neither found  →  sudo apt install curl" >&2
+    echo -e "${RED}  ✗${NC} curl/wget - neither found  →  ${_PKG_HINT} curl" >&2
     _preflight_ok=false
 fi
 
@@ -114,18 +127,22 @@ elif [ "$(id -u)" -eq 0 ]; then
 elif command -v sudo &>/dev/null && sudo -n true 2>/dev/null; then
     _ok "sudo (passwordless)"
 elif command -v sudo &>/dev/null; then
-    _warn "sudo present but requires a password - you will be prompted when apt runs"
+    _warn "sudo present but requires a password - you will be prompted when packages install"
 else
-    _warn "sudo not found - apt package installs will be skipped"
+    _warn "sudo not found - system package installs will be skipped"
 fi
 
-# OS (soft - scripts are written for Ubuntu/Debian)
+# OS (soft - Debian family is fully supported; RHEL family installs tools
+# as user-local binaries and needs prerequisites preinstalled via dnf)
 if [ -f /etc/os-release ]; then
     # shellcheck source=/dev/null
     . /etc/os-release
     case "${ID:-}" in
         ubuntu) _ok "OS: Ubuntu ${VERSION_ID:-}" ;;
         debian) _warn "OS: Debian ${VERSION_ID:-} - supported but not tested" ;;
+        almalinux|rocky|rhel|centos|fedora)
+            _ok "OS: ${PRETTY_NAME:-$ID} (RHEL family)"
+            _warn "No apt: tools install to ~/.local/bin; prerequisites (git curl zsh tmux python3 tar) need dnf" ;;
         *)      _warn "OS: ${PRETTY_NAME:-unknown} - scripts are written for Ubuntu; proceed with caution" ;;
     esac
 else

@@ -1,4 +1,5 @@
 # Test dotfiles install in a clean Ubuntu environment.
+# Requires BuildKit (Docker 20.10+ default) for the optional gh_token secret.
 #
 # Build & run (installs during build, then drops to shell):
 #   docker build -t dotfiles-test:24.04-docker .
@@ -29,7 +30,14 @@ RUN apt-get -yq update && \
 WORKDIR /root/dotfiles
 COPY . .
 
-RUN bash install.sh ${PROFILE} && \
-    chsh -s /usr/bin/zsh root
+# Optional gh_token secret -> ~/.curlrc auth header for the install only
+# (avoids GitHub's unauthenticated API rate limit); removed after install.
+RUN --mount=type=secret,id=gh_token,mode=0444,required=false \
+    tok="$(cat /run/secrets/gh_token 2>/dev/null || true)"; \
+    if [ -n "$tok" ]; then \
+        printf 'header = "Authorization: Bearer %s"\n' "$tok" > ~/.curlrc; \
+    fi; \
+    bash install.sh ${PROFILE} && chsh -s /usr/bin/zsh root; \
+    rc=$?; rm -f ~/.curlrc; exit $rc
 
 CMD ["zsh"]

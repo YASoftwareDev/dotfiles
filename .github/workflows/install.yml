@@ -164,3 +164,99 @@ jobs:
           su -s /bin/bash -c \
             'HOME=/home/user; export HOME; export PATH="$HOME/.local/bin:$PATH"; export TERM=xterm-256color; cd ~/dotfiles && bash test.sh nosudo' \
             user
+
+  install-nosudo-alma:
+    name: "nosudo-${{ matrix.variant }} @ AlmaLinux ${{ matrix.alma }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    container:
+      image: "almalinux:${{ matrix.alma }}"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        alma: ["9", "10"]
+        variant:
+          - auto       # user has NO sudo binary; detect_sudo() auto-detects CAN_SUDO=false
+          - forced     # user HAS passwordless sudo but NOSUDO=1 overrides it
+          - nonsudoer  # sudo binary present but user NOT in sudoers; auto-detects CAN_SUDO=false
+
+    steps:
+      - name: Bootstrap prerequisites (as root - mirrors a shared RHEL host)
+        # --allowerasing: EL9+ images ship curl-minimal, which conflicts with
+        # the full curl package - allow dnf to swap it out.
+        run: |
+          dnf -yq install --allowerasing git curl wget ca-certificates zsh tmux python3 \
+            tar gzip xz findutils shadow-utils glibc-langpack-en
+
+      - name: Install sudo binary (forced + nonsudoer)
+        if: matrix.variant == 'forced' || matrix.variant == 'nonsudoer'
+        run: dnf -yq install sudo
+
+      - name: Grant passwordless sudo to user (forced only)
+        # nonsudoer deliberately leaves the user OUT of sudoers so detect_sudo()
+        # must auto-detect CAN_SUDO=false against a present-but-unauthorised sudo.
+        if: matrix.variant == 'forced'
+        run: echo 'user ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+      - name: Create non-root user
+        run: useradd -m -s /bin/bash user
+
+      - name: Checkout dotfiles
+        uses: actions/checkout@v4
+
+      - name: Copy dotfiles to user home
+        run: |
+          cp -r . /home/user/dotfiles
+          chown -R user:user /home/user/dotfiles
+
+      - name: Configure curl auth (avoids GitHub API rate limit)
+        run: |
+          printf 'header = "Authorization: Bearer %s"\n' "${{ secrets.GITHUB_TOKEN }}" \
+            > /home/user/.curlrc
+          chown user:user /home/user/.curlrc
+          chmod 600 /home/user/.curlrc
+
+      - name: Install (${{ matrix.variant }})
+        env:
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          if [ "$VARIANT" = "forced" ]; then
+            install_cmd="NOSUDO=1 bash install.sh minimal"
+          else
+            install_cmd="bash install.sh minimal"
+          fi
+          su -s /bin/bash -c \
+            "HOME=/home/user; export HOME; export PATH=\"\$HOME/.local/bin:\$PATH\"; cd ~/dotfiles && $install_cmd" \
+            user
+
+      - name: Run test suite (nosudo profile)
+        run: |
+          su -s /bin/bash -c \
+            'HOME=/home/user; export HOME; export PATH="$HOME/.local/bin:$PATH"; export TERM=xterm-256color; cd ~/dotfiles && bash test.sh nosudo' \
+            user
+
+      - name: Idempotency - re-run install.sh
+        env:
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          if [ "$VARIANT" = "forced" ]; then
+            install_cmd="NOSUDO=1 bash install.sh minimal"
+          else
+            install_cmd="bash install.sh minimal"
+          fi
+          su -s /bin/bash -c \
+            "HOME=/home/user; export HOME; export PATH=\"\$HOME/.local/bin:\$PATH\"; cd ~/dotfiles && $install_cmd" \
+            user
+
+      - name: Run update.sh
+        run: |
+          su -s /bin/bash -c \
+            'HOME=/home/user; export HOME; export PATH="$HOME/.local/bin:$PATH"; cd ~/dotfiles && bash update.sh' \
+            user
+
+      - name: Re-run test suite after update
+        run: |
+          su -s /bin/bash -c \
+            'HOME=/home/user; export HOME; export PATH="$HOME/.local/bin:$PATH"; export TERM=xterm-256color; cd ~/dotfiles && bash test.sh nosudo' \
+            user
