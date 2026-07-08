@@ -27,6 +27,8 @@ matrix covering 3 Ubuntu versions × 3 install profiles + no-sudo variants
 - Gate every apt code path on `$CAN_APT` (sudo AND apt-get present, set by
   `detect_sudo`), never on `$CAN_SUDO` alone - on RHEL-family systems sudo can be
   available while apt is not, and a bare `apt-get` call dies under `set -e`.
+  Applies to the install/update flow; the optional `scripts/` desktop helpers
+  are Ubuntu-only.
 - All scripts use `set -euo pipefail`. Use `count=$(( count + 1 ))` - never `(( count++ ))`.
   Also avoid `[ cond ] && var=true` - when the condition is false, the expression exits with 1 and
   trips `set -e`. Use `if [ cond ]; then var=true; fi` instead.

@@ -1,4 +1,5 @@
 # Test dotfiles install in a clean Ubuntu environment.
+# Requires BuildKit (Docker 20.10+ default) for the optional gh_token secret.
 #
 # Build & run (installs during build, then drops to shell):
 #   docker build -t dotfiles-test:24.04-docker .

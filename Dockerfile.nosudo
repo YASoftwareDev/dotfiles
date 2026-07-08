@@ -1,4 +1,5 @@
 # Dockerfile.nosudo
+# Requires BuildKit (Docker 20.10+ default) for the optional gh_token secret.
 #
 # Covers three user-local install scenarios (all land binaries in ~/.local/bin):
 #

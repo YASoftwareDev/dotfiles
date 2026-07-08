@@ -140,6 +140,10 @@ else
     PROFILE_LIST=("${FILTER_PROFILES[@]}")
 fi
 
+# Both Dockerfiles use RUN --mount=type=secret, which needs BuildKit
+# (default since Docker 20.10; a user-set DOCKER_BUILDKIT=0 would break builds).
+export DOCKER_BUILDKIT=1
+
 # ── GitHub API auth (optional) ────────────────────────────────────────────────
 # Unauthenticated builds hit GitHub's 60-req/hr API cap: API-based installers
 # (rg, fd, jq, zoxide, delta, eza) then fail with "could not find release URL -
