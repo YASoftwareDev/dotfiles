@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- RHEL-family support (AlmaLinux, Rocky, CentOS Stream, Fedora), including
+  no-sudo accounts: a new `CAN_APT` global (sudo AND apt-get present, set by
+  `detect_sudo`) gates every apt code path, so non-apt systems take the
+  user-local binary path (`~/.local/bin`) with or without sudo instead of
+  dying on a missing `apt-get` under `set -e`. Prerequisite hints are now
+  package-manager-aware (`_pkg_install_hint`: apt/dnf/yum), `get.sh` bootstraps
+  git/curl via dnf/yum when run as root on RHEL, and `_check_os`/`get.sh`
+  recognise RHEL-family IDs instead of warning "not Ubuntu/Debian".
+- CI coverage for the RHEL path: `Dockerfile.nosudo` takes a `BASE` image arg
+  (Ubuntu or AlmaLinux, apt/dnf branch, `--allowerasing` for the EL9+
+  curl-minimal conflict), `ci-local.sh` gains `--alma` and AlmaLinux 9/10
+  no-sudo cells, and a new `install-nosudo-alma` GitHub Actions job runs all
+  three variants on AlmaLinux 9 and 10 (18 → 24 cells).
+- `ci-local.sh`: local runs now pass a GitHub token (from `GH_TOKEN` or
+  `gh auth token`) into builds via BuildKit secret and into runs via env, so
+  API-based installers no longer trip the unauthenticated 60-req/hr rate limit
+  (the documented false-failure mode of local no-sudo cells).
 - `zsh/.zshrc`: prepend `$HOME/go/bin` to `PATH` so `go install`-ed binaries are
   found (no-op when the directory doesn't exist).
 

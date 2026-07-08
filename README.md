@@ -57,6 +57,17 @@ curl -fsSL https://raw.githubusercontent.com/YASoftwareDev/dotfiles/master/get.s
 NOSUDO=1 ./install.sh workstation
 ```
 
+**RHEL family (AlmaLinux / Rocky / CentOS Stream / Fedora)** - supported via the
+same user-local path: there is no apt, so tools are always fetched as prebuilt
+binaries into `~/.local/bin`, with or without sudo. The `NOSUDO=1` override is
+unnecessary (no-apt is auto-detected), and a plain user without sudo works out
+of the box. The only requirement is that an administrator has preinstalled the
+base prerequisites:
+
+```bash
+sudo dnf install -y git curl zsh tmux python3 tar gzip xz findutils
+```
+
 <details>
 <summary>Other install methods</summary>
 

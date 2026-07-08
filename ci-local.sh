@@ -24,9 +24,13 @@ ALL_PROFILES=(docker minimal workstation)
 # auto:      user has NO sudo binary; detect_sudo() auto-detects CAN_SUDO=false
 # nonsudoer: sudo binary present but user NOT in sudoers; detect_sudo() must
 #            auto-detect CAN_SUDO=false via `sudo -n -v` (no override set)
+# The nosudo matrix also covers the RHEL family (AlmaLinux) - there the
+# binary-fetch path is the ONLY install path, sudo or not (no apt).
 ALL_NOSUDO_UBUNTU=(20.04 22.04 24.04)
+ALL_NOSUDO_ALMA=(9 10)
 ALL_NOSUDO_VARIANTS=(forced auto nonsudoer)
 FILTER_UBUNTU=()
+FILTER_ALMA=()
 FILTER_PROFILES=()
 NO_CACHE=false
 CLEAN=false
@@ -47,6 +51,7 @@ Usage: bash ci-local.sh [OPTIONS]
 
 Options:
   --ubuntu VERSION      Test only this Ubuntu version (repeatable)
+  --alma VERSION        Test only this AlmaLinux version - nosudo cells only (repeatable)
   --profile PROFILE     Test only this profile (repeatable)
   --no-cache            Pass --no-cache to docker build
   --clean               Remove ALL dotfiles-test:* images and dangling layers after
@@ -55,6 +60,7 @@ Options:
   --help                Show this help
 
 Valid Ubuntu versions : ${ALL_UBUNTU[*]}
+Valid Alma versions   : ${ALL_NOSUDO_ALMA[*]}  (nosudo variants only - no apt profiles)
 Valid profiles        : ${ALL_PROFILES[*]}
 Valid nosudo variants : ${ALL_NOSUDO_VARIANTS[*]}  (or "nosudo" to run all)
 
@@ -62,13 +68,16 @@ Valid nosudo variants : ${ALL_NOSUDO_VARIANTS[*]}  (or "nosudo" to run all)
   nosudo-auto       user has NO sudo binary; detect_sudo() auto-detects
   nosudo-nonsudoer  sudo binary present but user NOT in sudoers; auto-detects
 
+GitHub API rate limit: when GH_TOKEN is set (or \`gh auth token\` works), the
+token is passed to builds/runs so API-based installers are not rate-limited.
+
 Examples:
   bash ci-local.sh
   bash ci-local.sh --ubuntu 24.04 --profile minimal
   bash ci-local.sh --ubuntu 22.04 --ubuntu 24.04 --profile docker
   bash ci-local.sh --ubuntu 24.04 --profile nosudo             # all variants
+  bash ci-local.sh --alma 9 --profile nosudo-auto              # AlmaLinux 9, one variant
   bash ci-local.sh --ubuntu 24.04 --profile nosudo-forced      # one variant
-  bash ci-local.sh --ubuntu 24.04 --profile nosudo-auto        # one variant
   bash ci-local.sh --ubuntu 24.04 --profile nosudo-nonsudoer   # one variant
   bash ci-local.sh --skip-nosudo
 EOF
@@ -90,6 +99,9 @@ while [[ $# -gt 0 ]]; do
         --ubuntu)
             _validate_in "$2" "ubuntu version" "${ALL_UBUNTU[@]}"
             FILTER_UBUNTU+=("$2"); shift 2 ;;
+        --alma)
+            _validate_in "$2" "alma version" "${ALL_NOSUDO_ALMA[@]}"
+            FILTER_ALMA+=("$2"); shift 2 ;;
         --profile)
             case "$2" in
                 nosudo)
@@ -122,6 +134,23 @@ if [[ ${#FILTER_PROFILES[@]} -eq 0 ]]; then
 else
     PROFILE_LIST=("${FILTER_PROFILES[@]}")
 fi
+
+# ── GitHub API auth (optional) ────────────────────────────────────────────────
+# Unauthenticated builds hit GitHub's 60-req/hr API cap: API-based installers
+# (rg, fd, jq, zoxide, delta, eza) then fail with "could not find release URL -
+# skipping" - a false failure. With a token, builds get a ~/.curlrc via BuildKit
+# secret (never stored in image layers) and runs get it via GH_TOKEN env.
+GH_TOKEN_VAL="${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}"
+GH_TOKEN_FILE=""
+if [ -n "$GH_TOKEN_VAL" ]; then
+    GH_TOKEN_FILE=$(mktemp)
+    printf '%s' "$GH_TOKEN_VAL" > "$GH_TOKEN_FILE"
+    chmod 600 "$GH_TOKEN_FILE"
+    trap 'rm -f "$GH_TOKEN_FILE"' EXIT
+fi
+# Prepended to in-container commands: writes ~/.curlrc from the GH_TOKEN env
+# var (single-quoted here - expands inside the container, not on the host).
+_CURLRC_CMD='[ -n "${GH_TOKEN:-}" ] && printf "header = \"Authorization: Bearer %s\"\n" "$GH_TOKEN" > ~/.curlrc || true'
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 _check_docker() {
@@ -176,6 +205,7 @@ _run_step() {
         "${run_user_flag[@]}" \
         -e TERM=xterm-256color \
         -e POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=true \
+        -e GH_TOKEN="${GH_TOKEN_VAL:-}" \
         "$tag" bash -c "$*" \
         >>"$logfile" 2>&1; then
         echo -e "  ${GREEN}✓${NC} ${label}"
@@ -223,26 +253,30 @@ run_combination() {
 }
 
 # ── No-sudo runner (uses Dockerfile.nosudo, non-root user) ───────────────────
+# base_label: short tag/log identifier (e.g. "24.04", "alma9")
+# base_image: docker image reference   (e.g. "ubuntu:24.04", "almalinux:9")
 # variant: "forced"    (has sudo, NOSUDO=1 override)
 #        | "auto"      (no sudo binary)
 #        | "nonsudoer" (sudo binary present, user not in sudoers, no override)
 # Returns: 0=pass, 1=fail
 _build_nosudo() {
-    local ubuntu="$1" variant="$2" tag logfile
-    tag=$(_tag "$ubuntu" "nosudo-${variant}")
-    logfile="${LOG_DIR}/${ubuntu}-nosudo-${variant}.log"
-    local -a cache_flag=() extra_args=()
+    local base_label="$1" base_image="$2" variant="$3" tag logfile
+    tag=$(_tag "$base_label" "nosudo-${variant}")
+    logfile="${LOG_DIR}/${base_label}-nosudo-${variant}.log"
+    local -a cache_flag=() extra_args=() secret_flag=()
     $NO_CACHE && cache_flag=(--no-cache)
+    [ -n "$GH_TOKEN_FILE" ] && secret_flag=(--secret "id=gh_token,src=${GH_TOKEN_FILE}")
     case "$variant" in
         forced)    extra_args=(--build-arg "GRANT_SUDO=true"  --build-arg "NOSUDO_INSTALL=1") ;;
         auto)      extra_args=(--build-arg "GRANT_SUDO=false" --build-arg "NOSUDO_INSTALL=") ;;
         nonsudoer) extra_args=(--build-arg "GRANT_SUDO=false" --build-arg "INSTALL_SUDO=true" --build-arg "NOSUDO_INSTALL=") ;;
     esac
-    echo -e "  ${BLUE}→${NC} building ${BOLD}${tag}${NC} (Dockerfile.nosudo, variant=${variant}) ..."
+    echo -e "  ${BLUE}→${NC} building ${BOLD}${tag}${NC} (Dockerfile.nosudo, base=${base_image}, variant=${variant}) ..."
     if docker build \
         "${cache_flag[@]}" \
-        --build-arg "UBUNTU=${ubuntu}" \
+        --build-arg "BASE=${base_image}" \
         "${extra_args[@]}" \
+        "${secret_flag[@]}" \
         -f "${DOTFILES_DIR}/Dockerfile.nosudo" \
         -t "$tag" \
         "$DOTFILES_DIR" \
@@ -256,10 +290,10 @@ _build_nosudo() {
 }
 
 run_nosudo() {
-    local ubuntu="$1" variant="$2"
+    local base_label="$1" base_image="$2" variant="$3"
     local tag logfile install_cmd
-    tag=$(_tag "$ubuntu" "nosudo-${variant}")
-    logfile="${LOG_DIR}/${ubuntu}-nosudo-${variant}.log"
+    tag=$(_tag "$base_label" "nosudo-${variant}")
+    logfile="${LOG_DIR}/${base_label}-nosudo-${variant}.log"
 
     # For idempotency re-run: nosudo-forced needs NOSUDO=1; nosudo-auto and
     # nosudo-nonsudoer rely on detect_sudo() reaching CAN_SUDO=false on its own
@@ -274,10 +308,10 @@ run_nosudo() {
     : >"$logfile"  # truncate
 
     echo ""
-    echo -e "${BOLD}── Ubuntu ${ubuntu}  /  nosudo-${variant} ──${NC}"
+    echo -e "${BOLD}── ${base_image}  /  nosudo-${variant} ──${NC}"
 
     # 1. Build (install.sh runs as non-root user during docker build)
-    _build_nosudo "$ubuntu" "$variant" || return 1
+    _build_nosudo "$base_label" "$base_image" "$variant" || return 1
 
     # 2. Test suite
     _run_step -u user "$tag" "test.sh nosudo" "$logfile" \
@@ -286,12 +320,12 @@ run_nosudo() {
 
     # 3. Idempotency - re-run install.sh (must be a no-op)
     _run_step -u user "$tag" "idempotency (re-run install.sh minimal)" "$logfile" \
-        "export PATH=\"\$HOME/.local/bin:\$PATH\"; cd ~/dotfiles && ${install_cmd}" \
+        "${_CURLRC_CMD}; export PATH=\"\$HOME/.local/bin:\$PATH\"; cd ~/dotfiles && ${install_cmd}" \
         || return 1
 
     # 4. update.sh
     _run_step -u user "$tag" "update.sh" "$logfile" \
-        "export PATH=\"\$HOME/.local/bin:\$PATH\"; cd ~/dotfiles && bash update.sh" \
+        "${_CURLRC_CMD}; export PATH=\"\$HOME/.local/bin:\$PATH\"; cd ~/dotfiles && bash update.sh" \
         || return 1
 
     # 5. Re-validate after update
@@ -315,22 +349,31 @@ echo -e "${BOLD}╔════════════════════�
 echo -e "║     YA Dotfiles - Local Matrix Tests     ║"
 echo -e "╚══════════════════════════════════════════╝${NC}"
 echo ""
-# Determine which no-sudo Ubuntu versions to run
-if $FILTER_NOSUDO; then
-    # User explicitly requested nosudo - use the ubuntu filter (or all)
-    if [[ ${#FILTER_UBUNTU[@]} -gt 0 ]]; then
-        NOSUDO_LIST=("${FILTER_UBUNTU[@]}")
+# Determine which no-sudo bases (Ubuntu + AlmaLinux) to run.
+# A --ubuntu filter without --alma limits nosudo to those Ubuntu versions (and
+# vice versa) so a single-cell invocation never pulls in the other distro.
+_resolve_nosudo_bases() {
+    if [[ ${#FILTER_UBUNTU[@]} -gt 0 && ${#FILTER_ALMA[@]} -eq 0 ]]; then
+        NOSUDO_LIST=("${FILTER_UBUNTU[@]}"); NOSUDO_ALMA_LIST=()
+    elif [[ ${#FILTER_ALMA[@]} -gt 0 && ${#FILTER_UBUNTU[@]} -eq 0 ]]; then
+        NOSUDO_LIST=(); NOSUDO_ALMA_LIST=("${FILTER_ALMA[@]}")
+    elif [[ ${#FILTER_ALMA[@]} -gt 0 && ${#FILTER_UBUNTU[@]} -gt 0 ]]; then
+        NOSUDO_LIST=("${FILTER_UBUNTU[@]}"); NOSUDO_ALMA_LIST=("${FILTER_ALMA[@]}")
     else
-        NOSUDO_LIST=("${ALL_NOSUDO_UBUNTU[@]}")
+        NOSUDO_LIST=("${ALL_NOSUDO_UBUNTU[@]}"); NOSUDO_ALMA_LIST=("${ALL_NOSUDO_ALMA[@]}")
     fi
+}
+if $FILTER_NOSUDO; then
+    # User explicitly requested nosudo
+    _resolve_nosudo_bases
     # Remove regular profiles if user only asked for nosudo
     if [[ ${#FILTER_PROFILES[@]} -eq 0 ]]; then
         PROFILE_LIST=()
     fi
 elif $SKIP_NOSUDO; then
-    NOSUDO_LIST=()
+    NOSUDO_LIST=(); NOSUDO_ALMA_LIST=()
 else
-    NOSUDO_LIST=("${ALL_NOSUDO_UBUNTU[@]}")
+    _resolve_nosudo_bases
 fi
 
 # Resolve which nosudo variants to run
@@ -340,13 +383,15 @@ else
     NOSUDO_VARIANT_LIST=("${ALL_NOSUDO_VARIANTS[@]}")
 fi
 
-nosudo_count=$(( ${#NOSUDO_LIST[@]} * ${#NOSUDO_VARIANT_LIST[@]} ))
+nosudo_count=$(( (${#NOSUDO_LIST[@]} + ${#NOSUDO_ALMA_LIST[@]}) * ${#NOSUDO_VARIANT_LIST[@]} ))
 regular_count=$(( ${#UBUNTU_LIST[@]} * ${#PROFILE_LIST[@]} ))
 
 echo -e "  Ubuntu versions  : ${UBUNTU_LIST[*]}"
 echo -e "  Profiles         : ${PROFILE_LIST[*]:-none}"
 echo -e "  No-sudo Ubuntu   : ${NOSUDO_LIST[*]:-none}"
+echo -e "  No-sudo Alma     : ${NOSUDO_ALMA_LIST[*]:-none}"
 echo -e "  No-sudo variants : ${NOSUDO_VARIANT_LIST[*]:-none}"
+echo -e "  GitHub API auth  : $([ -n "$GH_TOKEN_VAL" ] && echo "token found" || echo "none (60 req/hr limit)")"
 echo -e "  Combinations     : $((regular_count + nosudo_count))"
 echo -e "  Logs             : ${LOG_DIR}/"
 
@@ -366,12 +411,25 @@ done
 for ubuntu in "${NOSUDO_LIST[@]}"; do
     for variant in "${NOSUDO_VARIANT_LIST[@]}"; do
         total=$((total + 1))
-        if run_nosudo "$ubuntu" "$variant"; then
+        if run_nosudo "$ubuntu" "ubuntu:${ubuntu}" "$variant"; then
             passed=$((passed + 1))
             results+=("${GREEN}PASS${NC}  Ubuntu ${ubuntu}  /  nosudo-${variant}")
         else
             failed=$((failed + 1))
             results+=("${RED}FAIL${NC}  Ubuntu ${ubuntu}  /  nosudo-${variant}  →  ${LOG_DIR}/${ubuntu}-nosudo-${variant}.log")
+        fi
+    done
+done
+
+for alma in "${NOSUDO_ALMA_LIST[@]}"; do
+    for variant in "${NOSUDO_VARIANT_LIST[@]}"; do
+        total=$((total + 1))
+        if run_nosudo "alma${alma}" "almalinux:${alma}" "$variant"; then
+            passed=$((passed + 1))
+            results+=("${GREEN}PASS${NC}  AlmaLinux ${alma}  /  nosudo-${variant}")
+        else
+            failed=$((failed + 1))
+            results+=("${RED}FAIL${NC}  AlmaLinux ${alma}  /  nosudo-${variant}  →  ${LOG_DIR}/alma${alma}-nosudo-${variant}.log")
         fi
     done
 done

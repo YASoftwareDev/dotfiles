@@ -4,10 +4,11 @@ This file provides codebase context for AI coding agents (Codex, Copilot, etc.).
 
 ## Repository purpose
 
-Personal dotfiles for Ubuntu/Debian: one-command install (`install.sh`), managed
-updates (`update.sh`), post-install test suite (`test.sh`), and CI matrix covering
-3 Ubuntu versions × 3 install profiles + 3 no-sudo variants (auto / forced /
-nonsudoer) - 18 cells total.
+Personal dotfiles for Ubuntu/Debian, with RHEL-family (AlmaLinux/Rocky/Fedora)
+support via the user-local binary path: one-command install (`install.sh`),
+managed updates (`update.sh`), post-install test suite (`test.sh`), and CI
+matrix covering 3 Ubuntu versions × 3 install profiles + no-sudo variants
+(auto / forced / nonsudoer) on 3 Ubuntu + 2 AlmaLinux versions - 24 cells total.
 
 ## Key files
 
@@ -23,6 +24,9 @@ nonsudoer) - 18 cells total.
 
 ## Critical rules (never violate)
 
+- Gate every apt code path on `$CAN_APT` (sudo AND apt-get present, set by
+  `detect_sudo`), never on `$CAN_SUDO` alone - on RHEL-family systems sudo can be
+  available while apt is not, and a bare `apt-get` call dies under `set -e`.
 - All scripts use `set -euo pipefail`. Use `count=$(( count + 1 ))` - never `(( count++ ))`.
   Also avoid `[ cond ] && var=true` - when the condition is false, the expression exits with 1 and
   trips `set -e`. Use `if [ cond ]; then var=true; fi` instead.

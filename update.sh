@@ -251,8 +251,8 @@ _do_update_xcape() {
                 log_warn "  → sudo required to reinstall xcape"
             fi
         else
-            if ! $CAN_SUDO; then
-                log_warn "xcape: sudo required to install build deps and binary - skipping"
+            if ! $CAN_APT; then
+                log_warn "xcape: sudo + apt required to install build deps and binary - skipping"
             else
                 log_info "xcape: rebuilding from source (alols/xcape)"
                 apt_install libxtst-dev libx11-dev pkg-config make gcc
@@ -352,16 +352,16 @@ _check_path_shadows() {
 log_info "Checking sudo access..."
 detect_sudo
 case "$SUDO_STATUS" in
-    root)              log_ok   "Running as root - apt upgrades will run directly" ;;
-    sudo_passwordless) log_ok   "sudo available - apt upgrades will run via sudo" ;;
+    root)              log_ok   "Running as root - system upgrades will run directly" ;;
+    sudo_passwordless) log_ok   "sudo available - system upgrades will run via sudo" ;;
     sudo_password)
-        log_ok   "sudo available - apt upgrades will run via sudo"
-        log_warn "sudo requires a password - you will be prompted when apt runs" ;;
-    nosudo)            log_warn "No sudo - apt upgrade skipped" ;;
+        log_ok   "sudo available - system upgrades will run via sudo"
+        log_warn "sudo requires a password - you will be prompted when it is used" ;;
+    nosudo)            log_warn "No sudo - system package upgrade skipped" ;;
 esac
 if _should_run apt; then
     log_step "System packages (apt)"
-    if $CAN_SUDO; then
+    if $CAN_APT; then
         if $CHECK_ONLY; then
             apt list --upgradable 2>/dev/null | grep -v '^Listing' || true
             log_info "  → sudo required to apply these updates"
@@ -370,6 +370,8 @@ if _should_run apt; then
             $SUDO env DEBIAN_FRONTEND=noninteractive apt-get -yq upgrade
             log_ok "System packages updated"
         fi
+    elif $CAN_SUDO; then
+        log_warn "No apt on this system - skipping (upgrade via your native package manager)"
     else
         log_warn "No sudo - skipping apt upgrade"
     fi

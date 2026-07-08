@@ -220,10 +220,14 @@ _neovim_legacy_binary() {
 }
 
 _neovim_apt() {
-    if ! $CAN_SUDO; then
-        log_warn "neovim: no sudo - cannot install via apt"
-        log_warn "  Prebuilt GitHub binaries require glibc ≥ 2.32 (Ubuntu 22.04+)"
-        log_warn "  Options: upgrade OS, or build neovim from source"
+    if ! $CAN_APT; then
+        if $CAN_SUDO; then
+            log_warn "neovim: no apt on this system - install it manually: $(_pkg_install_hint) neovim"
+        else
+            log_warn "neovim: no sudo - cannot install via a system package manager"
+            log_warn "  Prebuilt GitHub binaries require glibc ≥ 2.32"
+            log_warn "  Options: upgrade OS, or build neovim from source"
+        fi
         return
     fi
     apt_install neovim
