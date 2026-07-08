@@ -1,9 +1,11 @@
 # Dockerfile.nosudo
+# Requires BuildKit (Docker 20.10+ default) for the optional gh_token secret.
 #
 # Covers three user-local install scenarios (all land binaries in ~/.local/bin):
 #
 #   nosudo-auto      - user has NO sudo; detect_sudo() auto-detects CAN_SUDO=false.
-#                      Ubuntu base images ship without sudo, so no extra setup needed.
+#                      Ubuntu/AlmaLinux base images ship without sudo, so no extra
+#                      setup needed.
 #                      Build args: GRANT_SUDO=false (default), NOSUDO_INSTALL="" (default)
 #
 #   nosudo-forced    - user HAS passwordless sudo but NOSUDO=1 overrides it.
@@ -17,16 +19,23 @@
 #                      misclassified as sudo_password.
 #                      Build args: INSTALL_SUDO=true, GRANT_SUDO=false, NOSUDO_INSTALL=""
 #
+# The BASE arg selects the distro (apt- and dnf-based images both work):
+#   ubuntu:24.04 (default), ubuntu:22.04, ubuntu:20.04, almalinux:9, almalinux:10
+#
 # Used automatically by ci-local.sh (runs all variants) or directly:
 #
-#   # nosudo-auto (default)
-#   docker build --build-arg UBUNTU=24.04 \
-#       -t dotfiles-test:24.04-nosudo-auto -f Dockerfile.nosudo .
+#   # nosudo-auto on AlmaLinux 9
+#   docker build --build-arg BASE=almalinux:9 \
+#       -t dotfiles-test:alma9-nosudo-auto -f Dockerfile.nosudo .
 #
-#   # nosudo-forced
-#   docker build --build-arg UBUNTU=24.04 \
+#   # nosudo-forced on Ubuntu 24.04
+#   docker build --build-arg BASE=ubuntu:24.04 \
 #       --build-arg GRANT_SUDO=true --build-arg NOSUDO_INSTALL=1 \
 #       -t dotfiles-test:24.04-nosudo-forced -f Dockerfile.nosudo .
+#
+# Optional: pass a GitHub token so the ~6 API-based installers don't hit the
+# unauthenticated 60-req/hr rate limit (the known local-run failure mode):
+#   docker build --secret id=gh_token,src=/path/to/tokenfile ...
 #
 # Then run the test suite (ci-local.sh does this automatically):
 #   docker run --rm --user user -e TERM=xterm-256color \
@@ -34,8 +43,8 @@
 #       <tag> bash -c \
 #       'export PATH="$HOME/.local/bin:$PATH"; cd ~/dotfiles && bash test.sh nosudo'
 
-ARG UBUNTU=24.04
-FROM ubuntu:${UBUNTU}
+ARG BASE=ubuntu:24.04
+FROM ${BASE}
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TERM=xterm-256color
@@ -59,10 +68,23 @@ ARG INSTALL_SUDO=false
 ARG NOSUDO_INSTALL=
 
 # ── Step 1-2: Base prerequisites (always installed) ───────────────────────────
-RUN apt-get -yq update && \
-    apt-get -yq install --no-install-recommends \
-        apt-utils git curl wget ca-certificates zsh tmux python3 && \
-    rm -rf /var/lib/apt/lists/*
+# Branch on the image's package manager: apt (Ubuntu/Debian) or dnf (AlmaLinux/
+# RHEL family). The dnf list adds what Ubuntu images already carry: tar/gzip/xz
+# (binary extraction), findutils (_download_tar_bin uses find), shadow-utils
+# (useradd below), glibc-langpack-en (en_US.UTF-8 locale data).
+RUN if command -v apt-get >/dev/null 2>&1; then \
+        apt-get -yq update && \
+        apt-get -yq install --no-install-recommends \
+            apt-utils git curl wget ca-certificates zsh tmux python3 && \
+        rm -rf /var/lib/apt/lists/*; \
+    else \
+        # --allowerasing: EL9+ images ship curl-minimal, which conflicts with
+        # the full curl package - allow dnf to swap it out.
+        dnf -yq install --allowerasing \
+            git curl wget ca-certificates zsh tmux python3 \
+            tar gzip xz findutils shadow-utils glibc-langpack-en && \
+        dnf clean all; \
+    fi
 
 # ── Step 2b: Optionally install sudo ──────────────────────────────────────────
 # nosudo-auto intentionally omits the sudo binary so detect_sudo() auto-detects.
@@ -70,9 +92,13 @@ RUN apt-get -yq update && \
 # nosudo-nonsudoer installs sudo (INSTALL_SUDO=true) but withholds sudoers
 # membership below, so detect_sudo() must auto-detect CAN_SUDO=false.
 RUN if [ "${GRANT_SUDO}" = "true" ] || [ "${INSTALL_SUDO}" = "true" ]; then \
-        apt-get -yq update && \
-        apt-get -yq install --no-install-recommends sudo && \
-        rm -rf /var/lib/apt/lists/*; \
+        if command -v apt-get >/dev/null 2>&1; then \
+            apt-get -yq update && \
+            apt-get -yq install --no-install-recommends sudo && \
+            rm -rf /var/lib/apt/lists/*; \
+        else \
+            dnf -yq install sudo && dnf clean all; \
+        fi; \
     fi
 
 # ── Step 3: Create non-root user; conditionally grant passwordless sudo ───────
@@ -94,6 +120,18 @@ WORKDIR /home/user
 # NOSUDO="${NOSUDO_INSTALL}" is "" for nosudo-auto (detect_sudo decides)
 #                          and "1" for nosudo-forced (overrides working sudo).
 # 'minimal' profile: zsh, tmux, git config + ~7 GitHub-tarball binaries.
-RUN cd dotfiles && NOSUDO="${NOSUDO_INSTALL}" bash install.sh minimal
+# The optional gh_token secret becomes a ~/.curlrc Authorization header for the
+# install only (curl reads it automatically); removed afterwards so the image
+# carries no credentials.
+# mode=0444 (not uid=): Ubuntu 24.04 images ship an 'ubuntu' user at uid 1000,
+# pushing 'user' to 1001 - a uid-pinned secret is then unreadable and the
+# resulting empty Bearer header turns every API call into a 401.
+RUN --mount=type=secret,id=gh_token,mode=0444,required=false \
+    tok="$(cat /run/secrets/gh_token 2>/dev/null || true)"; \
+    if [ -n "$tok" ]; then \
+        printf 'header = "Authorization: Bearer %s"\n' "$tok" > ~/.curlrc; \
+    fi; \
+    cd dotfiles && NOSUDO="${NOSUDO_INSTALL}" bash install.sh minimal; \
+    rc=$?; rm -f ~/.curlrc; exit $rc
 
 CMD ["bash"]

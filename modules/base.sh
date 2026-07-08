@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # Base system packages - requires apt (Ubuntu/Debian)
 # Idempotent: apt handles "already installed" gracefully
-# When CAN_SUDO=false, apt steps are skipped and tools are fetched as
-# pre-built binaries into ~/.local/bin instead.
+# When CAN_APT=false (no sudo, or a non-apt distro such as AlmaLinux), apt
+# steps are skipped and tools are fetched as pre-built binaries into
+# ~/.local/bin instead.
 
 install_base() {
     log_step "Base packages"
     mkdir -p ~/.local/bin
 
-    if $CAN_SUDO; then
+    if $CAN_APT; then
         local -a _pkgs=(
             locales
             git curl wget
@@ -37,9 +38,14 @@ install_base() {
             log_ok "Created fd → fdfind shim in ~/.local/bin"
         fi
     else
-        log_warn "No sudo - skipping apt; fetching available tools as local binaries"
+        if $CAN_SUDO; then
+            log_warn "No apt on this system - skipping system packages; fetching tools as local binaries"
+        else
+            log_warn "No sudo - skipping system packages; fetching tools as local binaries"
+        fi
+        local _hint tool; _hint=$(_pkg_install_hint)
         for tool in git zsh tmux python3; do
-            has "$tool" || log_warn "$tool not found - install via your system package manager"
+            has "$tool" || log_warn "$tool not found - install it: ${_hint} $tool"
         done
         _install_ripgrep
         _install_fd
@@ -52,7 +58,7 @@ install_base() {
     _install_eza
     _install_yazi
 
-    if ! $CAN_SUDO; then
+    if ! $CAN_APT; then
         log_warn "Binaries installed to ~/.local/bin - ensure it is on your PATH:"
         log_warn "  export PATH=\"\$HOME/.local/bin:\$PATH\""
     fi
@@ -62,26 +68,33 @@ install_base() {
 
 install_base_docker() {
     log_step "Base packages (docker mode)"
-    if ! $CAN_SUDO; then
-        log_warn "Skipping system packages (no sudo)"
-        return
-    fi
+    mkdir -p ~/.local/bin
 
-    local -a _pkgs=(
-        locales git curl wget
-        zsh tmux neovim
-        jq ripgrep fd-find shellcheck
-    )
-    log_info "Installing via apt: ${_pkgs[*]} (versions resolved by apt)"
-    $SUDO apt-get -yq update
-    apt_install "${_pkgs[@]}"
-    log_info "Generating locale: en_US.UTF-8"
-    $SUDO locale-gen en_US.UTF-8
-    $SUDO update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+    if $CAN_APT; then
+        local -a _pkgs=(
+            locales git curl wget
+            zsh tmux neovim
+            jq ripgrep fd-find shellcheck
+        )
+        log_info "Installing via apt: ${_pkgs[*]} (versions resolved by apt)"
+        $SUDO apt-get -yq update
+        apt_install "${_pkgs[@]}"
+        log_info "Generating locale: en_US.UTF-8"
+        $SUDO locale-gen en_US.UTF-8
+        $SUDO update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
 
-    if ! has fd && has fdfind; then
-        mkdir -p ~/.local/bin
-        ln -sf "$(command -v fdfind)" ~/.local/bin/fd
+        if ! has fd && has fdfind; then
+            ln -sf "$(command -v fdfind)" ~/.local/bin/fd
+        fi
+    else
+        log_warn "No apt - skipping system packages; fetching tools as local binaries"
+        local _hint tool; _hint=$(_pkg_install_hint)
+        for tool in git zsh tmux python3; do
+            has "$tool" || log_warn "$tool not found - install it: ${_hint} $tool"
+        done
+        _install_ripgrep
+        _install_fd
+        _install_jq
     fi
 
     _install_fzf
@@ -122,7 +135,7 @@ _install_zoxide() {
     local major=0
     [ -n "$apt_ver" ] && major=$(echo "$apt_ver" | cut -d. -f1)
 
-    if $CAN_SUDO && { [ "$major" -gt 0 ] || [ "$minor" -ge 8 ]; }; then
+    if $CAN_APT && { [ "$major" -gt 0 ] || [ "$minor" -ge 8 ]; }; then
         log_info "zoxide: installing via apt (version ≥ 0.8 available) → system"
         apt_install zoxide
         return
@@ -146,7 +159,7 @@ _install_zoxide() {
     read -r tag url < <(_gh_release_info "ajeetdsouza/zoxide" "${zoxide_arch}.tar.gz") || true
 
     if [ -z "$url" ]; then
-        if $CAN_SUDO && [ -n "$apt_ver" ]; then
+        if $CAN_APT && [ -n "$apt_ver" ]; then
             log_warn "zoxide: could not determine latest version; falling back to apt $apt_ver"
             log_warn "zoxide: apt version <0.8 - 'zi' alias requires ≥0.8; run update.sh to upgrade"
             apt_install zoxide
@@ -163,7 +176,7 @@ _install_zoxide() {
     fi
 
     # GitHub download failed (e.g. rate-limited in local Docker builds)
-    if $CAN_SUDO && [ -n "$apt_ver" ]; then
+    if $CAN_APT && [ -n "$apt_ver" ]; then
         log_warn "zoxide: GitHub download failed; falling back to apt $apt_ver"
         log_warn "zoxide: apt version <0.8 - 'zi' alias requires ≥0.8; run update.sh to upgrade"
         apt_install zoxide
@@ -183,12 +196,12 @@ _install_delta() {
         return
     fi
 
-    if $CAN_SUDO && apt-cache show git-delta &>/dev/null 2>&1; then
+    if $CAN_APT && apt-cache show git-delta &>/dev/null 2>&1; then
         apt_install git-delta
         return
     fi
 
-    if $CAN_SUDO; then
+    if $CAN_APT; then
         log_step "git-delta (GitHub .deb)"
         local arch; arch="$(_deb_arch)"
         local tag="" url=""
@@ -213,7 +226,7 @@ _install_delta() {
         $SUDO dpkg -i "$tmp/$deb"
         log_ok "git-delta ${ver} installed → $(command -v delta 2>/dev/null || echo 'system')"
     else
-        log_step "git-delta (GitHub binary - no sudo)"
+        log_step "git-delta (GitHub binary)"
         local arch; arch=$(uname -m)
         local delta_arch
         case "$arch" in
@@ -250,13 +263,13 @@ _install_eza() {
         return
     fi
 
-    if $CAN_SUDO && apt-cache show eza &>/dev/null 2>&1; then
+    if $CAN_APT && apt-cache show eza &>/dev/null 2>&1; then
         log_info "eza: installing via apt → system"
         apt_install eza
         return
     fi
 
-    if $CAN_SUDO; then
+    if $CAN_APT; then
         log_step "eza (official PPA)"
         log_info "eza: installing latest → system (via PPA)"
         apt_install gpg  # needed for dearmor; may already be present
@@ -277,7 +290,7 @@ _install_eza() {
         apt_install eza
         log_ok "eza installed via PPA ($(eza --version 2>/dev/null | head -1))"
     else
-        log_step "eza (GitHub binary - no sudo)"
+        log_step "eza (GitHub binary)"
         local arch; arch=$(uname -m)
         local eza_arch
         case "$arch" in
