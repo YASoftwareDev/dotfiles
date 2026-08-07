@@ -135,7 +135,9 @@ if [[ $TERM == linux ]]; then
   # dark both as text on black and as backgrounds (yellow is brown
   # #aa5500, green #00aa00, blue #0000aa) — diffs and status highlights
   # were illegible. Order: 0-7 normal, 8-F bright.
-  printf '\e]P0000000\e]P1e06c60\e]P298c379\e]P3e5c07b\e]P46b9bfa\e]P5c678dd\e]P656b6c2\e]P7c8c8c8\e]P87f7f7f\e]P9ff7b72\e]PAa8e08a\e]PBffd866\e]PC82aaff\e]PDe2a8ff\e]PE7fdbe8\e]PFffffff'
+  # Red/green are mid-dark: they serve as diff BACKGROUNDS under light
+  # grey text (Claude Code listings) — bright fg accents live in 9/A.
+  printf '\e]P0000000\e]P19e453c\e]P24a7a3d\e]P3e5c07b\e]P46b9bfa\e]P5c678dd\e]P656b6c2\e]P7c8c8c8\e]P87f7f7f\e]P9ff7b72\e]PAa8e08a\e]PBffd866\e]PC82aaff\e]PDe2a8ff\e]PE7fdbe8\e]PFffffff'
   # Blank the panel after 5 min idle, DPMS off after 10 more (battery).
   setterm --blank 5 --powerdown 10 2>/dev/null
 else
