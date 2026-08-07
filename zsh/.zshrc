@@ -1,5 +1,6 @@
 # Enable Powerlevel10k instant prompt. Must stay near the top.
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+# Skipped on the text console (TERM=linux): no Nerd Font glyphs there.
+if [[ $TERM != linux && -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
@@ -19,6 +20,7 @@ setopt hist_find_no_dups       # Ctrl+R / history search skips duplicate entries
 # ── oh-my-zsh ─────────────────────────────────────────────────────────────────
 export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="powerlevel10k/powerlevel10k"
+[[ $TERM == linux ]] && ZSH_THEME=""   # plain prompt on the text console
 
 # Disable url-quote-magic / bracketed-paste-magic - both are buggy in zsh 5.9
 # inside tmux (zsh/parameter module collision on the `options` param).
@@ -126,7 +128,12 @@ fgl() {
 }
 
 # ── Powerlevel10k ─────────────────────────────────────────────────────────────
-[[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
+if [[ $TERM == linux ]]; then
+  # Text console (battery-max boots): simple ASCII prompt instead of p10k.
+  PROMPT='%F{green}%n@%m%f:%F{blue}%~%f%(?..%F{red})%#%f '
+else
+  [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
+fi
 
 # Set a fallback TERM only when the environment provides nothing useful
 [[ -z $TMUX && ( -z $TERM || $TERM == "dumb" ) ]] && export TERM="xterm-256color"
