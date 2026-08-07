@@ -131,6 +131,9 @@ fgl() {
 if [[ $TERM == linux ]]; then
   # Text console (battery-max boots): simple ASCII prompt instead of p10k.
   PROMPT='%F{green}%n@%m%f:%F{blue}%~%f%(?..%F{red})%#%f '
+  # Readable VT palette — lift the dark colors (default blue #0000aa is
+  # illegible on black): red, blue, magenta, grey, bright blue.
+  printf '\e]P1e06c60\e]P46b9bfa\e]P5c678dd\e]P87f7f7f\e]PC82aaff'
 else
   [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
 fi
