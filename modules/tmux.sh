@@ -13,6 +13,9 @@ install_tmux() {
     log_step "tmux config"
     symlink "${DOTFILES_DIR}/tmux/.tmux.conf"       ~/.tmux.conf
     symlink "${DOTFILES_DIR}/tmux/.tmux.conf.local"  ~/.tmux.conf.local
+    # Called from the status-row hooks in .tmux.conf.local, so it has to be on
+    # PATH under its own name.
+    symlink "${DOTFILES_DIR}/tmux/tmux-status-rows"  ~/.local/bin/tmux-status-rows
     log_ok "tmux config linked"
 }
 

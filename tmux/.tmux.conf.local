@@ -376,6 +376,29 @@ bind C-z display-popup -E "zoxide query -l | fzf --reverse --prompt='dir> ' | xa
 # move status line to top
 #set -g status-position top
 
+# -- multi-row window tabs -----------------------------------------------------
+# tmux hides tabs behind "<"/">" markers once the window list outgrows one row.
+# tmux-status-rows measures the tabs at the client's current width and rebuilds
+# status-format[] so they continue on a second, third, ... row instead. Tune
+# with @status-rows (on|off), @status-rows-max (1-5), @status-rows-reserve.
+# Hook index 10 keeps these clear of any hook already bound at index 0.
+# Guarded on 3.2, where #{w:} arrives: without it a tab cannot be measured and
+# the script deliberately does nothing. The guard also keeps the block out of
+# older parsers - %hidden is a 3.1 syntax error that aborts the rest of the file.
+%if #{>=:#{version},3.2}
+set-hook -g 'client-attached[10]'          'run-shell -b "[ -x ~/.local/bin/tmux-status-rows ] && ~/.local/bin/tmux-status-rows -q || true"'
+set-hook -g 'client-resized[10]'           'run-shell -b "[ -x ~/.local/bin/tmux-status-rows ] && ~/.local/bin/tmux-status-rows -q || true"'
+set-hook -g 'client-session-changed[10]'   'run-shell -b "[ -x ~/.local/bin/tmux-status-rows ] && ~/.local/bin/tmux-status-rows -q || true"'
+set-hook -g 'session-window-changed[10]'   'run-shell -b "[ -x ~/.local/bin/tmux-status-rows ] && ~/.local/bin/tmux-status-rows -q || true"'
+set-hook -g 'window-linked[10]'            'run-shell -b "[ -x ~/.local/bin/tmux-status-rows ] && ~/.local/bin/tmux-status-rows -q || true"'
+set-hook -g 'window-unlinked[10]'          'run-shell -b "[ -x ~/.local/bin/tmux-status-rows ] && ~/.local/bin/tmux-status-rows -q || true"'
+set-hook -g 'after-new-window[10]'         'run-shell -b "[ -x ~/.local/bin/tmux-status-rows ] && ~/.local/bin/tmux-status-rows -q || true"'
+set-hook -g 'after-rename-window[10]'      'run-shell -b "[ -x ~/.local/bin/tmux-status-rows ] && ~/.local/bin/tmux-status-rows -q || true"'
+set-hook -g 'after-select-window[10]'      'run-shell -b "[ -x ~/.local/bin/tmux-status-rows ] && ~/.local/bin/tmux-status-rows -q || true"'
+run-shell -b "[ -x ~/.local/bin/tmux-status-rows ] && ~/.local/bin/tmux-status-rows -q || true"
+%endif
+
+
 bind-key P command-prompt -p 'save history to filename:' -I '~/tmux.history' 'capture-pane -S -1000000; save-buffer %1 ; delete-buffer'
 # -- tpm -----------------------------------------------------------------------
 

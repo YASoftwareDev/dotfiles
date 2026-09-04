@@ -1,0 +1,417 @@
+#!/usr/bin/env bash
+# tmux-status-rows - wrap the tmux window list onto several status rows.
+#
+# tmux draws the window list on one status row and truncates it with "<"/">"
+# markers once the tabs stop fitting. This measures how much room the tabs need
+# at the client's current width and rebuilds status-format[] so the overflow
+# continues on the next row instead of being hidden.
+#
+# It is cheap and re-entrant: an option is written only when its value actually
+# changes. Two things drive it - tmux hooks (window added, renamed, closed,
+# selected; client resized) for instant reflow, and a hidden #() job embedded in
+# status-format[0] that re-runs it every status-interval, so width drift from
+# live tab labels reflows without a hook to hang it on.
+#
+# Usage:
+#   tmux-status-rows            recompute for every attached session
+#   tmux-status-rows -q         same, silent (used by the hooks and the driver)
+#   tmux-status-rows --print    print the computed layout, change nothing
+#   tmux-status-rows --reset    restore stock single-row rendering
+#
+# Per-session tmux user options:
+#   @status-rows          on|off      feature switch (default on)
+#   @status-rows-max      1..5        row ceiling (default 5, tmux's own limit)
+#   @status-rows-reserve  integer     columns kept free per row (default 4)
+
+set -euo pipefail
+
+readonly TMUX_MAX_STATUS_LINES=5
+readonly DEFAULT_MAX_ROWS=5
+readonly DEFAULT_RESERVE=4
+
+# Prefer the path this was invoked as - normally the ~/.local/bin symlink, which
+# is the stable name to embed in the status-format driver. Only a relative
+# invocation needs resolving, since the tmux job runs from an unknown directory.
+case "$0" in
+    /*) SELF="$0" ;;
+    *) SELF=$(readlink -f "$0" 2>/dev/null || printf '%s' "$0") ;;
+esac
+readonly SELF
+
+QUIET=false
+PRINT_ONLY=false
+RESET=false
+
+# One window-list entry, exactly as tmux renders it in the stock
+# status-format[0]: the style block picks up the last/bell/activity styles, the
+# range makes the tab clickable, and push-default keeps window-status-style as
+# the default style inside the tab's own format.
+readonly STYLE_FLAGS='#{?#{&&:#{window_last_flag},#{!=:#{E:window-status-last-style},default}}, #{E:window-status-last-style},}#{?#{&&:#{window_bell_flag},#{!=:#{E:window-status-bell-style},default}}, #{E:window-status-bell-style},#{?#{&&:#{||:#{window_activity_flag},#{window_silence_flag}},#{!=:#{E:window-status-activity-style},default}}, #{E:window-status-activity-style},}}'
+readonly ENTRY_NORMAL="#[range=window|#{window_index} #{E:window-status-style}${STYLE_FLAGS}]#[push-default]#{T:window-status-format}#[pop-default]#[norange default]"
+readonly ENTRY_CURRENT="#[range=window|#{window_index} list=focus #{?#{!=:#{E:window-status-current-style},default},#{E:window-status-current-style},#{E:window-status-style}}${STYLE_FLAGS}]#[push-default]#{T:window-status-current-format}#[pop-default]#[norange list=on default]"
+# tmux's own window-list prologue: the "<"/">" overflow markers it draws when a
+# row still cannot hold its tabs, and the user's status-justify. Dropping either
+# would make a full row render worse than stock rather than better.
+readonly LIST_PROLOGUE='#[list=on align=#{status-justify}]#[list=left-marker]<#[list=right-marker]>#[list=on]'
+readonly STATUS_LEFT='#[align=left range=left #{E:status-left-style}]#[push-default]#{T;=/#{status-left-length}:status-left}#[pop-default]#[norange default]'
+readonly STATUS_RIGHT='#[nolist align=right range=right #{E:status-right-style}]#[push-default]#{T;=/#{status-right-length}:status-right}#[pop-default]#[norange default]'
+
+# Serialise runs: the hooks and the #() driver can fire at the same moment, and
+# a run that read its options before a concurrent one changed them would write a
+# stale layout afterwards. Every option read happens under this lock, so the
+# waiting run re-reads the current state instead. Without flock the script still
+# works - a stale layout is corrected by the next tick.
+#
+# The lock is per tmux SERVER, not per user: two servers share no state, and a
+# uid-wide lock let a run against one of them wait out the timeout and silently
+# do nothing while an unrelated server's run held it.
+take_lock() {
+    local flock_bin="" key
+    if [ -x /usr/bin/flock ]; then flock_bin=/usr/bin/flock; fi
+    if [ -z "$flock_bin" ] && [ -x /bin/flock ]; then flock_bin=/bin/flock; fi
+    if [ -z "$flock_bin" ]; then return 0; fi
+    key=$(printf '%s' "${TMUX%%,*}" | cksum | cut -d' ' -f1)
+    exec 9>"${TMPDIR:-/tmp}/tmux-status-rows-$(id -u)-${key}.lock" 2>/dev/null || return 0
+    "$flock_bin" -w 5 9 || return 1
+    return 0
+}
+
+log() {
+    if ! $QUIET; then printf '%s\n' "$*"; fi
+}
+
+# Effective session option with a fallback: -A also reports a value inherited
+# from the global option, which is where these are normally set. -q keeps an
+# unset user option quiet.
+sopt() {
+    local session="$1" name="$2" fallback="${3-}" value
+    value=$(tmux show-options -qv -A -t "$session" "$name" 2>/dev/null) || value=""
+    if [ -n "$value" ]; then printf '%s' "$value"; else printf '%s' "$fallback"; fi
+}
+
+# Writes only on a real change, so a redraw is never triggered for nothing.
+set_if_changed() {
+    local session="$1" name="$2" want="$3" have
+    have=$(tmux show-options -qv -A -t "$session" "$name" 2>/dev/null) || have=""
+    if [ "$have" = "$want" ]; then return 1; fi
+    tmux set-option -t "$session" "$name" "$want" 2>/dev/null || return 1
+    return 0
+}
+
+# tmux < 3.2 has no #{w:} width modifier, so nothing can be measured. Such a
+# server keeps its stock single-row status rather than being handed a guess.
+has_width_modifier() {
+    local host probe
+    # #{w:X} takes a format, not a literal, so the probe measures a known value.
+    host=$(tmux display-message -p '#{host}' 2>/dev/null) || return 1
+    probe=$(tmux display-message -p '#{w:#{host}}' 2>/dev/null) || return 1
+    [ -n "$host" ] && [ "$probe" = "${#host}" ]
+}
+
+reset_session() {
+    local session="$1" i
+    for i in $(seq 0 $((TMUX_MAX_STATUS_LINES - 1))); do
+        tmux set-option -t "$session" -u "status-format[$i]" 2>/dev/null || true
+    done
+    tmux set-option -t "$session" -u status 2>/dev/null || true
+}
+
+# Condition matching exactly the window indexes assigned to one row.
+row_condition() {
+    local -a idx=("$@")
+    local cond="#{==:#{window_index},${idx[0]}}" i
+    for i in "${idx[@]:1}"; do
+        cond="#{||:${cond},#{==:#{window_index},${i}}}"
+    done
+    printf '%s' "$cond"
+}
+
+# One row: the stock #{W:} window loop with every tab belonging to another row
+# filtered out, and the separator moved in front of every tab but the first.
+row_body() {
+    local cond="$1" first="$2"
+    local sep="#{?#{==:#{window_index},${first}},,#{window-status-separator}}"
+    printf '%s#{W:#{?%s,%s%s,},#{?%s,%s%s,}}' "$LIST_PROLOGUE" \
+        "$cond" "$sep" "$ENTRY_NORMAL" "$cond" "$sep" "$ENTRY_CURRENT"
+}
+
+# Capacity of one row: the first row also carries status-left, the last one
+# status-right.
+row_capacity() {
+    local row="$1" rows="$2" width="$3" leftw="$4" rightw="$5" reserve="$6" cap
+    cap=$((width - reserve))
+    if [ "$row" -eq 0 ]; then cap=$((cap - leftw)); fi
+    if [ "$row" -eq $((rows - 1)) ]; then cap=$((cap - rightw)); fi
+    printf '%s' "$cap"
+}
+
+# Greedy first-fit of the tab widths into exactly $rows rows, filling the
+# globals PACK_ROW[] (row number per tab) and PACK_USED[] (columns of tabs per
+# row). Returns 1 when the tabs did not fit, unless $force is true - at the row
+# ceiling the last row is allowed to overflow and keeps tmux's own "<"/">"
+# markers.
+pack() {
+    local rows="$1" width="$2" leftw="$3" rightw="$4" sepw="$5" reserve="$6" force="$7"
+    shift 7
+    local -a widths=("$@")
+    local n=${#widths[@]}
+    local row=0 used=0 count=0 i cap need overflow
+
+    PACK_ROW=()
+    PACK_USED=()
+    for ((i = 0; i < rows; i++)); do PACK_USED[i]=0; done
+    for ((i = 0; i < n; i++)); do
+        cap=$(row_capacity "$row" "$rows" "$width" "$leftw" "$rightw" "$reserve")
+        need=0
+        if [ "$count" -gt 0 ]; then need=$sepw; fi
+        need=$((used + need + widths[i]))
+        overflow=false
+        if [ "$need" -gt "$cap" ]; then
+            if [ "$count" -gt 0 ]; then
+                overflow=true
+            elif [ "${widths[i]}" -le $((width - reserve)) ]; then
+                # An empty row too narrow only because it carries status-left or
+                # status-right: a plain row elsewhere would hold this tab, so
+                # this is a real overflow rather than an unplaceable tab.
+                overflow=true
+            fi
+        fi
+        if $overflow; then
+            if [ "$row" -lt $((rows - 1)) ]; then
+                row=$((row + 1))
+                used=0
+                count=0
+                i=$((i - 1))
+                continue
+            fi
+            if ! $force; then
+                PACK_ROW=()
+                PACK_USED=()
+                return 1
+            fi
+        fi
+        PACK_ROW[i]=$row
+        if [ "$count" -gt 0 ]; then used=$((used + sepw)); fi
+        used=$((used + widths[i]))
+        count=$((count + 1))
+        PACK_USED[row]=$used
+    done
+    return 0
+}
+
+
+# Spread the tabs evenly over $rows rows instead of filling each row to the brim,
+# so the last row does not end up holding one tab or none at all. Falls back to
+# the greedy packing (already in PACK_ROW) when a row would overflow.
+pack_balanced() {
+    local rows="$1" width="$2" leftw="$3" rightw="$4" sepw="$5" reserve="$6"
+    shift 6
+    local -a widths=("$@") greedy_row=("${PACK_ROW[@]}") greedy_used=("${PACK_USED[@]}")
+    local n=${#widths[@]}
+    local i r row=0 used=0 count=0 remaining=0 target cap need left_rows
+
+    if [ "$rows" -le 1 ]; then return 0; fi
+    for ((i = 0; i < n; i++)); do
+        remaining=$((remaining + widths[i] + (i > 0 ? sepw : 0)))
+    done
+
+    PACK_ROW=()
+    PACK_USED=()
+    for ((r = 0; r < rows; r++)); do PACK_USED[r]=0; done
+    for ((i = 0; i < n; i++)); do
+        if [ "$count" -eq 0 ]; then
+            # Fixed once per row: an even share of what is still unplaced.
+            # Recomputing it per tab would shrink the share as the row fills.
+            left_rows=$((rows - row))
+            target=$(((remaining + left_rows - 1) / left_rows))
+            cap=$(row_capacity "$row" "$rows" "$width" "$leftw" "$rightw" "$reserve")
+            if [ "$target" -lt "$cap" ]; then cap=$target; fi
+        fi
+        need=0
+        if [ "$count" -gt 0 ]; then need=$sepw; fi
+        need=$((used + need + widths[i]))
+        if [ "$count" -gt 0 ] && [ "$need" -gt "$cap" ] && [ "$row" -lt $((rows - 1)) ]; then
+            row=$((row + 1))
+            used=0
+            count=0
+            i=$((i - 1))
+            continue
+        fi
+        PACK_ROW[i]=$row
+        if [ "$count" -gt 0 ]; then
+            used=$((used + sepw))
+            remaining=$((remaining - sepw))
+        fi
+        used=$((used + widths[i]))
+        remaining=$((remaining - widths[i]))
+        count=$((count + 1))
+        PACK_USED[row]=$used
+    done
+
+    for ((r = 0; r < rows; r++)); do
+        cap=$(row_capacity "$r" "$rows" "$width" "$leftw" "$rightw" "$reserve")
+        if [ "${PACK_USED[r]}" -gt "$cap" ]; then
+            PACK_ROW=("${greedy_row[@]}")
+            PACK_USED=("${greedy_used[@]}")
+            return 0
+        fi
+    done
+    return 0
+}
+
+layout_session() {
+    local session="$1"
+    local enabled max_rows reserve width status
+    local -a idx=() widths=()
+    local i w
+
+    status=$(sopt "$session" status on)
+    if [ "$status" = "off" ]; then return 0; fi
+
+    enabled=$(sopt "$session" @status-rows on)
+    if [ "$enabled" = "off" ]; then
+        reset_session "$session"
+        return 0
+    fi
+
+    max_rows=$(sopt "$session" @status-rows-max "$DEFAULT_MAX_ROWS")
+    reserve=$(sopt "$session" @status-rows-reserve "$DEFAULT_RESERVE")
+    case "$max_rows" in '' | *[!0-9]*) max_rows=$DEFAULT_MAX_ROWS ;; esac
+    case "$reserve" in '' | *[!0-9]*) reserve=$DEFAULT_RESERVE ;; esac
+    if [ "$max_rows" -lt 1 ]; then max_rows=1; fi
+    if [ "$max_rows" -gt "$TMUX_MAX_STATUS_LINES" ]; then max_rows=$TMUX_MAX_STATUS_LINES; fi
+
+    # The narrowest attached client wins - the status line has to fit them all.
+    width=$(tmux list-clients -t "$session" -F '#{client_width}' 2>/dev/null |
+        sort -n | head -1) || width=""
+    if [ -z "$width" ]; then return 0; fi
+
+    while IFS='	' read -r i w; do
+        idx+=("$i")
+        widths+=("$w")
+    done < <(tmux list-windows -t "$session" -F \
+        '#{window_index}	#{?window_active,#{w:#{T:window-status-current-format}},#{w:#{T:window-status-format}}}' 2>/dev/null)
+    if [ "${#idx[@]}" -eq 0 ]; then return 0; fi
+
+    local leftw rightw sepw
+    leftw=$(tmux display-message -p -t "$session" '#{w:#{T;=/#{status-left-length}:status-left}}')
+    rightw=$(tmux display-message -p -t "$session" '#{w:#{T;=/#{status-right-length}:status-right}}')
+    sepw=$(tmux display-message -p -t "$session" '#{w:#{window-status-separator}}')
+
+    local rows=1
+    while [ "$rows" -lt "$max_rows" ]; do
+        if pack "$rows" "$width" "$leftw" "$rightw" "$sepw" "$reserve" false "${widths[@]}"; then
+            break
+        fi
+        rows=$((rows + 1))
+    done
+    pack "$rows" "$width" "$leftw" "$rightw" "$sepw" "$reserve" true "${widths[@]}"
+
+    # A row budget large enough to fit also frees the earlier rows of the
+    # status-right margin, so the tabs can end before the last budgeted row.
+    # Drop that trailing row when status-right still fits beside the last row
+    # of tabs; when it does not, the spare row carries it on its own.
+    local used_rows=$((PACK_ROW[${#PACK_ROW[@]} - 1] + 1))
+    if [ "$used_rows" -lt "$rows" ]; then
+        local tail_cap
+        tail_cap=$(row_capacity $((used_rows - 1)) "$used_rows" "$width" "$leftw" "$rightw" "$reserve")
+        if [ "${PACK_USED[used_rows - 1]}" -le "$tail_cap" ]; then
+            rows=$used_rows
+        fi
+    fi
+    pack_balanced "$rows" "$width" "$leftw" "$rightw" "$sepw" "$reserve" "${widths[@]}"
+
+    if $PRINT_ONLY; then
+        printf 'session=%s width=%s rows=%s left=%s right=%s sep=%s reserve=%s\n' \
+            "$session" "$width" "$rows" "$leftw" "$rightw" "$sepw" "$reserve"
+        for ((i = 0; i < ${#idx[@]}; i++)); do
+            printf '  window %s width %s -> row %s\n' "${idx[i]}" "${widths[i]}" "${PACK_ROW[i]}"
+        done
+        return 0
+    fi
+
+    local r changed=false body fmt first
+    local -a members
+    for ((r = 0; r < rows; r++)); do
+        members=()
+        for ((i = 0; i < ${#idx[@]}; i++)); do
+            if [ "${PACK_ROW[i]}" = "$r" ]; then members+=("${idx[i]}"); fi
+        done
+        if [ "${#members[@]}" -eq 0 ]; then
+            body="$LIST_PROLOGUE"
+        else
+            first="${members[0]}"
+            body=$(row_body "$(row_condition "${members[@]}")" "$first")
+        fi
+        fmt=""
+        # The #() driver re-runs this script every status-interval, so a tab
+        # label that grows or shrinks reflows without waiting for a hook.
+        if [ "$r" -eq 0 ]; then fmt="#(${SELF} -q)${STATUS_LEFT}"; fi
+        fmt="${fmt}${body}"
+        if [ "$r" -eq $((rows - 1)) ]; then fmt="${fmt}${STATUS_RIGHT}"; fi
+        if set_if_changed "$session" "status-format[$r]" "$fmt"; then changed=true; fi
+    done
+    for ((r = rows; r < TMUX_MAX_STATUS_LINES; r++)); do
+        tmux set-option -t "$session" -u "status-format[$r]" 2>/dev/null || true
+    done
+
+    if [ "$rows" -eq 1 ]; then
+        # Unset rather than write "on": a session-level value would override
+        # whatever the user set globally, including status off.
+        if [ -n "$(tmux show-options -qv -t "$session" status 2>/dev/null)" ]; then
+            tmux set-option -t "$session" -u status 2>/dev/null || true
+            changed=true
+        fi
+    elif set_if_changed "$session" status "$rows"; then
+        changed=true
+    fi
+
+    if $changed; then
+        log "$session: $rows row(s) for ${#idx[@]} window(s) at $width columns"
+    fi
+    return 0
+}
+
+main() {
+    local arg session
+    for arg in "$@"; do
+        case "$arg" in
+            -q | --quiet) QUIET=true ;;
+            --print) PRINT_ONLY=true ;;
+            --reset) RESET=true ;;
+            -h | --help)
+                sed -n '2,25p' "$SELF"
+                return 0
+                ;;
+            *)
+                printf 'unknown argument: %s\n' "$arg" >&2
+                return 2
+                ;;
+        esac
+    done
+
+    tmux has-session 2>/dev/null || return 0
+    has_width_modifier || return 0
+    take_lock || return 0
+
+    local -a sessions=()
+    while read -r session; do
+        if [ -n "$session" ]; then sessions+=("$session"); fi
+    done < <(tmux list-clients -F '#{client_session}' 2>/dev/null | sort -u)
+    if [ "${#sessions[@]}" -eq 0 ]; then return 0; fi
+
+    for session in "${sessions[@]}"; do
+        if $RESET; then
+            reset_session "$session"
+            log "$session: restored stock single-row status"
+        else
+            layout_session "$session"
+        fi
+    done
+    return 0
+}
+
+# Guard so the functions can be sourced by tests without running the tool.
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+    main "$@"
+fi
