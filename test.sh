@@ -154,7 +154,7 @@ check_run "fzf --version runs" fzf --version
 # ── 6. zsh config ─────────────────────────────────────────────────────────────
 _hdr "zsh config"
 check_run "~/.zshrc syntax check (zsh -n)" zsh -n ~/.zshrc
-# git follows EDITOR, so .zshrc must never name an editor that is not installed.
+# git uses VISUAL, then EDITOR (.zshrc sets both together), so neither may name an editor that is not installed.
 check_run "EDITOR set by ~/.zshrc is installed" \
     timeout 60 env -u EDITOR -u VISUAL zsh -ic '[[ -z ${EDITOR:-} ]] || (( $+commands[$EDITOR] ))'
 
@@ -189,7 +189,7 @@ check_run "git checkout + merge work under this gitconfig" \
              && git checkout -q -b t && git checkout -q - && git -c user.name=t -c user.email=t@t merge -q --no-edit t; r=$?; rm -rf "$d"; exit $r'
 check_run "dotfiles git settings applied" \
     bash -c 'git config --global diff.zip.textconv | grep -q unzip'
-# git must follow $EDITOR, which .zshrc sets to nvim or vim.
+# git must fall through to $VISUAL/$EDITOR, which .zshrc sets to nvim or vim.
 check_run "tracked gitconfig sets no core.editor" \
     bash -c '! git config -f ~/.gitconfig --get core.editor'
 # install.sh writes zdiff3 to ~/.gitconfig.local on git >= 2.35 unless that file already

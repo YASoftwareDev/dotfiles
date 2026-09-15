@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - git: `merge.conflictstyle` is `diff3` in the tracked config; `zdiff3` made git < 2.35 (Ubuntu 20.04/22.04) abort checkout and merge, breaking lazy.nvim tag checkouts. Re-run install.sh to add `zdiff3` to `~/.gitconfig.local` where git supports it and no local value exists.
-- git: the tracked config no longer sets `core.editor = nvim`, so git follows `$EDITOR`; `git commit` failed on hosts without nvim.
+- git: the tracked config no longer sets `core.editor = nvim`, so git uses `$VISUAL`, then `$EDITOR`; `git commit` failed on hosts without nvim.
 - install/update: glibc detection no longer races (`ldd | head` under pipefail misread 2.31 in 52 of 200 runs), which installed an nvim that cannot start on Ubuntu 20.04.
 - nvim: init.lua no longer aborts on nvim < 0.12 (`diffopt` `inline:word` exists only in 0.12), which silently dropped every later option, keymap and command.
 - nvim: parser installs are skipped unless nvim 0.12, `tree-sitter` >= 0.26.1, a C compiler, curl and tar are present, instead of failing on every start; telescope, gitsigns and vim-matchup are gated to nvim >= 0.11, which they require.
