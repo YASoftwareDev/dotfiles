@@ -33,6 +33,10 @@ jobs:
           echo "resolvconf resolvconf/linkify-resolvconf boolean false" | debconf-set-selections
           apt-get -yq install apt-utils git sudo curl ca-certificates
 
+      - name: Install a C compiler (24.04 workstation - test.sh builds a tree-sitter parser)
+        if: matrix.ubuntu == '24.04' && matrix.profile == 'workstation'
+        run: DEBIAN_FRONTEND=noninteractive apt-get -yq install gcc libc6-dev
+
       - name: Create non-root test user with passwordless sudo
         run: |
           useradd -m -s /bin/bash testuser

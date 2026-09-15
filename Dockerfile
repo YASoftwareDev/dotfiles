@@ -23,8 +23,12 @@ ENV SHELL=/usr/bin/zsh
 # Prevent powerlevel10k from running the interactive config wizard on first launch
 ENV POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=true
 
-RUN apt-get -yq update && \
-    apt-get -yq install apt-utils git sudo curl ca-certificates && \
+ARG UBUNTU
+# As in CI, the 24.04 workstation image gets a C compiler so test.sh builds a tree-sitter parser.
+RUN cc_pkgs=""; \
+    if [ "$UBUNTU" = 24.04 ] && [ "$PROFILE" = workstation ]; then cc_pkgs="gcc libc6-dev"; fi; \
+    apt-get -yq update && \
+    apt-get -yq install apt-utils git sudo curl ca-certificates $cc_pkgs && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /root/dotfiles

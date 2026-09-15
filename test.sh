@@ -319,6 +319,20 @@ if [ "$PROFILE" = "workstation" ]; then
     else
         _fail "parser install started $ts_got time(s), expected $ts_want (nvim ${ts_nv:-?}, tree-sitter ${ts_cli:-none}, cc $(command -v "$ts_cc" || echo none), curl $(command -v curl || echo none), tar $(command -v tar || echo none))"
     fi
+    # With them all present a parser must also build and load: ini, which init.lua's own startup
+    # install (same process) never builds, so they cannot race; force rebuilds it on a re-run.
+    if [ "$ts_want" -eq 1 ]; then
+        tb_out=$(cd /tmp && timeout 300 nvim --headless \
+            +"lua require('nvim-treesitter').install({'ini'}, {force = true}):wait(300000)" \
+            +"lua io.stderr:write('TS-INI=' .. tostring(vim.treesitter.language.add('ini')) .. '\n')" +qa 2>&1)
+        if [[ $tb_out == *TS-INI=true* ]]; then
+            _ok "tree-sitter builds and loads a parser (ini)"
+        else
+            _fail "tree-sitter could not build the ini parser: $(printf '%s\n' "$tb_out" | tail -3 | tr '\n' ' ')"
+        fi
+    else
+        _skip "tree-sitter builds a parser" "needs nvim 0.12, tree-sitter >= 0.26.1, a C compiler, curl and tar"
+    fi
     # init.lua reads `git --version`; a missing git must not abort the config.
     nogit=$(mktemp -d); ln -s "$(command -v nvim)" "$nogit/nvim"
     nogit_out=$(cd /tmp && timeout 120 env PATH="$nogit" nvim --headless +qa 2>&1); nogit_rc=$?
