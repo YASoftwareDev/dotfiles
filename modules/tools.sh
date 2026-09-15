@@ -131,7 +131,9 @@ _install_cheat() {
 # uses regex syntax for languages without a bundled parser.
 _install_tree_sitter() {
     log_step "tree-sitter CLI"
-    if has tree-sitter; then
+    # install.sh does not put ~/.local/bin on PATH; a failed re-download below
+    # would otherwise delete a working binary.
+    if has tree-sitter || [ -x "$HOME/.local/bin/tree-sitter" ]; then
         log_ok "tree-sitter already installed - skipping"
         return
     fi

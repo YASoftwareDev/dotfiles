@@ -222,14 +222,24 @@ if [ "$PROFILE" = "workstation" ]; then
     check_link ~/.config/yazi/yazi.toml
 
     _hdr "Workstation nvim"
-    # init.lua errors do not change nvim's exit code, so read stderr instead.
-    nvim_out=$(cd /tmp && timeout 300 nvim --headless +qa 2>&1)
-    if printf '%s\n' "$nvim_out" | grep -qE 'Error detected|E[0-9]+:|stack traceback'; then
+    # init.lua errors leave nvim's exit code at 0, so read stderr; a non-zero code
+    # means a hang (timeout) or crash.
+    nvim_out=$(cd /tmp && timeout 300 nvim --headless +qa 2>&1); nvim_rc=$?
+    if [ "$nvim_rc" -ne 0 ] || printf '%s\n' "$nvim_out" | grep -qE 'Error detected|E[0-9]+:|stack traceback'; then
         _fail "nvim starts without config errors"
         printf '%s\n' "$nvim_out" | grep -E 'Error detected|E[0-9]+:|stack traceback' | head -5 >&2
     else
         _ok "nvim starts without config errors"
     fi
+    # init.lua reads `git --version`; a missing git must not abort the config.
+    nogit=$(mktemp -d); ln -s "$(command -v nvim)" "$nogit/nvim"
+    nogit_out=$(cd /tmp && timeout 120 env PATH="$nogit" nvim --headless +qa 2>&1); nogit_rc=$?
+    if [ "$nogit_rc" -ne 0 ] || printf '%s\n' "$nogit_out" | grep -qE 'Error detected|E[0-9]+:'; then
+        _fail "nvim starts without git on PATH"
+    else
+        _ok "nvim starts without git on PATH"
+    fi
+    rm -rf "$nogit"
     if timeout 60 zsh -ic 'whence -w vim' </dev/null 2>/dev/null | grep -q ': alias'; then
         _ok "vim is an alias for nvim in interactive zsh"
     else

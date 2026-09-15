@@ -3,7 +3,8 @@
 -- ══════════════════════════════════════════════════════════════════════════════
 -- Partial clones (--filter) need git >= 2.19; older git (Ubuntu 16.04) failed the
 -- bootstrap, so nothing loaded. Such hosts get full clones instead.
-local git_major, git_minor = vim.fn.system({ 'git', '--version' }):match('(%d+)%.(%d+)')
+local git_out = vim.fn.executable('git') == 1 and vim.fn.system({ 'git', '--version' }) or ''
+local git_major, git_minor = git_out:match('(%d+)%.(%d+)')
 local git_partial = git_major ~= nil
     and (tonumber(git_major) > 2 or (tonumber(git_major) == 2 and tonumber(git_minor) >= 19))
 local lazypath = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
