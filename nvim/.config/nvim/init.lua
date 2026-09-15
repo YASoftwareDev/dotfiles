@@ -22,6 +22,12 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
   local clone = { 'git', 'clone', 'https://github.com/folke/lazy.nvim.git', '--branch=stable', lazypath }
   if git_partial then table.insert(clone, 3, '--filter=blob:none') end
   vim.fn.system(clone)
+  -- Check out the lockfile's lazy.nvim pin, or lazy rewrites the tracked lockfile to `stable`.
+  local ok, lock = pcall(function()
+    return vim.json.decode(table.concat(vim.fn.readfile(vim.fn.stdpath('config') .. '/lazy-lock.json'), '\n'))
+  end)
+  local pin = ok and type(lock) == 'table' and lock['lazy.nvim'] and lock['lazy.nvim'].commit
+  if pin then vim.fn.system({ 'git', '-C', lazypath, 'checkout', '-q', pin }) end
 end
 vim.opt.rtp:prepend(lazypath)
 
