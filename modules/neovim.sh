@@ -100,7 +100,7 @@ install_neovim() {
     # A version-matching but glibc-broken binary must not be skipped.
     if has nvim; then
         local current
-        current=$(nvim --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        current=$(nvim --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1) || current=""
         if [ "$current" = "$latest" ] && "$prefix/bin/nvim" --version >/dev/null 2>&1; then
             log_ok "neovim $latest_tag already installed - skipping"
             # Shadow check still needed: `nvim` above may have resolved to a
