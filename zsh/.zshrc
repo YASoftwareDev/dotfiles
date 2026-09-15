@@ -53,8 +53,13 @@ source "$ZSH/oh-my-zsh.sh"
 # ── Environment ───────────────────────────────────────────────────────────────
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
-export EDITOR=nvim
-export VISUAL=nvim
+# vim opens nvim wherever nvim is installed; hosts without it keep plain vim.
+if (( $+commands[nvim] )); then
+  export EDITOR=nvim VISUAL=nvim
+  alias vim=nvim
+else
+  export EDITOR=vim VISUAL=vim
+fi
 
 export RIPGREP_CONFIG_PATH="$HOME/.config/ripgrep/rc"
 
