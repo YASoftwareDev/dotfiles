@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build and install the latest stable neovim from source.
-# Required on systems where glibc < 2.34 (e.g. Ubuntu 20.04) prevents
-# running the prebuilt GitHub release binaries.
+# An alternative to install.sh's prebuilt binaries: official ones need glibc >= 2.34,
+# and below that install.sh uses the glibc 2.17 builds from neovim/neovim-releases.
 #
 # Usage: bash scripts/install-neovim-src.sh
 #        NEOVIM_TAG=v0.12.1 bash scripts/install-neovim-src.sh       # pin version

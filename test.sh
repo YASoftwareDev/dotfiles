@@ -259,10 +259,13 @@ if [ "$PROFILE" = "workstation" ]; then
     nv_glibc=$(_glibc_version)
     if [ "$(uname -m)" = x86_64 ] && _ver_older_than "$nv_glibc" "2.34"; then
         nv_v=$(_cmd_version nvim --version) || nv_v=""
-        if [ -n "$nv_v" ] && ! _ver_older_than "$nv_v" "0.10"; then
+        # A release string, not a dev build: neovim-releases' v0.12.5 tag ships a 0.13 nightly.
+        nv_line=$(nvim --version 2>/dev/null | head -1) || nv_line=""
+        nv_re='^NVIM v[0-9]+\.[0-9]+\.[0-9]+$'
+        if [ -n "$nv_v" ] && ! _ver_older_than "$nv_v" "0.10" && [[ $nv_line =~ $nv_re ]]; then
             _ok "nvim $nv_v on glibc $nv_glibc (glibc 2.17 build)"
         else
-            _fail "nvim ${nv_v:-missing} on glibc $nv_glibc: expected a glibc 2.17 build >= 0.10"
+            _fail "${nv_line:-nvim missing} on glibc $nv_glibc: expected a glibc 2.17 release build >= 0.10"
         fi
     else
         _skip "nvim glibc 2.17 build" "glibc $nv_glibc >= 2.34 or not x86_64"

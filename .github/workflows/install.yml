@@ -66,6 +66,13 @@ jobs:
       - name: Run test suite
         run: su -s /bin/bash -c 'HOME=/home/testuser; export HOME; export TERM=xterm-256color; cd ~/dotfiles && bash test.sh ${{ matrix.profile }}' testuser
 
+      - name: Seed nvim v0.9.5 as on a master-era host (20.04 workstation - update.sh must upgrade it)
+        if: matrix.ubuntu == '20.04' && matrix.profile == 'workstation'
+        run: |
+          cd /home/testuser/dotfiles
+          DOTFILES_DIR=$PWD bash -c 'set -euo pipefail; source lib/utils.sh; detect_sudo; source modules/neovim.sh; _neovim_legacy_binary /usr/local'
+          v=$(/usr/local/bin/nvim --version | head -1); echo "$v"; [ "$v" = "NVIM v0.9.5" ]
+
       - name: Run update.sh
         run: su -s /bin/bash -c 'HOME=/home/testuser; export HOME; cd ~/dotfiles && bash update.sh' testuser
 
