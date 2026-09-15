@@ -369,7 +369,7 @@ cd ~/.dotfiles && ./update.sh --check
 
 ### Git
 
-- **delta** - pager for `git diff` / `git log` (line numbers, navigate mode, zdiff3 conflicts)
+- **delta** - pager for `git diff` / `git log` (line numbers, navigate mode, zdiff3 conflicts on git >= 2.35, diff3 otherwise)
 - `.gitconfig`: `pager = delta`, diff drivers for zip/gz/bz2/xz/tar/pdf/bin
 - `.gitattributes`: maps file extensions to diff drivers
 
