@@ -192,10 +192,17 @@ check_run "dotfiles git settings applied" \
 # git must follow $EDITOR, which .zshrc sets to nvim or vim.
 check_run "tracked gitconfig sets no core.editor" \
     bash -c '! git config -f ~/.gitconfig --get core.editor'
-# install.sh upgrades the tracked diff3 to zdiff3 locally, keeping a user's own value.
+# install.sh writes zdiff3 to ~/.gitconfig.local on git >= 2.35 unless that file already
+# sets a conflictstyle: a user's own value is kept and reported as a skip.
 if git --version | awk '{ split($3, v, "."); exit !(v[1] > 2 || (v[1] == 2 && v[2] >= 35)) }'; then
-    check_run "merge.conflictstyle set in ~/.gitconfig.local (git >= 2.35)" \
-        bash -c 'git config -f ~/.gitconfig.local --get merge.conflictstyle'
+    cs=$(git config -f ~/.gitconfig.local --get merge.conflictstyle 2>/dev/null) || cs=""
+    if [ "$cs" = zdiff3 ]; then
+        _ok "merge.conflictstyle is zdiff3 in ~/.gitconfig.local"
+    elif [ -n "$cs" ]; then
+        _skip "merge.conflictstyle zdiff3" "user's own value kept in ~/.gitconfig.local: $cs"
+    else
+        _fail "install.sh did not set merge.conflictstyle in ~/.gitconfig.local (git >= 2.35)"
+    fi
 else
     _skip "merge.conflictstyle zdiff3" "git < 2.35"
 fi
