@@ -223,6 +223,30 @@ if [ "$PROFILE" = "minimal" ] || [ "$PROFILE" = "workstation" ]; then
     check_cmd shellcheck
 fi
 
+# The workstation cells run nvim 0.12; apt's nvim here (0.9.5 on Ubuntu 24.04) exercises the
+# config's version gates. Plugin dirs stay out of /tmp: init.lua's wildignore has */tmp/*.
+if [ "$PROFILE" = "minimal" ]; then
+    _hdr "Minimal: nvim config on an older nvim"
+    old_nv=$(_cmd_version nvim --version) || old_nv=""
+    if [ -n "$old_nv" ] && ! _ver_older_than "$old_nv" "0.9" && _ver_older_than "$old_nv" "0.12"; then
+        mkdir -p ~/.cache
+        on=$(mktemp -d ~/.cache/dotfiles-test-nvim.XXXXXX); mkdir -p "$on/config"
+        cp -r "$DOTFILES_DIR/nvim/.config/nvim" "$on/config/nvim"
+        on_out=$(cd /tmp && XDG_CONFIG_HOME="$on/config" XDG_DATA_HOME="$on/data" XDG_STATE_HOME="$on/state" \
+            XDG_CACHE_HOME="$on/cache" timeout 600 nvim --headless +'doautocmd User VeryLazy' +qa 2>&1); on_rc=$?
+        on_re='Error detected|E[0-9]+:|stack traceback|deprecated'
+        if [ "$on_rc" -ne 0 ] || [[ $on_out =~ $on_re ]]; then
+            _fail "tracked nvim config starts on nvim $old_nv without errors"
+            printf '%s\n' "$on_out" | tail -5 >&2
+        else
+            _ok "tracked nvim config starts on nvim $old_nv without errors"
+        fi
+        rm -rf "$on"
+    else
+        _skip "tracked nvim config on nvim 0.9-0.11" "nvim here is ${old_nv:-missing}"
+    fi
+fi
+
 # ── 12. Profile-specific: workstation ─────────────────────────────────────────
 if [ "$PROFILE" = "workstation" ]; then
     _hdr "Workstation tools"

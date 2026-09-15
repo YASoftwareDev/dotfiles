@@ -435,7 +435,7 @@ a C compiler, curl and tar; without any of them, parser installs are skipped and
   - nvim 0.11+ API: `vim.lsp.config()` + `vim.lsp.enable()` - NOT the deprecated lspconfig setup()
 - Completion: `blink.cmp` (Rust core) + `friendly-snippets`
 - Treesitter: `nvim-treesitter` + textobjects + context
-- Fuzzy: `telescope.nvim` + `telescope-fzf-native`
+- Fuzzy (nvim 0.11+; on older nvim its keys, including `<leader>j` and the dashboard's `f`/`g`, report a missing command): `telescope.nvim` + `telescope-fzf-native`
 - File tree: `nvim-tree.lua` (`<F6>` to toggle); netrw still active for `:e /dir`
 - Statusline: `lualine.nvim` (Nerd Font icons)
 - Start screen: `dashboard-nvim` (hyper theme)
