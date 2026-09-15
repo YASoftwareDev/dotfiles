@@ -154,6 +154,9 @@ check_run "fzf --version runs" fzf --version
 # ── 6. zsh config ─────────────────────────────────────────────────────────────
 _hdr "zsh config"
 check_run "~/.zshrc syntax check (zsh -n)" zsh -n ~/.zshrc
+# git follows EDITOR, so .zshrc must never name an editor that is not installed.
+check_run "EDITOR set by ~/.zshrc is installed" \
+    timeout 60 env -u EDITOR -u VISUAL zsh -ic '[[ -z ${EDITOR:-} ]] || (( $+commands[$EDITOR] ))'
 
 # ── 7. oh-my-zsh ──────────────────────────────────────────────────────────────
 _hdr "oh-my-zsh"
