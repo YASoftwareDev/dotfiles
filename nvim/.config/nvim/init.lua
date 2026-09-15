@@ -435,6 +435,7 @@ require('lazy').setup({
   -- ── Git ──────────────────────────────────────────────────────────────────
   {
     'lewis6991/gitsigns.nvim',
+    cond   = vim.fn.has('nvim-0.11') == 1, -- errors on every attach on older nvim
     event  = 'BufReadPost',
     config = function()
       require('gitsigns').setup({

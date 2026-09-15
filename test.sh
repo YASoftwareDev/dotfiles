@@ -263,6 +263,17 @@ if [ "$PROFILE" = "workstation" ]; then
     else
         _ok "nvim starts without config errors"
     fi
+    # Plugins that load on BufReadPost (gitsigns) run only when a tracked file opens.
+    gr=$(mktemp -d); git -C "$gr" init -q && printf 'x\n' > "$gr/f.txt" && git -C "$gr" add f.txt \
+        && git -C "$gr" -c user.name=t -c user.email=t@t commit -qm t
+    fo_out=$(cd "$gr" && timeout 120 nvim --headless f.txt +'sleep 1500m' +qa 2>&1); fo_rc=$?
+    if [ "$fo_rc" -ne 0 ] || printf '%s\n' "$fo_out" | grep -qE 'Error detected|E[0-9]+:|stack traceback'; then
+        _fail "nvim opens a tracked file without errors"
+        printf '%s\n' "$fo_out" | grep -E 'Error detected|E[0-9]+:|stack traceback' | head -5 >&2
+    else
+        _ok "nvim opens a tracked file without errors"
+    fi
+    rm -rf "$gr"
     # The runtime must match the binary: a 0.9.5 binary over a 0.10+ runtime fails here.
     rt=$(mktemp -d); printf 'local x = 1\n' > "$rt/t.lua"; printf 'a,b\n1,2\n' > "$rt/t.csv"
     rt_out=$(cd /tmp && timeout 60 nvim --clean --headless "$rt/t.lua" +"e $rt/t.csv" +qa 2>&1); rt_rc=$?
