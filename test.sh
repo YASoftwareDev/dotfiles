@@ -9,6 +9,7 @@
 #   docker run --rm dotfiles-test bash /root/dotfiles/test.sh workstation
 #
 # Exit code: 0 = all passed, 1 = one or more failures
+# No `set -e`, unlike the other scripts: every check must run and be counted.
 
 export PATH="$HOME/.local/bin:$PATH"
 
