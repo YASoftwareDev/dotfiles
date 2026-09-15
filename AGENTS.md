@@ -39,6 +39,9 @@ matrix covering 3 Ubuntu versions × 3 install profiles + no-sudo variants
   `[ -x /absolute/path ]` probes.
 - Never commit generated protobuf files (`*_pb2.py`, `*.pb.go`, etc.).
 - Logging: `log_step`, `log_info`, `log_ok`, `log_warn`, `log_error`, `die` - never bare `echo`.
+- Read the glibc version with `_glibc_version`, never `ldd --version | head -1 ... || echo 0.0`:
+  under pipefail ldd can take SIGPIPE and the fallback corrupts the value (measured 52/200
+  runs on Ubuntu 20.04), which installed nvim builds that cannot run there.
 
 ## Neovim config
 
@@ -55,6 +58,11 @@ Add new aliases to the `pairs({...})` table - one line, no boilerplate.
 They are wrapped in `vim.fn.executable('npm') == 1` so hosts without npm (e.g.
 GPU servers) skip them silently. Do not remove this guard or add new npm-dependent
 servers outside of it.
+
+**Version gates** - the fleet runs nvim 0.9-0.12. Options and plugins that need a
+newer nvim are gated (`vim.fn.has('nvim-0.X')`, lazy `cond`), because one invalid
+option value aborts the rest of init.lua. Parser installs are gated on the
+`tree-sitter` CLI being executable.
 
 ## update.sh helpers
 

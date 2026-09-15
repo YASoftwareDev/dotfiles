@@ -257,7 +257,7 @@ cd ~/.dotfiles && ./update.sh
 ```
 
 `update.sh` upgrades: system packages (apt), oh-my-zsh, tmux plugins, zsh plugins,
-fzf, ripgrep, fd, shellcheck, zoxide, delta, eza, yazi, uv/uvx, ruff, neovim, cheat, xcape.
+fzf, ripgrep, fd, shellcheck, zoxide, delta, eza, yazi, uv/uvx, ruff, neovim, tree-sitter, cheat, xcape.
 
 > **Note:** `update.sh` only upgrades tools that are already installed. If a new
 > version of the dotfiles adds a tool, re-run `install.sh` to install it:
@@ -416,6 +416,12 @@ Requires `xcape` (built from source: [alols/xcape](https://github.com/alols/xcap
 ### Editor - Neovim
 
 Full Lua config at `nvim/.config/nvim/init.lua`. Plugin manager: **lazy.nvim** (auto-bootstrapped).
+
+`vim` is an alias for `nvim` (and `EDITOR`/`VISUAL` point at it) wherever nvim is installed.
+On glibc < 2.32 (Ubuntu 20.04) the installer uses the glibc 2.17 build from
+[neovim/neovim-releases](https://github.com/neovim/neovim-releases). Treesitter parsers
+are compiled with the `tree-sitter` CLI, which needs glibc >= 2.39; without it parser
+installs are skipped and those languages use regex syntax highlighting.
 
 **Stack:**
 - LSP: `nvim-lspconfig` + `mason.nvim` + `mason-lspconfig` (pyright, clangd, bashls, lua_ls)

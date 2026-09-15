@@ -4,12 +4,14 @@
 #   - uv (Python package manager / venv tool, not in apt)
 #   - ruff (Python linter/formatter, installed via uv tool)
 #   - cheat (not in standard apt)
+#   - tree-sitter CLI (nvim-treesitter compiles parsers with it)
 #   - Config file symlinks for ripgrep and yazi
 
 install_tools() {
     _install_uv
     _install_ruff
     _install_cheat
+    _install_tree_sitter
     _link_ripgrep_config
     _link_yazi_config
 }
@@ -122,6 +124,54 @@ _install_cheat() {
     fi
     chmod +x ~/.local/bin/cheat
     log_ok "cheat installed → ~/.local/bin/cheat ($(~/.local/bin/cheat --version 2>/dev/null || echo 'unknown version'))"
+}
+
+# nvim-treesitter needs tree-sitter >= 0.26.1, and those release binaries need
+# glibc >= 2.39 (measured v0.26.1-v0.27.0). Older hosts skip it; nvim then
+# uses regex syntax for languages without a bundled parser.
+_install_tree_sitter() {
+    log_step "tree-sitter CLI"
+    if has tree-sitter; then
+        log_ok "tree-sitter already installed - skipping"
+        return
+    fi
+
+    local ts_arch
+    case "$(uname -m)" in
+        x86_64)  ts_arch="x64"   ;;
+        aarch64) ts_arch="arm64" ;;
+        *)
+            log_warn "tree-sitter: unsupported arch $(uname -m) - skipping"
+            return
+            ;;
+    esac
+
+    local glibc_ver
+    glibc_ver=$(_glibc_version)
+    if _ver_older_than "$glibc_ver" "2.39"; then
+        log_warn "tree-sitter: glibc $glibc_ver < 2.39 - release binary incompatible, skipping"
+        log_warn "  nvim uses regex syntax highlighting where no parser is bundled"
+        return
+    fi
+
+    # Stable asset name - use latest/download direct URL, no API needed
+    local url="https://github.com/tree-sitter/tree-sitter/releases/latest/download/tree-sitter-linux-${ts_arch}.gz"
+    log_info "tree-sitter: installing latest → ~/.local/bin/tree-sitter"
+
+    mkdir -p ~/.local/bin
+    local ok=true
+    if has curl; then
+        curl -sfL "$url" | gunzip > ~/.local/bin/tree-sitter || ok=false
+    else
+        wget -qO- "$url" | gunzip > ~/.local/bin/tree-sitter || ok=false
+    fi
+    chmod +x ~/.local/bin/tree-sitter 2>/dev/null || true
+    if ! $ok || ! ~/.local/bin/tree-sitter --version >/dev/null 2>&1; then
+        log_warn "tree-sitter: download failed or the binary does not run - skipping"
+        rm -f ~/.local/bin/tree-sitter
+        return
+    fi
+    log_ok "tree-sitter installed → ~/.local/bin/tree-sitter ($(~/.local/bin/tree-sitter --version 2>/dev/null))"
 }
 
 _link_ripgrep_config() {
