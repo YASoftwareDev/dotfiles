@@ -435,7 +435,7 @@ require('lazy').setup({
   -- ── Git ──────────────────────────────────────────────────────────────────
   {
     'lewis6991/gitsigns.nvim',
-    cond   = vim.fn.has('nvim-0.11') == 1, -- errors on every attach on older nvim
+    cond   = vim.fn.has('nvim-0.11') == 1, -- main needs nvim 0.11 (README); older nvim errors on attach
     event  = 'BufReadPost',
     config = function()
       require('gitsigns').setup({
@@ -506,7 +506,8 @@ require('lazy').setup({
   -- ── Editing helpers ──────────────────────────────────────────────────────
   { 'kylechui/nvim-surround', event = 'VeryLazy',   config = function() require('nvim-surround').setup() end },
   { 'tpope/vim-repeat',       event = 'VeryLazy' },
-  { 'andymass/vim-matchup',   event = 'BufReadPost' },
+  -- vim-matchup errors on file open below nvim 0.11 (0.9: list_contains; 0.10: missing parsers).
+  { 'andymass/vim-matchup', cond = vim.fn.has('nvim-0.11') == 1, event = 'BufReadPost' },
   {
     'echasnovski/mini.ai',
     cond   = vim.fn.has('nvim-0.10') == 1,

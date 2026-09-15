@@ -263,10 +263,10 @@ if [ "$PROFILE" = "workstation" ]; then
     else
         _ok "nvim starts without config errors"
     fi
-    # Plugins that load on BufReadPost (gitsigns) run only when a tracked file opens.
-    gr=$(mktemp -d); git -C "$gr" init -q && printf 'x\n' > "$gr/f.txt" && git -C "$gr" add f.txt \
+    # Plugins that load on BufReadPost (gitsigns, vim-matchup) run only when a tracked file opens.
+    gr=$(mktemp -d); git -C "$gr" init -q && printf 'local x = 1\n' > "$gr/f.lua" && git -C "$gr" add f.lua \
         && git -C "$gr" -c user.name=t -c user.email=t@t commit -qm t
-    fo_out=$(cd "$gr" && timeout 120 nvim --headless f.txt +'sleep 1500m' +qa 2>&1); fo_rc=$?
+    fo_out=$(cd "$gr" && timeout 120 nvim --headless f.lua +'sleep 1500m' +qa 2>&1); fo_rc=$?
     if [ "$fo_rc" -ne 0 ] || printf '%s\n' "$fo_out" | grep -qE 'Error detected|E[0-9]+:|stack traceback'; then
         _fail "nvim opens a tracked file without errors"
         printf '%s\n' "$fo_out" | grep -E 'Error detected|E[0-9]+:|stack traceback' | head -5 >&2
