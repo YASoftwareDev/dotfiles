@@ -601,7 +601,7 @@ require('lazy').setup({
   -- checkboxes, code-block backgrounds, aligned tables, and concealed inline
   -- markup (**, `, links). Terminal-native - no browser, works over SSH. The line
   -- under the cursor un-renders in insert mode so editing stays unobstructed.
-  -- Needs the markdown + markdown_inline treesitter parsers (installed above).
+  -- Needs the markdown + markdown_inline treesitter parsers (installed above when ts_ok).
   {
     'MeanderingProgrammer/render-markdown.nvim',
     cond         = vim.fn.has('nvim-0.10') == 1, -- renders via extmarks (nvim 0.10+)
