@@ -48,7 +48,8 @@
 
 [merge]
     # zdiff3 needs git >= 2.35; older git (Ubuntu 20.04/22.04) aborts checkout and
-    # merge on it. install.sh puts zdiff3 in ~/.gitconfig.local where git supports it.
+    # merge on it. install.sh adds zdiff3 to ~/.gitconfig.local where git supports it
+    # and that file sets no conflictstyle of its own.
     conflictstyle = diff3
 
 [pull]
