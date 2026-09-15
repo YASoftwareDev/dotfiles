@@ -1,7 +1,6 @@
 [core]
     attributesFile = ~/.gitattributes
 	pager = bat --paging=always
-	editor = nvim
 
 [diff "zip"]
     textconv = unzip -p

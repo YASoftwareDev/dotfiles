@@ -186,6 +186,9 @@ check_run "git checkout + merge work under this gitconfig" \
              && git checkout -q -b t && git checkout -q - && git -c user.name=t -c user.email=t@t merge -q --no-edit t; r=$?; rm -rf "$d"; exit $r'
 check_run "dotfiles git settings applied" \
     bash -c 'git config --global diff.zip.textconv | grep -q unzip'
+# git must follow $EDITOR, which .zshrc sets to nvim or vim.
+check_run "tracked gitconfig sets no core.editor" \
+    bash -c '! git config -f ~/.gitconfig --get core.editor'
 # install.sh upgrades the tracked diff3 to zdiff3 locally, keeping a user's own value.
 if git --version | awk '{ split($3, v, "."); exit !(v[1] > 2 || (v[1] == 2 && v[2] >= 35)) }'; then
     check_run "merge.conflictstyle set in ~/.gitconfig.local (git >= 2.35)" \
