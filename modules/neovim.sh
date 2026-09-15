@@ -75,9 +75,10 @@ install_neovim() {
     url=$(printf '%s\n' "$raw" \
         | grep -o '"browser_download_url": *"[^"]*nvim-'"${nvim_arch}"'\.tar\.gz"' \
         | grep -o 'https://[^"]*' \
-        | head -1)
+        | head -1) || url=""
 
-    if [ -z "$url" ]; then
+    # glibc < 2.32 hosts do not use this release: they take the glibc 2.17 builds below.
+    if [ -z "$url" ] && ! _ver_older_than "$(_glibc_version)" "2.32"; then
         log_warn "neovim: could not fetch release URL - falling back to apt"
         _neovim_apt
         return
@@ -87,7 +88,7 @@ install_neovim() {
     latest_tag=$(printf '%s\n' "$raw" \
         | grep -o '"tag_name": *"[^"]*"' \
         | grep -o 'v[0-9][^"]*' \
-        | head -1)
+        | head -1) || latest_tag=""
     local latest="${latest_tag#v}"
 
     # Install prefix: /usr/local on apt systems with sudo, ~/.local otherwise.
