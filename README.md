@@ -419,7 +419,8 @@ Full Lua config at `nvim/.config/nvim/init.lua`. Plugin manager: **lazy.nvim** (
 
 `vim` is an alias for `nvim` (and `EDITOR`/`VISUAL` point at it) wherever nvim is installed.
 Plugin commits are pinned in `nvim/.config/nvim/lazy-lock.json`; after `:Lazy update`, commit that file.
-The pins apply on git >= 2.13; older git (Ubuntu 16.04) keeps plugins at their branch tips.
+The pins apply on git >= 2.13; older git (Ubuntu 16.04) keeps plugins at their branch tips and its
+lockfile in `~/.local/state/nvim`, so the tracked one stays clean.
 On glibc < 2.32 (Ubuntu 20.04) the installer uses the glibc 2.17 build from
 [neovim/neovim-releases](https://github.com/neovim/neovim-releases). Treesitter parsers
 are compiled on nvim 0.12 with the `tree-sitter` CLI (>= 0.26.1; its release binaries need glibc >= 2.39),

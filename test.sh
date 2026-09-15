@@ -281,6 +281,16 @@ if [ "$PROFILE" = "workstation" ]; then
         _ok "nvim opens a tracked file without errors"
     fi
     rm -rf "$gr"
+    # Starting nvim must not rewrite the tracked plugin pins (lazy did on git < 2.13).
+    if git -C "$DOTFILES_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        if git -C "$DOTFILES_DIR" diff --quiet -- nvim/.config/nvim/lazy-lock.json; then
+            _ok "tracked lazy-lock.json unchanged after starting nvim"
+        else
+            _fail "nvim rewrote the tracked lazy-lock.json (see: git -C $DOTFILES_DIR diff -- nvim/.config/nvim/lazy-lock.json)"
+        fi
+    else
+        _skip "tracked lazy-lock.json unchanged" "$DOTFILES_DIR is not a git work tree"
+    fi
     # The runtime must match the binary: a 0.9.5 binary over a 0.10+ runtime fails here.
     rt=$(mktemp -d); printf 'local x = 1\n' > "$rt/t.lua"; printf 'a,b\n1,2\n' > "$rt/t.csv"
     rt_out=$(cd /tmp && timeout 60 nvim --clean --headless "$rt/t.lua" +"e $rt/t.csv" +qa 2>&1); rt_rc=$?

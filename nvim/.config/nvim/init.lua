@@ -637,6 +637,10 @@ require('lazy').setup({
 
 }, {
   git = { filter = git_partial },
+  -- Pins need `git checkout --recurse-submodules` (git >= 2.13); older git would make lazy
+  -- rewrite the tracked lockfile to branch tips, so keep its lockfile out of the repo.
+  lockfile = not (git_major and (tonumber(git_major) > 2 or (tonumber(git_major) == 2 and tonumber(git_minor) >= 13)))
+      and (vim.fn.stdpath('state') .. '/lazy-lock.json') or nil,
   ui = { border = 'rounded' },
   performance = {
     rtp = {
