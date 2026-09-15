@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - install/update: glibc detection no longer races (`ldd | head` under pipefail misread 2.31 in 52 of 200 runs), which installed an nvim that cannot start on Ubuntu 20.04.
 - nvim: init.lua no longer aborts on nvim < 0.12 (`diffopt` `inline:word` exists only in 0.12), which silently dropped every later option, keymap and command.
 - nvim: parser installs are skipped unless nvim 0.12, `tree-sitter` >= 0.26.1, a C compiler, curl and tar are present, instead of failing on every start; telescope, gitsigns and vim-matchup are gated to nvim >= 0.11, which they require.
-- nvim: catppuccin is gated to nvim >= 0.10; its config calls `vim.iter`, which 0.9 lacks, and errored on every start there.
+- nvim: catppuccin, conform.nvim and nvim-tree are gated to nvim >= 0.10, which they need; on 0.9 catppuccin errored at every start, conform on every write and nvim-tree on `<F6>`.
 - nvim: LSP (lspconfig, mason) is gated to nvim >= 0.11; on 0.10 every start stopped at lspconfig's deprecation notice ("Press ENTER") and mason installed no servers.
 - nvim: no deprecation warnings on 0.12 from `client.supports_method` or gitsigns `next_hunk`/`prev_hunk`.
 - nvim: lazy.nvim uses full clones on git < 2.19 (Ubuntu 16.04), which lacks `--filter`; the bootstrap clone failed there and no plugin loaded.

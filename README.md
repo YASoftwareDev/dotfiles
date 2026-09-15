@@ -509,6 +509,6 @@ Example templates are provided for each:
 zsh/.zshrc.local.example          → copy to ~/.zshrc.local
 tmux/.tmux.conf.server.example    → copy to ~/.tmux.conf.server
 nvim/.config/nvim/local.lua.example → copy to ~/.config/nvim/local.lua
-git/.gitconfig.local.example      → copy to ~/.gitconfig.local
+git/.gitconfig.local.example      → add its lines to ~/.gitconfig.local (install.sh may have created it)
 ```
 

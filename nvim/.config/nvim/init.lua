@@ -403,6 +403,7 @@ require('lazy').setup({
   -- ── File tree ────────────────────────────────────────────────────────────
   {
     'nvim-tree/nvim-tree.lua',
+    cond   = vim.fn.has('nvim-0.10') == 1, -- needs nvim 0.10; <F6> errored on 0.9
     lazy   = true,
     keys   = { { '<F6>', '<cmd>NvimTreeToggle<CR>', desc = 'File tree' } },
     config = function()
@@ -462,6 +463,7 @@ require('lazy').setup({
   },
   {
     'stevearc/conform.nvim',
+    cond   = vim.fn.has('nvim-0.10') == 1, -- needs nvim 0.10; every :w errored on 0.9
     event  = 'BufWritePre',
     config = function()
       require('conform').setup({

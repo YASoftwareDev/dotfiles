@@ -230,16 +230,20 @@ if [ "$PROFILE" = "minimal" ]; then
     old_nv=$(_cmd_version nvim --version) || old_nv=""
     if [ -n "$old_nv" ] && ! _ver_older_than "$old_nv" "0.9" && _ver_older_than "$old_nv" "0.12"; then
         mkdir -p ~/.cache
-        on=$(mktemp -d ~/.cache/dotfiles-test-nvim.XXXXXX); mkdir -p "$on/config"
+        on=$(mktemp -d ~/.cache/dotfiles-test-nvim.XXXXXX); mkdir -p "$on/config" "$on/repo"
         cp -r "$DOTFILES_DIR/nvim/.config/nvim" "$on/config/nvim"
-        on_out=$(cd /tmp && XDG_CONFIG_HOME="$on/config" XDG_DATA_HOME="$on/data" XDG_STATE_HOME="$on/state" \
-            XDG_CACHE_HOME="$on/cache" timeout 600 nvim --headless +'doautocmd User VeryLazy' +qa 2>&1); on_rc=$?
+        # A tracked file, VeryLazy and `Lazy! load all` reach plugins a bare start never loads; :w runs BufWritePre.
+        git -C "$on/repo" init -q && printf 'local x = 1\n' > "$on/repo/f.lua" && git -C "$on/repo" add f.lua \
+            && git -C "$on/repo" -c user.name=t -c user.email=t@t commit -qm t
+        on_out=$(cd "$on/repo" && XDG_CONFIG_HOME="$on/config" XDG_DATA_HOME="$on/data" XDG_STATE_HOME="$on/state" \
+            XDG_CACHE_HOME="$on/cache" timeout 600 nvim --headless f.lua +'doautocmd User VeryLazy' \
+            +'Lazy! load all' +w +qa 2>&1); on_rc=$?
         on_re='Error detected|E[0-9]+:|stack traceback|deprecated'
         if [ "$on_rc" -ne 0 ] || [[ $on_out =~ $on_re ]]; then
-            _fail "tracked nvim config starts on nvim $old_nv without errors"
+            _fail "tracked nvim config loads every plugin and writes a file on nvim $old_nv without errors"
             printf '%s\n' "$on_out" | tail -5 >&2
         else
-            _ok "tracked nvim config starts on nvim $old_nv without errors"
+            _ok "tracked nvim config loads every plugin and writes a file on nvim $old_nv without errors"
         fi
         rm -rf "$on"
     else
