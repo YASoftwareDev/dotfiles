@@ -100,12 +100,11 @@ require('lazy').setup({
   }, -- darker/dark/palenight/oceanic
 
   -- ── LSP ──────────────────────────────────────────────────────────────────
-  -- nvim-lspconfig ≥ 2024-12 requires nvim 0.10 at the plugin level (not just
-  -- API level), so gate the entire block. Plugins that need a newer nvim than
-  -- the host has are gated with cond, so an older nvim still gets a working editor.
+  -- Gated to nvim 0.11, which the pinned lspconfig and mason-lspconfig target: on 0.10 every
+  -- start stopped at lspconfig's deprecation notice and mason installed no servers.
   {
     'neovim/nvim-lspconfig',
-    cond         = vim.fn.has('nvim-0.10') == 1,
+    cond         = vim.fn.has('nvim-0.11') == 1,
     lazy         = false,
     dependencies = {
       'williamboman/mason.nvim',
@@ -115,10 +114,7 @@ require('lazy').setup({
     config       = function()
       require('mason').setup()
 
-      -- blink.cmp requires nvim ≥ 0.10; fall back to plain capabilities on older.
-      local capabilities = vim.fn.has('nvim-0.10') == 1
-          and require('blink.cmp').get_lsp_capabilities()
-          or vim.lsp.protocol.make_client_capabilities()
+      local capabilities = require('blink.cmp').get_lsp_capabilities()
 
       -- Single LspAttach autocmd covers all servers - no per-server on_attach needed.
       vim.api.nvim_create_autocmd('LspAttach', {
@@ -138,28 +134,13 @@ require('lazy').setup({
           map('<leader>rn', vim.lsp.buf.rename, 'Rename symbol')
           map('<leader>ca', vim.lsp.buf.code_action, 'Code action')
           map('<leader>d', vim.diagnostic.open_float, 'Show diagnostics')
-          -- vim.diagnostic.jump() was added in nvim 0.10
-          if vim.fn.has('nvim-0.10') == 1 then
-            map('[d', function() vim.diagnostic.jump({ count = -1 }) end, 'Prev diagnostic')
-            map(']d', function() vim.diagnostic.jump({ count = 1 }) end, 'Next diagnostic')
-          else
-            map('[d', vim.diagnostic.goto_prev, 'Prev diagnostic')
-            map(']d', vim.diagnostic.goto_next, 'Next diagnostic')
-          end
+          map('[d', function() vim.diagnostic.jump({ count = -1 }) end, 'Prev diagnostic')
+          map(']d', function() vim.diagnostic.jump({ count = 1 }) end, 'Next diagnostic')
 
           -- LSP word highlight - replaces vim-illuminate (semantic, not regex)
           -- Use a buffer-keyed augroup so multiple servers attaching to the same
           -- buffer don't stack duplicate CursorHold autocmds (clear = true replaces).
-          -- supports_method became a method in 0.11; the field form warns on 0.12.
-          local has_hl = false
-          if client then
-            if vim.fn.has('nvim-0.11') == 1 then
-              has_hl = client:supports_method('textDocument/documentHighlight')
-            else
-              has_hl = client.supports_method('textDocument/documentHighlight')
-            end
-          end
-          if has_hl then
+          if client and client:supports_method('textDocument/documentHighlight') then
             local hl_group = vim.api.nvim_create_augroup('UserDocHighlight_' .. bufnr, { clear = true })
             vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
               buffer   = bufnr,
@@ -175,9 +156,7 @@ require('lazy').setup({
         end,
       })
 
-      -- Server configs defined once; registration method differs by nvim version.
-      -- nvim 0.11+: vim.lsp.config/enable (new built-in API, no lspconfig on_attach)
-      -- nvim 0.9-0.10: lspconfig.server.setup() (classic API)
+      -- Servers register through vim.lsp.config/enable (no lspconfig setup()).
       -- pyright and bashls install via npm; skip ensure_installed on hosts without npm.
       local npm_servers = vim.fn.executable('npm') == 1 and {
         pyright = {
@@ -200,18 +179,12 @@ require('lazy').setup({
         },
       }, npm_servers)
 
-      if vim.fn.has('nvim-0.11') == 1 then
-        require('mason-lspconfig').setup({
-          ensure_installed = vim.tbl_keys(servers),
-          automatic_enable = false, -- we call vim.lsp.enable() below
-        })
-        for name, cfg in pairs(servers) do vim.lsp.config(name, cfg) end
-        vim.lsp.enable(vim.tbl_keys(servers))
-      else
-        require('mason-lspconfig').setup({ ensure_installed = vim.tbl_keys(servers) })
-        local lspconfig = require('lspconfig')
-        for name, cfg in pairs(servers) do lspconfig[name].setup(cfg) end
-      end
+      require('mason-lspconfig').setup({
+        ensure_installed = vim.tbl_keys(servers),
+        automatic_enable = false, -- we call vim.lsp.enable() below
+      })
+      for name, cfg in pairs(servers) do vim.lsp.config(name, cfg) end
+      vim.lsp.enable(vim.tbl_keys(servers))
 
       vim.diagnostic.config({
         severity_sort = true,

@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - nvim: init.lua no longer aborts on nvim < 0.12 (`diffopt` `inline:word` exists only in 0.12), which silently dropped every later option, keymap and command.
 - nvim: parser installs are skipped unless nvim 0.12, `tree-sitter` >= 0.26.1, a C compiler, curl and tar are present, instead of failing on every start; telescope, gitsigns and vim-matchup are gated to nvim >= 0.11, which they require.
 - nvim: catppuccin is gated to nvim >= 0.10; its config calls `vim.iter`, which 0.9 lacks, and errored on every start there.
+- nvim: LSP (lspconfig, mason) is gated to nvim >= 0.11; on 0.10 every start stopped at lspconfig's deprecation notice ("Press ENTER") and mason installed no servers.
 - nvim: no deprecation warnings on 0.12 from `client.supports_method` or gitsigns `next_hunk`/`prev_hunk`.
 - nvim: lazy.nvim uses full clones on git < 2.19 (Ubuntu 16.04), which lacks `--filter`; the bootstrap clone failed there and no plugin loaded.
 - nvim: blink.cmp is held to its `v1` branch; its main branch became v2 (needs `saghen/blink.lib`), and fresh installs that landed there failed every start.

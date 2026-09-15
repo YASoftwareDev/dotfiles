@@ -422,15 +422,16 @@ Plugin commits are pinned in `nvim/.config/nvim/lazy-lock.json`; after `:Lazy up
 After a pull that changes it, or on an install made before it was tracked, start nvim once, then run
 `git -C ~/.dotfiles checkout nvim/.config/nvim/lazy-lock.json && nvim --headless '+Lazy! restore' +qa`
 to move plugins to the pins; otherwise the next plugin install writes their old commits into the file.
-The pins apply on git >= 2.13; older git (Ubuntu 16.04) keeps plugins at their branch tips and its
-lockfile in `~/.local/state/nvim`, so the tracked one stays clean.
+The pins apply on git >= 2.13. Older git (Ubuntu 16.04) rejects lazy's `checkout --recurse-submodules`,
+so plugins stay at the commits first cloned and `:Lazy update`/`:Lazy restore` cannot move them; lazy keeps
+its lockfile in `~/.local/state/nvim` there, so the tracked one stays clean.
 On glibc < 2.32 (Ubuntu 20.04) the installer uses the glibc 2.17 build from
 [neovim/neovim-releases](https://github.com/neovim/neovim-releases). Treesitter parsers
 are compiled on nvim 0.12 with the `tree-sitter` CLI (>= 0.26.1; its release binaries need glibc >= 2.39),
 a C compiler, curl and tar; without any of them, parser installs are skipped and languages without a parser bundled in nvim use regex syntax highlighting.
 
 **Stack:**
-- LSP: `nvim-lspconfig` + `mason.nvim` + `mason-lspconfig` (pyright, clangd, bashls, lua_ls)
+- LSP (nvim 0.11+): `nvim-lspconfig` + `mason.nvim` + `mason-lspconfig` (pyright, clangd, bashls, lua_ls)
   - nvim 0.11+ API: `vim.lsp.config()` + `vim.lsp.enable()` - NOT the deprecated lspconfig setup()
 - Completion: `blink.cmp` (Rust core) + `friendly-snippets`
 - Treesitter: `nvim-treesitter` + textobjects + context
