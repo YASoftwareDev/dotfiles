@@ -296,6 +296,8 @@ _neovim_legacy_binary() {
         _neovim_apt
         return
     fi
+    # v0.9.5 ships man/ at the top; Ubuntu's /usr/local/man is a symlink cp cannot overwrite.
+    if [ -d "$extracted/man" ]; then mv "$extracted/man" "$extracted/share/man"; fi
 
     if [ "$prefix" = "/usr/local" ]; then
         [ -n "${SUDO:-}" ] && sudo -v 2>/dev/null || true

@@ -192,6 +192,8 @@ _do_update_neovim() {
             || { log_warn "neovim: legacy download failed - skipping"; return; }; fi
         local leg_extracted; leg_extracted=$(find "$tmp" -maxdepth 1 -type d -name 'nvim-*' | head -1)
         [ -z "$leg_extracted" ] && { log_warn "neovim: unexpected archive layout - skipping"; return; }
+        # v0.9.5 ships man/ at the top; Ubuntu's /usr/local/man is a symlink cp cannot overwrite.
+        if [ -d "$leg_extracted/man" ]; then mv "$leg_extracted/man" "$leg_extracted/share/man"; fi
         # Clear a newer runtime first: under a 0.9.5 binary it breaks (E15, E5113).
         if [ "$prefix" = /usr/local ]; then
             $SUDO rm -rf /usr/local/share/nvim/runtime /usr/local/lib/nvim
