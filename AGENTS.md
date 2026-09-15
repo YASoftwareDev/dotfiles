@@ -59,10 +59,10 @@ They are wrapped in `vim.fn.executable('npm') == 1` so hosts without npm (e.g.
 GPU servers) skip them silently. Do not remove this guard or add new npm-dependent
 servers outside of it.
 
-**Version gates** - the fleet runs nvim 0.9-0.12. Options and plugins that need a
+**Version gates** - supported hosts run nvim 0.9-0.12. Options and plugins that need a
 newer nvim are gated (`vim.fn.has('nvim-0.X')`, lazy `cond`), because one invalid
-option value aborts the rest of init.lua. Parser installs are gated on the
-`tree-sitter` CLI being executable.
+option value aborts the rest of init.lua. Parser installs are gated on a
+`tree-sitter` CLI >= 0.26.1 (nvim-treesitter's minimum).
 
 ## update.sh helpers
 

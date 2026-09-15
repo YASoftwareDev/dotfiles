@@ -7,6 +7,14 @@ local git_out = vim.fn.executable('git') == 1 and vim.fn.system({ 'git', '--vers
 local git_major, git_minor = git_out:match('(%d+)%.(%d+)')
 local git_partial = git_major ~= nil
     and (tonumber(git_major) > 2 or (tonumber(git_major) == 2 and tonumber(git_minor) >= 19))
+-- nvim-treesitter compiles parsers with the tree-sitter CLI and needs >= 0.26.1;
+-- with a missing or older CLI every start re-downloaded all parsers and failed.
+local ts_ok = false
+if vim.fn.executable('tree-sitter') == 1 then
+  local maj, min, pat = vim.fn.system({ 'tree-sitter', '--version' }):match('(%d+)%.(%d+)%.(%d+)')
+  maj, min, pat = tonumber(maj), tonumber(min), tonumber(pat)
+  ts_ok = maj ~= nil and (maj > 0 or min > 26 or (min == 26 and pat >= 1))
+end
 local lazypath = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
   local clone = { 'git', 'clone', 'https://github.com/folke/lazy.nvim.git', '--branch=stable', lazypath }
@@ -247,7 +255,7 @@ require('lazy').setup({
     'nvim-treesitter/nvim-treesitter',
     cond         = vim.fn.has('nvim-0.10') == 1, -- uses vim.fs.joinpath (nvim 0.10+)
     lazy         = false,
-    build        = vim.fn.executable('tree-sitter') == 1 and ':TSUpdate' or nil,
+    build        = ts_ok and ':TSUpdate' or nil,
     dependencies = {
       'nvim-treesitter/nvim-treesitter-textobjects',
       {
@@ -259,9 +267,9 @@ require('lazy').setup({
       },
     },
     config       = function()
-      -- Install missing parsers (async). Compiling needs the tree-sitter CLI; without it
-      -- every start re-downloaded all parsers and failed. Such hosts get regex syntax.
-      if vim.fn.executable('tree-sitter') == 1 then
+      -- Install missing parsers (async) only with a usable CLI (ts_ok, top of file);
+      -- other hosts get regex syntax highlighting.
+      if ts_ok then
         require('nvim-treesitter').install({
           'bash', 'c', 'cpp', 'css', 'go', 'html', 'javascript',
           'json', 'lua', 'markdown', 'markdown_inline', 'python', 'rust', 'toml',

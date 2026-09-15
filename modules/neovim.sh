@@ -122,13 +122,24 @@ install_neovim() {
     glibc_ver=$(_glibc_version)
     if _ver_older_than "$glibc_ver" "2.32"; then
         log_warn "neovim: system glibc $glibc_ver < 2.32 - official prebuilt incompatible, using a glibc 2.17 build"
-        # Remove any broken binary left by a prior failed install.
-        if [ -f "$prefix/bin/nvim" ] && ! "$prefix/bin/nvim" --version >/dev/null 2>&1; then
-            if [ "$prefix" = "/usr/local" ]; then $SUDO rm -f "$prefix/bin/nvim"; else rm -f "$prefix/bin/nvim"; fi
-            log_info "neovim: removed incompatible binary from $prefix/bin/nvim"
-        fi
+        # Remove broken binaries left by a prior failed install, including a
+        # ~/.local/bin/nvim that would shadow a /usr/local install.
+        local b
+        for b in "$prefix/bin/nvim" "$HOME/.local/bin/nvim"; do
+            if [ -f "$b" ] && ! "$b" --version >/dev/null 2>&1; then
+                if [ "$b" = /usr/local/bin/nvim ]; then $SUDO rm -f "$b"; else rm -f "$b"; fi
+                log_info "neovim: removed incompatible binary $b"
+            fi
+        done
         if _neovim_compat_binary "$prefix"; then
             if $CAN_APT; then _nvim_warn_shadows /usr/local/bin/nvim; fi
+            return
+        fi
+        # A working 0.10+ build (an earlier glibc 2.17 install) beats the 0.9.5 fallback.
+        local have_v
+        have_v=$(_cmd_version "$prefix/bin/nvim" --version) || have_v=""
+        if [ -n "$have_v" ] && ! _ver_older_than "$have_v" "0.10"; then
+            log_warn "neovim: no verified glibc 2.17 build available - keeping $have_v"
             return
         fi
         log_warn "neovim: no verified glibc 2.17 build available - falling back to legacy v0.9.5"
@@ -238,14 +249,16 @@ _neovim_compat_binary() {
         # Drop the old runtime first: files a newer release deleted would otherwise
         # linger (runtime/plugin/* is auto-sourced). lazy.nvim data lives beside it
         # in share/nvim/lazy and is not touched.
+        # Callers run this inside `if`, where set -e is off: check each step.
         if [ "$prefix" = "/usr/local" ]; then
             [ -n "${SUDO:-}" ] && sudo -v 2>/dev/null || true
-            $SUDO rm -rf "$prefix/share/nvim/runtime" "$prefix/lib/nvim"
-            $SUDO cp -r "$dir/$asset"/. "$prefix/"
+            $SUDO rm -rf "$prefix/share/nvim/runtime" "$prefix/lib/nvim" \
+                && $SUDO cp -r "$dir/$asset"/. "$prefix/" \
+                || { log_warn "neovim: copying $tag into $prefix failed"; return 1; }
         else
-            mkdir -p "$prefix"
-            rm -rf "$prefix/share/nvim/runtime" "$prefix/lib/nvim"
-            cp -r "$dir/$asset"/. "$prefix/"
+            mkdir -p "$prefix" && rm -rf "$prefix/share/nvim/runtime" "$prefix/lib/nvim" \
+                && cp -r "$dir/$asset"/. "$prefix/" \
+                || { log_warn "neovim: copying $tag into $prefix failed"; return 1; }
         fi
         log_ok "neovim $tag (glibc 2.17 build) installed → $prefix"
         return 0

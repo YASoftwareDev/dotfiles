@@ -131,10 +131,13 @@ _install_cheat() {
 # uses regex syntax for languages without a bundled parser.
 _install_tree_sitter() {
     log_step "tree-sitter CLI"
-    # install.sh does not put ~/.local/bin on PATH; a failed re-download below
-    # would otherwise delete a working binary.
-    if has tree-sitter || [ -x "$HOME/.local/bin/tree-sitter" ]; then
-        log_ok "tree-sitter already installed - skipping"
+    # An older CLI (apt ships 0.20.8) does not count. install.sh does not put
+    # ~/.local/bin on PATH, so that copy is checked explicitly.
+    local have=""
+    have=$(_cmd_version "$HOME/.local/bin/tree-sitter" --version) || have=""
+    if [ -z "$have" ]; then have=$(_cmd_version tree-sitter --version) || have=""; fi
+    if [ -n "$have" ] && ! _ver_older_than "$have" "0.26.1"; then
+        log_ok "tree-sitter $have already installed - skipping"
         return
     fi
 
@@ -160,19 +163,22 @@ _install_tree_sitter() {
     local url="https://github.com/tree-sitter/tree-sitter/releases/latest/download/tree-sitter-linux-${ts_arch}.gz"
     log_info "tree-sitter: installing latest → ~/.local/bin/tree-sitter"
 
+    # Download beside, swap in only a binary that runs: never lose a working one.
     mkdir -p ~/.local/bin
-    local ok=true
+    local tmp ok=true
+    tmp=$(mktemp)
     if has curl; then
-        curl -sfL "$url" | gunzip > ~/.local/bin/tree-sitter || ok=false
+        curl -sfL "$url" | gunzip > "$tmp" || ok=false
     else
-        wget -qO- "$url" | gunzip > ~/.local/bin/tree-sitter || ok=false
+        wget -qO- "$url" | gunzip > "$tmp" || ok=false
     fi
-    chmod +x ~/.local/bin/tree-sitter 2>/dev/null || true
-    if ! $ok || ! ~/.local/bin/tree-sitter --version >/dev/null 2>&1; then
+    chmod +x "$tmp" 2>/dev/null || true
+    if ! $ok || ! "$tmp" --version >/dev/null 2>&1; then
         log_warn "tree-sitter: download failed or the binary does not run - skipping"
-        rm -f ~/.local/bin/tree-sitter
+        rm -f "$tmp"
         return
     fi
+    mv "$tmp" ~/.local/bin/tree-sitter
     log_ok "tree-sitter installed → ~/.local/bin/tree-sitter ($(~/.local/bin/tree-sitter --version 2>/dev/null))"
 }
 

@@ -214,6 +214,12 @@ if [ "$PROFILE" = "workstation" ]; then
         _skip "tree-sitter" "glibc $ts_glibc < 2.39"
     else
         check_cmd tree-sitter
+        ts_v=$(_cmd_version tree-sitter --version) || ts_v=""
+        if [ -n "$ts_v" ] && ! _ver_older_than "$ts_v" "0.26.1"; then
+            _ok "tree-sitter $ts_v meets nvim-treesitter's 0.26.1 minimum"
+        else
+            _fail "tree-sitter ${ts_v:-missing} is older than 0.26.1 (nvim-treesitter minimum)"
+        fi
     fi
 
     _hdr "Workstation config symlinks"
