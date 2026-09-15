@@ -418,10 +418,11 @@ Requires `xcape` (built from source: [alols/xcape](https://github.com/alols/xcap
 Full Lua config at `nvim/.config/nvim/init.lua`. Plugin manager: **lazy.nvim** (auto-bootstrapped).
 
 `vim` is an alias for `nvim` (and `EDITOR`/`VISUAL` point at it) wherever nvim is installed.
+Plugin commits are pinned in `nvim/.config/nvim/lazy-lock.json`; after `:Lazy update`, commit that file.
 On glibc < 2.32 (Ubuntu 20.04) the installer uses the glibc 2.17 build from
 [neovim/neovim-releases](https://github.com/neovim/neovim-releases). Treesitter parsers
 are compiled on nvim 0.12 with the `tree-sitter` CLI (>= 0.26.1; its release binaries need glibc >= 2.39)
-and a C compiler; without all three, parser installs are skipped and languages without a parser bundled in nvim use regex syntax highlighting.
+a C compiler, curl and tar; without any of them, parser installs are skipped and languages without a parser bundled in nvim use regex syntax highlighting.
 
 **Stack:**
 - LSP: `nvim-lspconfig` + `mason.nvim` + `mason-lspconfig` (pyright, clangd, bashls, lua_ls)

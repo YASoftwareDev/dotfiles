@@ -284,13 +284,15 @@ if [ "$PROFILE" = "workstation" ]; then
         _ok "nvim runtime matches its binary (lua + csv open cleanly)"
     fi
     rm -rf "$rt"
-    # init.lua must start parser installs only when they can succeed: nvim 0.12, a
-    # tree-sitter CLI >= 0.26.1 and a C compiler. Otherwise they failed on every start.
+    # init.lua must start parser installs only when they can succeed: nvim 0.12, a tree-sitter
+    # CLI >= 0.26.1, a C compiler ($CC's first word), curl and tar. Otherwise every start failed.
     ts_want=0
     ts_nv=$(_cmd_version nvim --version) || ts_nv=""
     ts_cli=$(_cmd_version tree-sitter --version) || ts_cli=""
+    read -r ts_cc _ <<< "${CC:-cc}"; ts_cc=${ts_cc:-cc}
     if [ -n "$ts_nv" ] && ! _ver_older_than "$ts_nv" "0.12" && [ -n "$ts_cli" ] \
-        && ! _ver_older_than "$ts_cli" "0.26.1" && command -v "${CC:-cc}" >/dev/null 2>&1; then
+        && ! _ver_older_than "$ts_cli" "0.26.1" && command -v "$ts_cc" >/dev/null 2>&1 \
+        && command -v curl >/dev/null 2>&1 && command -v tar >/dev/null 2>&1; then
         ts_want=1
     fi
     ts_hook="lua local r=require; _G.require=function(m) local x=r(m); if m=='nvim-treesitter' and type(x)=='table' and not rawget(x,'_t') then local i=x.install; x.install=function(...) io.stderr:write('TS-INSTALL-CALLED\n'); return i(...) end; rawset(x,'_t',1) end; return x end"
@@ -298,7 +300,7 @@ if [ "$PROFILE" = "workstation" ]; then
     if [ "$ts_got" -eq "$ts_want" ]; then
         _ok "parser install started only when it can build (expected $ts_want, got $ts_got)"
     else
-        _fail "parser install started $ts_got time(s), expected $ts_want (nvim ${ts_nv:-?}, tree-sitter ${ts_cli:-none}, cc $(command -v "${CC:-cc}" || echo none))"
+        _fail "parser install started $ts_got time(s), expected $ts_want (nvim ${ts_nv:-?}, tree-sitter ${ts_cli:-none}, cc $(command -v "$ts_cc" || echo none), curl $(command -v curl || echo none), tar $(command -v tar || echo none))"
     fi
     # init.lua reads `git --version`; a missing git must not abort the config.
     nogit=$(mktemp -d); ln -s "$(command -v nvim)" "$nogit/nvim"

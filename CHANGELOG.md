@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - git: the tracked config no longer sets `core.editor = nvim`, so git follows `$EDITOR`; `git commit` failed on hosts without nvim.
 - install/update: glibc detection no longer races (`ldd | head` under pipefail misread 2.31 in 52 of 200 runs), which installed an nvim that cannot start on Ubuntu 20.04.
 - nvim: init.lua no longer aborts on nvim < 0.12 (`diffopt` `inline:word` exists only in 0.12), which silently dropped every later option, keymap and command.
-- nvim: parser installs are skipped below nvim 0.12 or without a `tree-sitter` CLI >= 0.26.1 and a C compiler, instead of failing on every start; telescope, gitsigns and vim-matchup are gated to nvim >= 0.11, which they require.
+- nvim: parser installs are skipped unless nvim 0.12, `tree-sitter` >= 0.26.1, a C compiler, curl and tar are present, instead of failing on every start; telescope, gitsigns and vim-matchup are gated to nvim >= 0.11, which they require.
 - nvim: no deprecation warnings on 0.12 from `client.supports_method` or gitsigns `next_hunk`/`prev_hunk`.
 - nvim: lazy.nvim uses full clones on git < 2.19 (Ubuntu 16.04), which lacks `--filter`; the bootstrap clone failed there and no plugin loaded.
 - nvim: blink.cmp is held to its `v1` branch; its main branch became v2 (needs `saghen/blink.lib`), and fresh installs that landed there failed every start.
@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - glibc < 2.32 hosts (Ubuntu 20.04) get current nvim from the glibc 2.17 builds in neovim/neovim-releases, checked against the tag (its `v0.12.5` shipped a nightly); v0.9.5 is now only the fallback.
 - `tree-sitter` CLI install (workstation) and `update.sh tree-sitter`; skipped below glibc 2.39, which its release binaries need.
+- nvim: `lazy-lock.json` is tracked, so installs get the plugin commits CI tested; commit it after `:Lazy update`.
 - zsh: `vim` is aliased to `nvim`, and `EDITOR`/`VISUAL` point at it, when nvim is installed; otherwise both are vim if installed, else .zshrc leaves them alone.
 
 ## [1.9.0] - 2026-07-08

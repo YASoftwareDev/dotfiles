@@ -64,7 +64,8 @@ servers outside of it.
 **Version gates** - supported hosts run nvim 0.9-0.12. Options and plugins that need a
 newer nvim are gated (`vim.fn.has('nvim-0.X')`, lazy `cond`), because one invalid
 option value aborts the rest of init.lua. Parser installs are gated on nvim 0.12,
-a `tree-sitter` CLI >= 0.26.1 and a C compiler (what nvim-treesitter needs to build them);
+a `tree-sitter` CLI >= 0.26.1, a C compiler (`$CC`'s first word), curl and tar (what
+nvim-treesitter needs to build them);
 nvim-treesitter itself still loads from 0.10, as on master.
 
 ## update.sh helpers
