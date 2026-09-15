@@ -220,7 +220,7 @@ _neovim_compat_binary() {
     else raw=$(wget -qO- "$api") || return 1; fi
     local -a tags
     mapfile -t tags < <(printf '%s\n' "$raw" \
-        | grep -o '"tag_name": *"v[0-9][^"]*"' | grep -o 'v[0-9][^"]*' | head -5)
+        | grep -o '"tag_name": *"v[0-9][^"]*"' | grep -o 'v[0-9][^"]*' | sort -Vr | head -5)
     local cur
     cur=$("$prefix/bin/nvim" --version 2>/dev/null | head -1) || cur=""
 
