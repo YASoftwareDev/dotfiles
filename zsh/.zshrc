@@ -53,8 +53,8 @@ source "$ZSH/oh-my-zsh.sh"
 # ── Environment ───────────────────────────────────────────────────────────────
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
-# vim opens nvim wherever nvim is installed. EDITOR names only an installed
-# editor: git follows it, so without nvim or vim git keeps its own default.
+# vim opens nvim wherever nvim is installed. git follows EDITOR, so it is set only
+# to an installed editor; without nvim or vim an inherited value is kept.
 if (( $+commands[nvim] )); then
   export EDITOR=nvim VISUAL=nvim
   alias vim=nvim

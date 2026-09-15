@@ -7,10 +7,11 @@ local git_out = vim.fn.executable('git') == 1 and vim.fn.system({ 'git', '--vers
 local git_major, git_minor = git_out:match('(%d+)%.(%d+)')
 local git_partial = git_major ~= nil
     and (tonumber(git_major) > 2 or (tonumber(git_major) == 2 and tonumber(git_minor) >= 19))
--- nvim-treesitter (main) needs nvim 0.12 and a tree-sitter CLI >= 0.26.1 to build
--- parsers; without them every start re-downloaded all parsers and failed.
+-- nvim-treesitter (main) needs nvim 0.12, a tree-sitter CLI >= 0.26.1 and a C compiler
+-- to build parsers; without them every start re-downloaded all parsers and failed.
 local ts_ok = false
-if vim.fn.has('nvim-0.12') == 1 and vim.fn.executable('tree-sitter') == 1 then
+if vim.fn.has('nvim-0.12') == 1 and vim.fn.executable('tree-sitter') == 1
+    and vim.fn.executable(vim.env.CC or 'cc') == 1 then
   local maj, min, pat = vim.fn.system({ 'tree-sitter', '--version' }):match('(%d+)%.(%d+)%.(%d+)')
   maj, min, pat = tonumber(maj), tonumber(min), tonumber(pat)
   ts_ok = maj ~= nil and (maj > 0 or min > 26 or (min == 26 and pat >= 1))

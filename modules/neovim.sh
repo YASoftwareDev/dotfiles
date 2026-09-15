@@ -298,9 +298,11 @@ _neovim_legacy_binary() {
 
     if [ "$prefix" = "/usr/local" ]; then
         [ -n "${SUDO:-}" ] && sudo -v 2>/dev/null || true
+        $SUDO rm -rf "$prefix/share/nvim/runtime" "$prefix/lib/nvim"
         $SUDO cp -r "$extracted"/. "$prefix/"
     else
         mkdir -p "$prefix"
+        rm -rf "$prefix/share/nvim/runtime" "$prefix/lib/nvim"
         cp -r "$extracted"/. "$prefix/"
     fi
     log_ok "neovim legacy $tag installed → $prefix ($($prefix/bin/nvim --version 2>/dev/null | head -1))"

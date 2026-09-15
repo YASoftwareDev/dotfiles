@@ -192,8 +192,14 @@ _do_update_neovim() {
             || { log_warn "neovim: legacy download failed - skipping"; return; }; fi
         local leg_extracted; leg_extracted=$(find "$tmp" -maxdepth 1 -type d -name 'nvim-*' | head -1)
         [ -z "$leg_extracted" ] && { log_warn "neovim: unexpected archive layout - skipping"; return; }
-        if [ "$prefix" = /usr/local ]; then $SUDO cp -r "$leg_extracted"/. /usr/local/
-        else mkdir -p "$prefix"; cp -r "$leg_extracted"/. "$prefix/"; fi
+        # Clear a newer runtime first: under a 0.9.5 binary it breaks (E15, E5113).
+        if [ "$prefix" = /usr/local ]; then
+            $SUDO rm -rf /usr/local/share/nvim/runtime /usr/local/lib/nvim
+            $SUDO cp -r "$leg_extracted"/. /usr/local/
+        else
+            mkdir -p "$prefix"; rm -rf "$prefix/share/nvim/runtime" "$prefix/lib/nvim"
+            cp -r "$leg_extracted"/. "$prefix/"
+        fi
         log_ok "neovim restored → $("$nvim_dest" --version 2>/dev/null | head -1)"
         return
     fi
@@ -639,6 +645,8 @@ if _should_run tree-sitter; then
         fi
     elif _ver_older_than "$(_glibc_version)" "2.39"; then
         log_info "tree-sitter: not installed - its release binaries need glibc >= 2.39"
+    elif has tree-sitter && ! _ver_older_than "$(_cmd_version tree-sitter --version)" "0.26.1"; then
+        log_info "tree-sitter: $(command -v tree-sitter) is not managed by update.sh - skipping"
     else
         log_warn "tree-sitter not installed - run install.sh workstation first"
     fi

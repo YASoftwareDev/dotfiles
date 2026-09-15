@@ -264,6 +264,32 @@ if [ "$PROFILE" = "workstation" ]; then
         _ok "nvim starts without config errors"
     fi
     # init.lua reads `git --version`; a missing git must not abort the config.
+    # The runtime must match the binary: a 0.9.5 binary over a 0.10+ runtime fails here.
+    rt=$(mktemp -d); printf 'local x = 1\n' > "$rt/t.lua"; printf 'a,b\n1,2\n' > "$rt/t.csv"
+    rt_out=$(cd /tmp && timeout 60 nvim --clean --headless "$rt/t.lua" +"e $rt/t.csv" +qa 2>&1); rt_rc=$?
+    if [ "$rt_rc" -ne 0 ] || printf '%s\n' "$rt_out" | grep -qE 'E[0-9]+:|stack traceback'; then
+        _fail "nvim runtime matches its binary (lua + csv open cleanly)"
+        printf '%s\n' "$rt_out" | grep -E 'E[0-9]+:|stack traceback' | head -3 >&2
+    else
+        _ok "nvim runtime matches its binary (lua + csv open cleanly)"
+    fi
+    rm -rf "$rt"
+    # init.lua must start parser installs only when they can succeed: nvim 0.12, a
+    # tree-sitter CLI >= 0.26.1 and a C compiler. Otherwise they failed on every start.
+    ts_want=0
+    ts_nv=$(_cmd_version nvim --version) || ts_nv=""
+    ts_cli=$(_cmd_version tree-sitter --version) || ts_cli=""
+    if [ -n "$ts_nv" ] && ! _ver_older_than "$ts_nv" "0.12" && [ -n "$ts_cli" ] \
+        && ! _ver_older_than "$ts_cli" "0.26.1" && command -v "${CC:-cc}" >/dev/null 2>&1; then
+        ts_want=1
+    fi
+    ts_hook="lua local r=require; _G.require=function(m) local x=r(m); if m=='nvim-treesitter' and type(x)=='table' and not rawget(x,'_t') then local i=x.install; x.install=function(...) io.stderr:write('TS-INSTALL-CALLED\n'); return i(...) end; rawset(x,'_t',1) end; return x end"
+    ts_got=$(cd /tmp && timeout 120 nvim --headless --cmd "$ts_hook" +qa 2>&1 | grep -c TS-INSTALL-CALLED)
+    if [ "$ts_got" -eq "$ts_want" ]; then
+        _ok "parser install started only when it can build (expected $ts_want, got $ts_got)"
+    else
+        _fail "parser install started $ts_got time(s), expected $ts_want (nvim ${ts_nv:-?}, tree-sitter ${ts_cli:-none}, cc $(command -v "${CC:-cc}" || echo none))"
+    fi
     nogit=$(mktemp -d); ln -s "$(command -v nvim)" "$nogit/nvim"
     nogit_out=$(cd /tmp && timeout 120 env PATH="$nogit" nvim --headless +qa 2>&1); nogit_rc=$?
     if [ "$nogit_rc" -ne 0 ] || printf '%s\n' "$nogit_out" | grep -qE 'Error detected|E[0-9]+:'; then
