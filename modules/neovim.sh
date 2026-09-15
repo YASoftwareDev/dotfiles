@@ -102,7 +102,7 @@ install_neovim() {
     if has nvim; then
         local current
         current=$(nvim --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1) || current=""
-        if [ "$current" = "$latest" ] && "$prefix/bin/nvim" --version >/dev/null 2>&1; then
+        if [ -n "$latest" ] && [ "$current" = "$latest" ] && "$prefix/bin/nvim" --version >/dev/null 2>&1; then
             log_ok "neovim $latest_tag already installed - skipping"
             # Shadow check still needed: `nvim` above may have resolved to a
             # user-local copy (e.g. ~/.local/bin/nvim) that shadows an existing
