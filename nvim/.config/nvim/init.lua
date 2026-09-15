@@ -203,7 +203,10 @@ require('lazy').setup({
   {
     'saghen/blink.cmp',
     cond         = vim.fn.has('nvim-0.10') == 1, -- uses vim.snippet built-in (nvim 0.10+)
-    version      = '*',                          -- use release tags (pre-built Rust binary)
+    -- main is v2 (needs saghen/blink.lib + a different setup); a fresh clone that
+    -- missed the lockfile checkout landed there and failed every start.
+    branch       = 'v1',
+    version      = '1.*',                        -- use release tags (pre-built Rust binary)
     dependencies = { 'rafamadriz/friendly-snippets' },
     config       = function()
       require('blink.cmp').setup({
