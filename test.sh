@@ -263,7 +263,6 @@ if [ "$PROFILE" = "workstation" ]; then
     else
         _ok "nvim starts without config errors"
     fi
-    # init.lua reads `git --version`; a missing git must not abort the config.
     # The runtime must match the binary: a 0.9.5 binary over a 0.10+ runtime fails here.
     rt=$(mktemp -d); printf 'local x = 1\n' > "$rt/t.lua"; printf 'a,b\n1,2\n' > "$rt/t.csv"
     rt_out=$(cd /tmp && timeout 60 nvim --clean --headless "$rt/t.lua" +"e $rt/t.csv" +qa 2>&1); rt_rc=$?
@@ -290,6 +289,7 @@ if [ "$PROFILE" = "workstation" ]; then
     else
         _fail "parser install started $ts_got time(s), expected $ts_want (nvim ${ts_nv:-?}, tree-sitter ${ts_cli:-none}, cc $(command -v "${CC:-cc}" || echo none))"
     fi
+    # init.lua reads `git --version`; a missing git must not abort the config.
     nogit=$(mktemp -d); ln -s "$(command -v nvim)" "$nogit/nvim"
     nogit_out=$(cd /tmp && timeout 120 env PATH="$nogit" nvim --headless +qa 2>&1); nogit_rc=$?
     if [ "$nogit_rc" -ne 0 ] || printf '%s\n' "$nogit_out" | grep -qE 'Error detected|E[0-9]+:'; then

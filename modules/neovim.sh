@@ -229,7 +229,7 @@ _neovim_compat_binary() {
     tmp=$(mktemp -d)
     # shellcheck disable=SC2064
     trap "rm -rf '$tmp'" RETURN
-    for tag in "${tags[@]}"; do
+    for tag in ${tags[@]+"${tags[@]}"}; do
         if [ "$cur" = "NVIM $tag" ]; then
             log_ok "neovim $tag (glibc 2.17 build) already installed - skipping"
             return 0
@@ -299,12 +299,13 @@ _neovim_legacy_binary() {
 
     if [ "$prefix" = "/usr/local" ]; then
         [ -n "${SUDO:-}" ] && sudo -v 2>/dev/null || true
-        $SUDO rm -rf "$prefix/share/nvim/runtime" "$prefix/lib/nvim"
-        $SUDO cp -r "$extracted"/. "$prefix/"
+        $SUDO rm -rf "$prefix/bin/nvim" "$prefix/share/nvim/runtime" "$prefix/lib/nvim" \
+            && $SUDO cp -r "$extracted"/. "$prefix/" \
+            || { log_warn "neovim: copying legacy $tag into $prefix failed"; return 1; }
     else
-        mkdir -p "$prefix"
-        rm -rf "$prefix/share/nvim/runtime" "$prefix/lib/nvim"
-        cp -r "$extracted"/. "$prefix/"
+        mkdir -p "$prefix" && rm -rf "$prefix/bin/nvim" "$prefix/share/nvim/runtime" "$prefix/lib/nvim" \
+            && cp -r "$extracted"/. "$prefix/" \
+            || { log_warn "neovim: copying legacy $tag into $prefix failed"; return 1; }
     fi
     log_ok "neovim legacy $tag installed → $prefix ($($prefix/bin/nvim --version 2>/dev/null | head -1))"
 }
