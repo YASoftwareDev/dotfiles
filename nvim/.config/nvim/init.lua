@@ -80,8 +80,8 @@ require('lazy').setup({
 
   -- ── LSP ──────────────────────────────────────────────────────────────────
   -- nvim-lspconfig ≥ 2024-12 requires nvim 0.10 at the plugin level (not just
-  -- API level), so gate the entire block.  On nvim 0.9 the editor still works
-  -- fully; only LSP/completion is absent.
+  -- API level), so gate the entire block. Plugins that need a newer nvim than
+  -- the host has are gated with cond, so an older nvim still gets a working editor.
   {
     'neovim/nvim-lspconfig',
     cond         = vim.fn.has('nvim-0.10') == 1,
@@ -129,7 +129,16 @@ require('lazy').setup({
           -- LSP word highlight - replaces vim-illuminate (semantic, not regex)
           -- Use a buffer-keyed augroup so multiple servers attaching to the same
           -- buffer don't stack duplicate CursorHold autocmds (clear = true replaces).
-          if client and client.supports_method('textDocument/documentHighlight') then
+          -- supports_method became a method in 0.11; the field form warns on 0.12.
+          local has_hl = false
+          if client then
+            if vim.fn.has('nvim-0.11') == 1 then
+              has_hl = client:supports_method('textDocument/documentHighlight')
+            else
+              has_hl = client.supports_method('textDocument/documentHighlight')
+            end
+          end
+          if has_hl then
             local hl_group = vim.api.nvim_create_augroup('UserDocHighlight_' .. bufnr, { clear = true })
             vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
               buffer   = bufnr,
@@ -231,7 +240,7 @@ require('lazy').setup({
     'nvim-treesitter/nvim-treesitter',
     cond         = vim.fn.has('nvim-0.10') == 1, -- uses vim.fs.joinpath (nvim 0.10+)
     lazy         = false,
-    build        = ':TSUpdate',
+    build        = vim.fn.executable('tree-sitter') == 1 and ':TSUpdate' or nil,
     dependencies = {
       'nvim-treesitter/nvim-treesitter-textobjects',
       {
@@ -243,12 +252,15 @@ require('lazy').setup({
       },
     },
     config       = function()
-      -- Ensure parsers are present on fresh installs (async, no-op if already installed).
-      require('nvim-treesitter').install({
-        'bash', 'c', 'cpp', 'css', 'go', 'html', 'javascript',
-        'json', 'lua', 'markdown', 'markdown_inline', 'python', 'rust', 'toml',
-        'typescript', 'vim', 'yaml',
-      })
+      -- Install missing parsers (async). Compiling needs the tree-sitter CLI; without it
+      -- every start re-downloaded all parsers and failed. Such hosts get regex syntax.
+      if vim.fn.executable('tree-sitter') == 1 then
+        require('nvim-treesitter').install({
+          'bash', 'c', 'cpp', 'css', 'go', 'html', 'javascript',
+          'json', 'lua', 'markdown', 'markdown_inline', 'python', 'rust', 'toml',
+          'typescript', 'vim', 'yaml',
+        })
+      end
 
       -- Highlighting: built-in vim.treesitter, enabled per filetype
       vim.api.nvim_create_autocmd('FileType', {
@@ -288,6 +300,7 @@ require('lazy').setup({
   -- ── Telescope ────────────────────────────────────────────────────────────
   {
     'nvim-telescope/telescope.nvim',
+    cond         = vim.fn.has('nvim-0.11') == 1, -- errors out on older nvim
     cmd          = 'Telescope',
     keys         = {
       { '<C-p>',      '<cmd>Telescope find_files<CR>',                      desc = 'Find files' },
@@ -422,8 +435,8 @@ require('lazy').setup({
           local map  = function(key, fn, desc)
             vim.keymap.set('n', key, fn, vim.tbl_extend('force', opts, { desc = desc }))
           end
-          map(']h', gs.next_hunk, 'Next hunk')
-          map('[h', gs.prev_hunk, 'Prev hunk')
+          map(']h', function() gs.nav_hunk('next') end, 'Next hunk')
+          map('[h', function() gs.nav_hunk('prev') end, 'Prev hunk')
           map('<leader>hs', gs.stage_hunk, 'Stage hunk')
           map('<leader>hu', gs.undo_stage_hunk, 'Undo stage hunk')
           map('<leader>hp', gs.preview_hunk, 'Preview hunk')
@@ -648,9 +661,11 @@ opt.wildmode      = 'list:longest'
 opt.termguicolors = true
 
 opt.matchpairs:append('<:>')
--- Native word-level inline diff (nvim ≥ 0.11). inline:word highlights changed
--- words within a line; linematch realigns hunks for cleaner inline diffs.
-opt.diffopt = 'internal,filler,closeoff,indent-heuristic,algorithm:histogram,inline:word,linematch:60'
+-- linematch realigns hunks for cleaner inline diffs. inline:word (changed words
+-- highlighted within a line) exists only in nvim >= 0.12: older versions reject
+-- the whole value with E474, which aborted init.lua here on 0.9-0.11.
+opt.diffopt = 'internal,filler,closeoff,indent-heuristic,algorithm:histogram,linematch:60'
+if vim.fn.has('nvim-0.12') == 1 then opt.diffopt:append('inline:word') end
 
 if vim.fn.executable('rg') == 1 then
   opt.grepprg    = 'rg --vimgrep'
