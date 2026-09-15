@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - nvim: blink.cmp is held to its `v1` branch; its main branch became v2 (needs `saghen/blink.lib`), and fresh installs that landed there failed every start.
 
 ### Added
-- glibc < 2.32 hosts (Ubuntu 20.04) get current nvim from the glibc 2.17 builds in neovim/neovim-releases, checked against the tag (its `v0.12.5` shipped a nightly); v0.9.5 is now only the fallback.
+- glibc < 2.34 hosts (Ubuntu 20.04) get current nvim from the glibc 2.17 builds in neovim/neovim-releases, checked against the tag (its `v0.12.5` shipped a nightly); v0.9.5 is now only the fallback.
 - `tree-sitter` CLI install (workstation) and `update.sh tree-sitter`; skipped below glibc 2.39, which its release binaries need.
 - nvim: `lazy-lock.json` is tracked, so installs on git >= 2.13 get the plugin commits CI tested; commit it after `:Lazy update`. Existing installs move to the pins with the README's `:Lazy restore` step.
 - zsh: `vim` is aliased to `nvim`, and `EDITOR`/`VISUAL` point at it, when nvim is installed; otherwise both are vim if installed, else .zshrc leaves them alone.

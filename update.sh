@@ -142,11 +142,11 @@ _do_update_neovim() {
         aarch64) nvim_arch="linux-arm64"  ;;
         *)       log_warn "neovim: unsupported arch $ARCH - skipping"; return ;;
     esac
-    # Prebuilt binaries since v0.10.0 require glibc ≥ 2.32 (Ubuntu 22.04+).
+    # Official binaries need glibc ≥ 2.34 (0.11.5 and 0.12.x, per objdump -T; Ubuntu 22.04+).
     # On older systems use the glibc 2.17 rebuild from neovim/neovim-releases.
     local glibc_ver
     glibc_ver=$(_glibc_version)
-    if _ver_older_than "$glibc_ver" "2.32"; then
+    if _ver_older_than "$glibc_ver" "2.34"; then
         local prefix
         if $CAN_APT; then prefix=/usr/local; else prefix=$HOME/.local; fi
         local nvim_dest="$prefix/bin/nvim"

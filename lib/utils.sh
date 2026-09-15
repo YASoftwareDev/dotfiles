@@ -321,7 +321,7 @@ _ver_older_than() {
 # Print the system glibc version (e.g. "2.31"), or "0.0" when unknown (musl).
 # Never `ldd --version | head -1 ... || echo 0.0`: under pipefail ldd can take
 # SIGPIPE, the fallback appends "0.0" to the real version, and _ver_older_than
-# then reads glibc 2.31 as new enough for binaries that need 2.32+.
+# then reads glibc 2.31 as new enough for binaries that need a newer glibc.
 _glibc_version() {
     local out
     out=$(getconf GNU_LIBC_VERSION 2>/dev/null) || out=""   # "glibc 2.31"

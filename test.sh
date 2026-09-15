@@ -255,9 +255,9 @@ fi
 if [ "$PROFILE" = "workstation" ]; then
     _hdr "Workstation tools"
     check_cmd nvim
-    # glibc < 2.32 hosts must get a neovim-releases build, not the v0.9.5 fallback.
+    # glibc < 2.34 hosts must get a neovim-releases build, not the v0.9.5 fallback.
     nv_glibc=$(_glibc_version)
-    if [ "$(uname -m)" = x86_64 ] && _ver_older_than "$nv_glibc" "2.32"; then
+    if [ "$(uname -m)" = x86_64 ] && _ver_older_than "$nv_glibc" "2.34"; then
         nv_v=$(_cmd_version nvim --version) || nv_v=""
         if [ -n "$nv_v" ] && ! _ver_older_than "$nv_v" "0.10"; then
             _ok "nvim $nv_v on glibc $nv_glibc (glibc 2.17 build)"
@@ -265,7 +265,7 @@ if [ "$PROFILE" = "workstation" ]; then
             _fail "nvim ${nv_v:-missing} on glibc $nv_glibc: expected a glibc 2.17 build >= 0.10"
         fi
     else
-        _skip "nvim glibc 2.17 build" "glibc $nv_glibc >= 2.32 or not x86_64"
+        _skip "nvim glibc 2.17 build" "glibc $nv_glibc >= 2.34 or not x86_64"
     fi
     check_cmd uv
     check_cmd cheat

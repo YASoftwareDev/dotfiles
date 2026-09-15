@@ -425,7 +425,7 @@ to move plugins to the pins; otherwise the next plugin install writes their old 
 The pins apply on git >= 2.13. Older git (Ubuntu 16.04) rejects lazy's `checkout --recurse-submodules`,
 so plugins stay at the commits first cloned and `:Lazy update`/`:Lazy restore` cannot move them; lazy keeps
 its lockfile in `~/.local/state/nvim` there, so the tracked one stays clean.
-On glibc < 2.32 (Ubuntu 20.04) the installer uses the glibc 2.17 build from
+On glibc < 2.34 (Ubuntu 20.04; official nvim 0.11+ needs 2.34) the installer uses the glibc 2.17 build from
 [neovim/neovim-releases](https://github.com/neovim/neovim-releases). Treesitter parsers
 are compiled on nvim 0.12 with the `tree-sitter` CLI (>= 0.26.1; its release binaries need glibc >= 2.39),
 a C compiler, curl and tar; without any of them, parser installs are skipped and languages without a parser bundled in nvim use regex syntax highlighting.
@@ -436,15 +436,15 @@ a C compiler, curl and tar; without any of them, parser installs are skipped and
 - Completion: `blink.cmp` (Rust core) + `friendly-snippets`
 - Treesitter: `nvim-treesitter` + textobjects + context
 - Fuzzy (nvim 0.11+; on older nvim its keys, including `<leader>j` and the dashboard's `f`/`g`, report a missing command): `telescope.nvim` + `telescope-fzf-native`
-- File tree: `nvim-tree.lua` (`<F6>` to toggle); netrw still active for `:e /dir`
+- File tree (nvim 0.10+): `nvim-tree.lua` (`<F6>` to toggle); netrw still active for `:e /dir`
 - Statusline: `lualine.nvim` (Nerd Font icons)
 - Start screen: `dashboard-nvim` (hyper theme)
-- Git: `gitsigns.nvim` + `vim-fugitive`
+- Git: `gitsigns.nvim` (nvim 0.11+) + `vim-fugitive`
 - Diagnostics: `trouble.nvim` (`<leader>xx`)
-- Formatting: `conform.nvim` (format on save: ruff_fix+ruff_format for Python, stylua for Lua, clang-format, shfmt, prettier; disable with `NOFORMAT=1`)
+- Formatting (nvim 0.10+): `conform.nvim` (format on save: ruff_fix+ruff_format for Python, stylua for Lua, clang-format, shfmt, prettier; disable with `NOFORMAT=1`)
 - Motion: `flash.nvim` (`s`/`S` jump/treesitter, `r`/`R` remote ops)
 - Writing: `zen-mode.nvim` + `twilight.nvim`
-- Colorscheme: **nightfly** (default/ACTIVE) + 22 more installed, switchable via `<leader>cs`
+- Colorscheme: **nightfly** (default/ACTIVE) + 22 more installed (catppuccin needs nvim 0.10), switchable via `<leader>cs`
 
 **Key mappings (leader = Space):**
 | Key | Action |
@@ -455,7 +455,7 @@ a C compiler, curl and tar; without any of them, parser installs are skipped and
 | `<leader>b` / `<F3>` | Telescope buffers |
 | `<leader>cs` | Colorscheme picker (live preview) |
 | `<leader>xx` | Trouble diagnostics panel |
-| `<F6>` | NvimTree toggle |
+| `<F6>` | NvimTree toggle (nvim 0.10+) |
 | `<F4>` | Indent guides toggle |
 | `<leader>z` | Zen mode |
 | `s` / `S` | flash.nvim jump / treesitter |

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Neovim: install latest stable release from GitHub (prebuilt tarball).
-# On glibc < 2.32 uses the glibc 2.17 rebuild from neovim/neovim-releases,
+# On glibc < 2.34 uses the glibc 2.17 rebuild from neovim/neovim-releases,
 # then legacy v0.9.5; falls back to apt if GitHub is unreachable or the arch
 # is unsupported.
 # Idempotent: skips install when the installed version already matches latest.
@@ -77,8 +77,8 @@ install_neovim() {
         | grep -o 'https://[^"]*' \
         | head -1) || url=""
 
-    # glibc < 2.32 hosts do not use this release: they take the glibc 2.17 builds below.
-    if [ -z "$url" ] && ! _ver_older_than "$(_glibc_version)" "2.32"; then
+    # glibc < 2.34 hosts do not use this release: they take the glibc 2.17 builds below.
+    if [ -z "$url" ] && ! _ver_older_than "$(_glibc_version)" "2.34"; then
         log_warn "neovim: could not fetch release URL - falling back to apt"
         _neovim_apt
         return
@@ -117,12 +117,12 @@ install_neovim() {
     fi
 
     # Early glibc check - avoids a needless ~100 MB download on old systems.
-    # Prebuilt binaries since v0.10.0 require glibc ≥ 2.32 (Ubuntu 22.04+).
+    # Official binaries need glibc ≥ 2.34 (0.11.5 and 0.12.x, per objdump -T; Ubuntu 22.04+).
     # Detect before downloading; if too old, use the glibc 2.17 build instead.
     local glibc_ver
     glibc_ver=$(_glibc_version)
-    if _ver_older_than "$glibc_ver" "2.32"; then
-        log_warn "neovim: system glibc $glibc_ver < 2.32 - official prebuilt incompatible, using a glibc 2.17 build"
+    if _ver_older_than "$glibc_ver" "2.34"; then
+        log_warn "neovim: system glibc $glibc_ver < 2.34 - official prebuilt incompatible, using a glibc 2.17 build"
         # Remove broken binaries left by a prior failed install, including a
         # ~/.local/bin/nvim that would shadow a /usr/local install.
         local b
@@ -269,7 +269,7 @@ _neovim_compat_binary() {
 }
 
 # Last resort when no verified glibc 2.17 build is available: the last official
-# release compatible with glibc < 2.32.
+# release built for glibc 2.17.
 # v0.9.5 was built on Ubuntu 18.04 CI (glibc 2.17 baseline) and runs on any
 # glibc ≥ 2.17. Asset name changed to nvim-linux-x86_64 at v0.10.0; v0.9.x
 # used nvim-linux64.  Only x86_64 is handled - ARM64 falls back to apt.
@@ -318,7 +318,7 @@ _neovim_apt() {
             log_warn "neovim: no apt on this system - install it manually: $(_pkg_install_hint) neovim"
         else
             log_warn "neovim: no sudo - cannot install via a system package manager"
-            log_warn "  Prebuilt GitHub binaries require glibc ≥ 2.32"
+            log_warn "  Prebuilt GitHub binaries require glibc ≥ 2.34"
             log_warn "  Options: upgrade OS, or build neovim from source"
         fi
         return
