@@ -296,7 +296,7 @@ cd ~/.dotfiles && ./update.sh --check
 │   ├── base.sh         # apt packages + fzf shell integration
 │   ├── zsh.sh          # oh-my-zsh, plugins, powerlevel10k, .zshrc symlink
 │   ├── tmux.sh         # tmux config symlinks + plugin cloning
-│   ├── tools.sh        # uv, ruff, cheat, ripgrep/yazi config symlinks
+│   ├── tools.sh        # uv, ruff, cheat, tree-sitter, ripgrep/yazi config symlinks
 │   └── neovim.sh       # neovim binary install + nvim config symlink
 │
 ├── scripts/
@@ -420,8 +420,8 @@ Full Lua config at `nvim/.config/nvim/init.lua`. Plugin manager: **lazy.nvim** (
 `vim` is an alias for `nvim` (and `EDITOR`/`VISUAL` point at it) wherever nvim is installed.
 On glibc < 2.32 (Ubuntu 20.04) the installer uses the glibc 2.17 build from
 [neovim/neovim-releases](https://github.com/neovim/neovim-releases). Treesitter parsers
-are compiled with the `tree-sitter` CLI (>= 0.26.1; its release binaries need glibc >= 2.39);
-without it parser installs are skipped and those languages use regex syntax highlighting.
+are compiled on nvim 0.12 with the `tree-sitter` CLI (>= 0.26.1; its release binaries need glibc >= 2.39);
+without both, parser installs are skipped and those languages use regex syntax highlighting.
 
 **Stack:**
 - LSP: `nvim-lspconfig` + `mason.nvim` + `mason-lspconfig` (pyright, clangd, bashls, lua_ls)
