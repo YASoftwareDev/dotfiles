@@ -179,6 +179,10 @@ fi
 
 # ── 9. git config ─────────────────────────────────────────────────────────────
 _hdr "git config"
+# A config value this git does not know (zdiff3 before 2.35) aborts checkout/merge.
+check_run "git checkout + merge work under this gitconfig" \
+    bash -c 'd=$(mktemp -d) && cd "$d" && git init -q && git -c user.name=t -c user.email=t@t commit -q --allow-empty -m a \
+             && git checkout -q -b t && git checkout -q - && git -c user.name=t -c user.email=t@t merge -q --no-edit t; r=$?; rm -rf "$d"; exit $r'
 check_run "dotfiles git settings applied" \
     bash -c 'git config --global diff.zip.textconv | grep -q unzip'
 

@@ -75,6 +75,14 @@ _link_git_config() {
     symlink "${DOTFILES_DIR}/git/.gitconfig"    ~/.gitconfig
     symlink "${DOTFILES_DIR}/git/.gitattributes" ~/.gitattributes
     log_ok "git config linked"
+    # The tracked config uses diff3 so git < 2.35 keeps working; upgrade locally.
+    local git_v
+    git_v=$(_cmd_version git --version) || git_v=""
+    if [ -n "$git_v" ] && ! _ver_older_than "$git_v" "2.35" \
+        && ! git config -f ~/.gitconfig.local --get merge.conflictstyle >/dev/null 2>&1; then
+        git config -f ~/.gitconfig.local merge.conflictstyle zdiff3
+        log_ok "git $git_v: merge.conflictstyle zdiff3 set in ~/.gitconfig.local"
+    fi
 }
 
 # ── Post-install state detection ──────────────────────────────────────────────

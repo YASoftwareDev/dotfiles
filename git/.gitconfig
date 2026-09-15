@@ -48,7 +48,9 @@
     line-numbers = true
 
 [merge]
-    conflictstyle = zdiff3
+    # zdiff3 needs git >= 2.35; older git (Ubuntu 20.04/22.04) aborts checkout and
+    # merge on it. install.sh puts zdiff3 in ~/.gitconfig.local where git supports it.
+    conflictstyle = diff3
 
 [pull]
 	rebase = true
