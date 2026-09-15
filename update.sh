@@ -637,6 +637,8 @@ if _should_run tree-sitter; then
                 fi
             fi
         fi
+    elif _ver_older_than "$(_glibc_version)" "2.39"; then
+        log_info "tree-sitter: not installed - its release binaries need glibc >= 2.39"
     else
         log_warn "tree-sitter not installed - run install.sh workstation first"
     fi

@@ -185,6 +185,13 @@ check_run "git checkout + merge work under this gitconfig" \
              && git checkout -q -b t && git checkout -q - && git -c user.name=t -c user.email=t@t merge -q --no-edit t; r=$?; rm -rf "$d"; exit $r'
 check_run "dotfiles git settings applied" \
     bash -c 'git config --global diff.zip.textconv | grep -q unzip'
+# install.sh upgrades the tracked diff3 to zdiff3 where git supports it.
+if git --version | awk '{ split($3, v, "."); exit !(v[1] > 2 || (v[1] == 2 && v[2] >= 35)) }'; then
+    check_run "merge.conflictstyle is zdiff3 (git >= 2.35)" \
+        bash -c '[ "$(git config --get merge.conflictstyle)" = zdiff3 ]'
+else
+    _skip "merge.conflictstyle zdiff3" "git < 2.35"
+fi
 
 # ── 10. zoxide functional ─────────────────────────────────────────────────────
 _hdr "zoxide"

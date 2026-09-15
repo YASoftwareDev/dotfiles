@@ -248,15 +248,16 @@ _neovim_compat_binary() {
         fi
         # Drop the old runtime first: files a newer release deleted would otherwise
         # linger (runtime/plugin/* is auto-sourced). lazy.nvim data lives beside it
-        # in share/nvim/lazy and is not touched.
+        # in share/nvim/lazy and is not touched. The binary goes too: cp cannot
+        # overwrite a running nvim ("Text file busy"), while unlinking it is safe.
         # Callers run this inside `if`, where set -e is off: check each step.
         if [ "$prefix" = "/usr/local" ]; then
             [ -n "${SUDO:-}" ] && sudo -v 2>/dev/null || true
-            $SUDO rm -rf "$prefix/share/nvim/runtime" "$prefix/lib/nvim" \
+            $SUDO rm -rf "$prefix/bin/nvim" "$prefix/share/nvim/runtime" "$prefix/lib/nvim" \
                 && $SUDO cp -r "$dir/$asset"/. "$prefix/" \
                 || { log_warn "neovim: copying $tag into $prefix failed"; return 1; }
         else
-            mkdir -p "$prefix" && rm -rf "$prefix/share/nvim/runtime" "$prefix/lib/nvim" \
+            mkdir -p "$prefix" && rm -rf "$prefix/bin/nvim" "$prefix/share/nvim/runtime" "$prefix/lib/nvim" \
                 && cp -r "$dir/$asset"/. "$prefix/" \
                 || { log_warn "neovim: copying $tag into $prefix failed"; return 1; }
         fi
