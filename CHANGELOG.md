@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - nvim: init.lua no longer aborts on nvim < 0.12 (`diffopt` `inline:word` exists only in 0.12), which silently dropped every later option, keymap and command.
 - nvim: parser installs are skipped when the `tree-sitter` CLI is missing, instead of re-downloading and failing on every start; telescope is gated to nvim >= 0.11, which it requires.
 - nvim: no deprecation warnings on 0.12 from `client.supports_method` or gitsigns `next_hunk`/`prev_hunk`.
+- nvim: blink.cmp is held to its `v1` branch; its main branch became v2 (needs `saghen/blink.lib`), and fresh installs that landed there failed every start.
 
 ### Added
 - glibc < 2.32 hosts (Ubuntu 20.04) get current nvim from the glibc 2.17 builds in neovim/neovim-releases, checked against the tag (its `v0.12.5` shipped a nightly); v0.9.5 is now only the fallback.
