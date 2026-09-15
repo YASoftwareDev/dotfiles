@@ -72,6 +72,7 @@ require('lazy').setup({
   {
     'catppuccin/nvim',
     name = 'catppuccin',
+    cond = vim.fn.has('nvim-0.10') == 1, -- its config calls vim.iter; errored on every 0.9 start
     event = 'VeryLazy',
     opts = { flavour = 'mocha' }
   },                                                                                   -- mocha/macchiato/frappe
