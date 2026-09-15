@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- install/update: glibc detection no longer races (`ldd | head` under pipefail misread 2.31 in 52 of 200 runs), which installed an nvim that cannot start on Ubuntu 20.04.
+- nvim: init.lua no longer aborts on nvim < 0.12 (`diffopt` `inline:word` exists only in 0.12), which silently dropped every later option, keymap and command.
+- nvim: parser installs are skipped when the `tree-sitter` CLI is missing, instead of re-downloading and failing on every start; telescope is gated to nvim >= 0.11, which it requires.
+- nvim: no deprecation warnings on 0.12 from `client.supports_method` or gitsigns `next_hunk`/`prev_hunk`.
+
+### Added
+- glibc < 2.32 hosts (Ubuntu 20.04) get current nvim from the glibc 2.17 builds in neovim/neovim-releases, checked against the tag (its `v0.12.5` shipped a nightly); v0.9.5 is now only the fallback.
+- `tree-sitter` CLI install (workstation) and `update.sh tree-sitter`; skipped below glibc 2.39, which its release binaries need.
+- zsh: `vim` is aliased to `nvim`, and `EDITOR`/`VISUAL` point at it, when nvim is installed; otherwise both stay vim.
+
 ## [1.9.0] - 2026-07-08
 
 ### Added

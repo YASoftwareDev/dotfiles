@@ -204,11 +204,33 @@ if [ "$PROFILE" = "workstation" ]; then
     check_cmd nvim
     check_cmd uv
     check_cmd cheat
+    # tree-sitter release binaries need glibc >= 2.39; older hosts skip it by design.
+    ts_glibc=$(_glibc_version)
+    if _ver_older_than "$ts_glibc" "2.39"; then
+        _skip "tree-sitter" "glibc $ts_glibc < 2.39"
+    else
+        check_cmd tree-sitter
+    fi
 
     _hdr "Workstation config symlinks"
     check_link ~/.config/nvim
     check_link ~/.config/ripgrep/rc
     check_link ~/.config/yazi/yazi.toml
+
+    _hdr "Workstation nvim"
+    # init.lua errors do not change nvim's exit code, so read stderr instead.
+    nvim_out=$(cd /tmp && timeout 300 nvim --headless +qa 2>&1)
+    if printf '%s\n' "$nvim_out" | grep -qE 'Error detected|E[0-9]+:|stack traceback'; then
+        _fail "nvim starts without config errors"
+        printf '%s\n' "$nvim_out" | grep -E 'Error detected|E[0-9]+:|stack traceback' | head -5 >&2
+    else
+        _ok "nvim starts without config errors"
+    fi
+    if timeout 60 zsh -ic 'whence -w vim' </dev/null 2>/dev/null | grep -q ': alias'; then
+        _ok "vim is an alias for nvim in interactive zsh"
+    else
+        _fail "vim is not an alias for nvim in interactive zsh"
+    fi
 
     _hdr "Workstation tmux plugins"
     check_dir ~/.tmux/plugins/tmux-fzf  "tmux-fzf"
