@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Neovim: install latest stable release from GitHub (prebuilt tarball).
-# Falls back to apt if GitHub is unreachable, arch is unsupported, or the
-# prebuilt binary is incompatible with the system's glibc.
+# On glibc < 2.34 uses the glibc 2.17 rebuild from neovim/neovim-releases,
+# then legacy v0.9.5; falls back to apt if GitHub is unreachable or the arch
+# is unsupported.
 # Idempotent: skips install when the installed version already matches latest.
 
 # Probe ~/.local/bin/nvim and ~/bin/nvim for older copies that would shadow
@@ -74,9 +75,10 @@ install_neovim() {
     url=$(printf '%s\n' "$raw" \
         | grep -o '"browser_download_url": *"[^"]*nvim-'"${nvim_arch}"'\.tar\.gz"' \
         | grep -o 'https://[^"]*' \
-        | head -1)
+        | head -1) || url=""
 
-    if [ -z "$url" ]; then
+    # glibc < 2.34 hosts do not use this release: they take the glibc 2.17 builds below.
+    if [ -z "$url" ] && ! _ver_older_than "$(_glibc_version)" "2.34"; then
         log_warn "neovim: could not fetch release URL - falling back to apt"
         _neovim_apt
         return
@@ -86,7 +88,7 @@ install_neovim() {
     latest_tag=$(printf '%s\n' "$raw" \
         | grep -o '"tag_name": *"[^"]*"' \
         | grep -o 'v[0-9][^"]*' \
-        | head -1)
+        | head -1) || latest_tag=""
     local latest="${latest_tag#v}"
 
     # Install prefix: /usr/local on apt systems with sudo, ~/.local otherwise.
@@ -99,8 +101,8 @@ install_neovim() {
     # A version-matching but glibc-broken binary must not be skipped.
     if has nvim; then
         local current
-        current=$(nvim --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-        if [ "$current" = "$latest" ] && "$prefix/bin/nvim" --version >/dev/null 2>&1; then
+        current=$(nvim --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1) || current=""
+        if [ -n "$latest" ] && [ "$current" = "$latest" ] && "$prefix/bin/nvim" --version >/dev/null 2>&1; then
             log_ok "neovim $latest_tag already installed - skipping"
             # Shadow check still needed: `nvim` above may have resolved to a
             # user-local copy (e.g. ~/.local/bin/nvim) that shadows an existing
@@ -115,17 +117,33 @@ install_neovim() {
     fi
 
     # Early glibc check - avoids a needless ~100 MB download on old systems.
-    # Prebuilt binaries since v0.10.0 require glibc ≥ 2.32 (Ubuntu 22.04+).
-    # Detect before downloading; if too old, go straight to the legacy binary.
+    # Official binaries need glibc ≥ 2.34 (0.11.5 and 0.12.x, per objdump -T; Ubuntu 22.04+).
+    # Detect before downloading; if too old, use the glibc 2.17 build instead.
     local glibc_ver
-    glibc_ver=$(ldd --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+$' || echo "0.0")
-    if _ver_older_than "$glibc_ver" "2.32"; then
-        log_warn "neovim: system glibc $glibc_ver < 2.32 - latest prebuilt incompatible"
-        # Remove any broken binary left by a prior failed install.
-        if [ -f "$prefix/bin/nvim" ] && ! "$prefix/bin/nvim" --version >/dev/null 2>&1; then
-            rm -f "$prefix/bin/nvim"
-            log_info "neovim: removed incompatible binary from $prefix/bin/nvim"
+    glibc_ver=$(_glibc_version)
+    if _ver_older_than "$glibc_ver" "2.34"; then
+        log_warn "neovim: system glibc $glibc_ver < 2.34 - official prebuilt incompatible, using a glibc 2.17 build"
+        # Remove broken binaries left by a prior failed install, including a
+        # ~/.local/bin/nvim that would shadow a /usr/local install.
+        local b
+        for b in "$prefix/bin/nvim" "$HOME/.local/bin/nvim"; do
+            if [ -f "$b" ] && ! "$b" --version >/dev/null 2>&1; then
+                if [ "$b" = /usr/local/bin/nvim ]; then $SUDO rm -f "$b"; else rm -f "$b"; fi
+                log_info "neovim: removed incompatible binary $b"
+            fi
+        done
+        if _neovim_compat_binary "$prefix"; then
+            if $CAN_APT; then _nvim_warn_shadows /usr/local/bin/nvim; fi
+            return
         fi
+        # A working 0.10+ build (an earlier glibc 2.17 install) beats the 0.9.5 fallback.
+        local have_v
+        have_v=$(_cmd_version "$prefix/bin/nvim" --version) || have_v=""
+        if [ -n "$have_v" ] && ! _ver_older_than "$have_v" "0.10"; then
+            log_warn "neovim: no verified glibc 2.17 build available - keeping $have_v"
+            return
+        fi
+        log_warn "neovim: no verified glibc 2.17 build available - falling back to legacy v0.9.5"
         # Keep any already-working compatible binary only when its runtime also
         # matches - a leftover 0.10+ runtime alongside a 0.9.x binary causes
         # E15 errors ($' interpolated strings in csv.vim) and osc52 failures.
@@ -184,7 +202,74 @@ install_neovim() {
     if $CAN_APT; then _nvim_warn_shadows /usr/local/bin/nvim; fi
 }
 
-# Download the last neovim release compatible with glibc < 2.32.
+# Install the newest nvim from neovim/neovim-releases (rebuilt against glibc 2.17).
+# Its tags are not trustworthy alone: on 2026-09-15 both "v0.12.5" and "stable"
+# shipped a v0.13.0-dev nightly, so a candidate is used only when its own
+# --version matches its tag. Returns 1 when nothing verifies.
+# Usage: _neovim_compat_binary PREFIX
+_neovim_compat_binary() {
+    local prefix="$1"
+    local asset
+    case "$(uname -m)" in
+        x86_64)  asset="nvim-linux-x86_64" ;;
+        aarch64) asset="nvim-linux-arm64"  ;;
+        *)       return 1 ;;
+    esac
+    local api="https://api.github.com/repos/neovim/neovim-releases/releases?per_page=10"
+    local raw
+    if has curl; then raw=$(curl -sfL "$api") || return 1
+    else raw=$(wget -qO- "$api") || return 1; fi
+    local -a tags
+    mapfile -t tags < <(printf '%s\n' "$raw" \
+        | grep -o '"tag_name": *"v[0-9][^"]*"' | grep -o 'v[0-9][^"]*' | sort -Vr | head -5)
+    local cur
+    cur=$("$prefix/bin/nvim" --version 2>/dev/null | head -1) || cur=""
+
+    local tmp tag dir url got
+    tmp=$(mktemp -d)
+    # shellcheck disable=SC2064
+    trap "rm -rf '$tmp'" RETURN
+    for tag in ${tags[@]+"${tags[@]}"}; do
+        if [ "$cur" = "NVIM $tag" ]; then
+            log_ok "neovim $tag (glibc 2.17 build) already installed - skipping"
+            return 0
+        fi
+        url=$(printf '%s\n' "$raw" \
+            | grep -o '"browser_download_url": *"[^"]*/download/'"${tag}"'/'"${asset}"'\.tar\.gz"' \
+            | grep -o 'https://[^"]*' | head -1) || url=""
+        [ -n "$url" ] || continue
+        dir="$tmp/$tag"
+        mkdir -p "$dir"
+        if has curl; then curl -sfL "$url" | tar -xz -C "$dir" || continue
+        else wget -qO- "$url" | tar -xz -C "$dir" || continue; fi
+        got=$("$dir/$asset/bin/nvim" --version 2>/dev/null | head -1) || got=""
+        if [ "$got" != "NVIM $tag" ]; then
+            log_warn "neovim: neovim-releases $tag contains '${got:-no usable binary}' - trying the previous tag"
+            continue
+        fi
+        # Drop the old runtime first: files a newer release deleted would otherwise
+        # linger (runtime/plugin/* is auto-sourced). lazy.nvim data lives beside it
+        # in share/nvim/lazy and is not touched. The binary goes too: cp cannot
+        # overwrite a running nvim ("Text file busy"), while unlinking it is safe.
+        # Callers run this inside `if`, where set -e is off: check each step.
+        if [ "$prefix" = "/usr/local" ]; then
+            [ -n "${SUDO:-}" ] && sudo -v 2>/dev/null || true
+            $SUDO rm -rf "$prefix/bin/nvim" "$prefix/share/nvim/runtime" "$prefix/lib/nvim" \
+                && $SUDO cp -r "$dir/$asset"/. "$prefix/" \
+                || { log_warn "neovim: copying $tag into $prefix failed"; return 1; }
+        else
+            mkdir -p "$prefix" && rm -rf "$prefix/bin/nvim" "$prefix/share/nvim/runtime" "$prefix/lib/nvim" \
+                && cp -r "$dir/$asset"/. "$prefix/" \
+                || { log_warn "neovim: copying $tag into $prefix failed"; return 1; }
+        fi
+        log_ok "neovim $tag (glibc 2.17 build) installed → $prefix"
+        return 0
+    done
+    return 1
+}
+
+# Last resort when no verified glibc 2.17 build is available: the last official
+# release built for glibc 2.17.
 # v0.9.5 was built on Ubuntu 18.04 CI (glibc 2.17 baseline) and runs on any
 # glibc ≥ 2.17. Asset name changed to nvim-linux-x86_64 at v0.10.0; v0.9.x
 # used nvim-linux64.  Only x86_64 is handled - ARM64 falls back to apt.
@@ -211,13 +296,18 @@ _neovim_legacy_binary() {
         _neovim_apt
         return
     fi
+    # v0.9.5 ships man/ at the top; Ubuntu's /usr/local/man is a symlink cp cannot overwrite.
+    if [ -d "$extracted/man" ]; then mv "$extracted/man" "$extracted/share/man"; fi
 
     if [ "$prefix" = "/usr/local" ]; then
         [ -n "${SUDO:-}" ] && sudo -v 2>/dev/null || true
-        $SUDO cp -r "$extracted"/. "$prefix/"
+        $SUDO rm -rf "$prefix/bin/nvim" "$prefix/share/nvim/runtime" "$prefix/lib/nvim" \
+            && $SUDO cp -r "$extracted"/. "$prefix/" \
+            || { log_warn "neovim: copying legacy $tag into $prefix failed"; return 1; }
     else
-        mkdir -p "$prefix"
-        cp -r "$extracted"/. "$prefix/"
+        mkdir -p "$prefix" && rm -rf "$prefix/bin/nvim" "$prefix/share/nvim/runtime" "$prefix/lib/nvim" \
+            && cp -r "$extracted"/. "$prefix/" \
+            || { log_warn "neovim: copying legacy $tag into $prefix failed"; return 1; }
     fi
     log_ok "neovim legacy $tag installed → $prefix ($($prefix/bin/nvim --version 2>/dev/null | head -1))"
 }
@@ -228,7 +318,7 @@ _neovim_apt() {
             log_warn "neovim: no apt on this system - install it manually: $(_pkg_install_hint) neovim"
         else
             log_warn "neovim: no sudo - cannot install via a system package manager"
-            log_warn "  Prebuilt GitHub binaries require glibc ≥ 2.32"
+            log_warn "  Prebuilt GitHub binaries require glibc ≥ 2.34"
             log_warn "  Options: upgrade OS, or build neovim from source"
         fi
         return

@@ -4,12 +4,14 @@
 #   - uv (Python package manager / venv tool, not in apt)
 #   - ruff (Python linter/formatter, installed via uv tool)
 #   - cheat (not in standard apt)
+#   - tree-sitter CLI (nvim-treesitter compiles parsers with it)
 #   - Config file symlinks for ripgrep and yazi
 
 install_tools() {
     _install_uv
     _install_ruff
     _install_cheat
+    _install_tree_sitter
     _link_ripgrep_config
     _link_yazi_config
 }
@@ -122,6 +124,62 @@ _install_cheat() {
     fi
     chmod +x ~/.local/bin/cheat
     log_ok "cheat installed → ~/.local/bin/cheat ($(~/.local/bin/cheat --version 2>/dev/null || echo 'unknown version'))"
+}
+
+# nvim-treesitter needs tree-sitter >= 0.26.1, and those release binaries need
+# glibc >= 2.39 (measured v0.26.1-v0.27.0). Older hosts skip it; nvim then
+# uses regex syntax for languages without a bundled parser.
+_install_tree_sitter() {
+    log_step "tree-sitter CLI"
+    # An older CLI (apt ships 0.20.8) does not count. install.sh does not put
+    # ~/.local/bin on PATH, so that copy is checked explicitly.
+    local have=""
+    have=$(_cmd_version "$HOME/.local/bin/tree-sitter" --version) || have=""
+    if [ -z "$have" ]; then have=$(_cmd_version tree-sitter --version) || have=""; fi
+    if [ -n "$have" ] && ! _ver_older_than "$have" "0.26.1"; then
+        log_ok "tree-sitter $have already installed - skipping"
+        return
+    fi
+
+    local ts_arch
+    case "$(uname -m)" in
+        x86_64)  ts_arch="x64"   ;;
+        aarch64) ts_arch="arm64" ;;
+        *)
+            log_warn "tree-sitter: unsupported arch $(uname -m) - skipping"
+            return
+            ;;
+    esac
+
+    local glibc_ver
+    glibc_ver=$(_glibc_version)
+    if _ver_older_than "$glibc_ver" "2.39"; then
+        log_warn "tree-sitter: glibc $glibc_ver < 2.39 - release binary incompatible, skipping"
+        log_warn "  nvim uses regex syntax highlighting where no parser is bundled"
+        return
+    fi
+
+    # Stable asset name - use latest/download direct URL, no API needed
+    local url="https://github.com/tree-sitter/tree-sitter/releases/latest/download/tree-sitter-linux-${ts_arch}.gz"
+    log_info "tree-sitter: installing latest → ~/.local/bin/tree-sitter"
+
+    # Download beside, swap in only a binary that runs: never lose a working one.
+    mkdir -p ~/.local/bin
+    local tmp ok=true
+    tmp=$(mktemp)
+    if has curl; then
+        curl -sfL "$url" | gunzip > "$tmp" || ok=false
+    else
+        wget -qO- "$url" | gunzip > "$tmp" || ok=false
+    fi
+    chmod +x "$tmp" 2>/dev/null || true
+    if ! $ok || ! "$tmp" --version >/dev/null 2>&1; then
+        log_warn "tree-sitter: download failed or the binary does not run - skipping"
+        rm -f "$tmp"
+        return
+    fi
+    mv "$tmp" ~/.local/bin/tree-sitter
+    log_ok "tree-sitter installed → ~/.local/bin/tree-sitter ($(~/.local/bin/tree-sitter --version 2>/dev/null))"
 }
 
 _link_ripgrep_config() {

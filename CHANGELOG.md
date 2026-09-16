@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0] - 2026-09-16
+
+### Fixed
+- git: `merge.conflictstyle` is `diff3` in the tracked config; `zdiff3` made git < 2.35 (Ubuntu 20.04/22.04) abort checkout and merge, breaking lazy.nvim tag checkouts. Re-run install.sh to add `zdiff3` to `~/.gitconfig.local` where git supports it and no local value exists.
+- git: the tracked config no longer sets `core.editor = nvim`, so git uses `$VISUAL`, then `$EDITOR`; `git commit` failed on hosts without nvim.
+- install/update: glibc detection no longer races (`ldd | head` under pipefail misread 2.31 in 52 of 200 runs), which installed an nvim that cannot start on Ubuntu 20.04.
+- nvim: init.lua no longer aborts on nvim < 0.12 (`diffopt` `inline:word` exists only in 0.12), which silently dropped every later option, keymap and command.
+- nvim: parser installs are skipped unless nvim 0.12, `tree-sitter` >= 0.26.1, a C compiler, curl and tar are present, instead of failing on every start; telescope, gitsigns and vim-matchup are gated to nvim >= 0.11, which they require.
+- nvim: catppuccin, conform.nvim and nvim-tree are gated to nvim >= 0.10, which they need; on 0.9 catppuccin errored at every start, conform on every write and nvim-tree on `<F6>`.
+- nvim: LSP (lspconfig, mason) is gated to nvim >= 0.11; on 0.10 every start stopped at lspconfig's deprecation notice ("Press ENTER") and mason installed no servers.
+- nvim: no deprecation warnings on 0.12 from `client.supports_method` or gitsigns `next_hunk`/`prev_hunk`.
+- nvim: lazy.nvim uses full clones on git < 2.19 (Ubuntu 16.04), which lacks `--filter`; the bootstrap clone failed there and no plugin loaded.
+- nvim: blink.cmp is held to its `v1` branch; its main branch became v2 (needs `saghen/blink.lib`), and fresh installs that landed there failed every start.
+
+### Added
+- glibc < 2.34 hosts (Ubuntu 20.04) get current nvim from the glibc 2.17 builds in neovim/neovim-releases, checked against the tag (its `v0.12.5` shipped a nightly); v0.9.5 is now only the fallback.
+- `tree-sitter` CLI install (workstation) and `update.sh tree-sitter`; skipped below glibc 2.39, which its release binaries need.
+- nvim: `lazy-lock.json` is tracked, so installs on git >= 2.13 get the plugin commits CI tested; commit it after `:Lazy update`. Existing installs move to the pins with the README's `:Lazy restore` step.
+- zsh: `vim` is aliased to `nvim`, and `EDITOR`/`VISUAL` point at it, when nvim is installed; otherwise both are vim if installed, else .zshrc leaves them alone.
 ## [1.10.0] - 2026-09-04
 
 ### Added
@@ -753,7 +772,9 @@ Complete overhaul of the dotfiles infrastructure: modular profiles, Neovim, CI, 
 ### Added
 - Initial dotfiles: Zsh (oh-my-zsh + fzf), Tmux, Vim, and monolithic `install.sh`
 
-[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.0...HEAD
+[1.11.0]: https://github.com/YASoftwareDev/dotfiles/compare/v1.10.0...v1.11.0
+[1.10.0]: https://github.com/YASoftwareDev/dotfiles/compare/v1.9.0...v1.10.0
 [1.4.0]: https://github.com/YASoftwareDev/dotfiles/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/YASoftwareDev/dotfiles/compare/v1.2.5...v1.3.0
 [1.2.5]: https://github.com/YASoftwareDev/dotfiles/compare/v1.2.4...v1.2.5

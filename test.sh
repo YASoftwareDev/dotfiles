@@ -9,6 +9,7 @@
 #   docker run --rm dotfiles-test bash /root/dotfiles/test.sh workstation
 #
 # Exit code: 0 = all passed, 1 = one or more failures
+# No `set -e`, unlike the other scripts: every check must run and be counted.
 
 export PATH="$HOME/.local/bin:$PATH"
 
@@ -154,6 +155,9 @@ check_run "fzf --version runs" fzf --version
 # ── 6. zsh config ─────────────────────────────────────────────────────────────
 _hdr "zsh config"
 check_run "~/.zshrc syntax check (zsh -n)" zsh -n ~/.zshrc
+# git uses VISUAL, then EDITOR (.zshrc sets both together), so neither may name an editor that is not installed.
+check_run "EDITOR set by ~/.zshrc is installed" \
+    timeout 60 env -u EDITOR -u VISUAL zsh -ic '[[ -z ${EDITOR:-} ]] || (( $+commands[$EDITOR] ))'
 
 # ── 7. oh-my-zsh ──────────────────────────────────────────────────────────────
 _hdr "oh-my-zsh"
@@ -180,8 +184,29 @@ fi
 
 # ── 9. git config ─────────────────────────────────────────────────────────────
 _hdr "git config"
+# A config value this git does not know (zdiff3 before 2.35) aborts checkout/merge.
+check_run "git checkout + merge work under this gitconfig" \
+    bash -c 'd=$(mktemp -d) && cd "$d" && git init -q && git -c user.name=t -c user.email=t@t commit -q --allow-empty -m a \
+             && git checkout -q -b t && git checkout -q - && git -c user.name=t -c user.email=t@t merge -q --no-edit t; r=$?; rm -rf "$d"; exit $r'
 check_run "dotfiles git settings applied" \
     bash -c 'git config --global diff.zip.textconv | grep -q unzip'
+# git must fall through to $VISUAL/$EDITOR, which .zshrc sets to nvim or vim.
+check_run "tracked gitconfig sets no core.editor" \
+    bash -c '! git config -f ~/.gitconfig --get core.editor'
+# install.sh writes zdiff3 to ~/.gitconfig.local on git >= 2.35 unless that file already
+# sets a conflictstyle: a user's own value is kept and reported as a skip.
+if git --version | awk '{ split($3, v, "."); exit !(v[1] > 2 || (v[1] == 2 && v[2] >= 35)) }'; then
+    cs=$(git config -f ~/.gitconfig.local --get merge.conflictstyle 2>/dev/null) || cs=""
+    if [ "$cs" = zdiff3 ]; then
+        _ok "merge.conflictstyle is zdiff3 in ~/.gitconfig.local"
+    elif [ -n "$cs" ]; then
+        _skip "merge.conflictstyle zdiff3" "user's own value kept in ~/.gitconfig.local: $cs"
+    else
+        _fail "install.sh did not set merge.conflictstyle in ~/.gitconfig.local (git >= 2.35)"
+    fi
+else
+    _skip "merge.conflictstyle zdiff3" "git < 2.35"
+fi
 
 # ── 10. zoxide functional ─────────────────────────────────────────────────────
 _hdr "zoxide"
@@ -199,17 +224,162 @@ if [ "$PROFILE" = "minimal" ] || [ "$PROFILE" = "workstation" ]; then
     check_cmd shellcheck
 fi
 
+# The workstation cells run nvim 0.12; apt's nvim here (0.9.5 on Ubuntu 24.04) exercises the
+# config's version gates. Plugin dirs stay out of /tmp: init.lua's wildignore has */tmp/*.
+if [ "$PROFILE" = "minimal" ]; then
+    _hdr "Minimal: nvim config on an older nvim"
+    old_nv=$(_cmd_version nvim --version) || old_nv=""
+    if [ -n "$old_nv" ] && ! _ver_older_than "$old_nv" "0.9" && _ver_older_than "$old_nv" "0.12"; then
+        mkdir -p ~/.cache
+        on=$(mktemp -d ~/.cache/dotfiles-test-nvim.XXXXXX); mkdir -p "$on/config" "$on/repo"
+        cp -r "$DOTFILES_DIR/nvim/.config/nvim" "$on/config/nvim"
+        # A tracked file, VeryLazy and `Lazy! load all` reach plugins a bare start never loads; :w runs BufWritePre.
+        git -C "$on/repo" init -q && printf 'local x = 1\n' > "$on/repo/f.lua" && git -C "$on/repo" add f.lua \
+            && git -C "$on/repo" -c user.name=t -c user.email=t@t commit -qm t
+        on_out=$(cd "$on/repo" && XDG_CONFIG_HOME="$on/config" XDG_DATA_HOME="$on/data" XDG_STATE_HOME="$on/state" \
+            XDG_CACHE_HOME="$on/cache" timeout 600 nvim --headless f.lua +'doautocmd User VeryLazy' \
+            +'Lazy! load all' +w +qa 2>&1); on_rc=$?
+        on_re='Error detected|E[0-9]+:|stack traceback|deprecated'
+        if [ "$on_rc" -ne 0 ] || [[ $on_out =~ $on_re ]]; then
+            _fail "tracked nvim config loads every plugin and writes a file on nvim $old_nv without errors"
+            printf '%s\n' "$on_out" | tail -5 >&2
+        else
+            _ok "tracked nvim config loads every plugin and writes a file on nvim $old_nv without errors"
+        fi
+        rm -rf "$on"
+    else
+        _skip "tracked nvim config on nvim 0.9-0.11" "nvim here is ${old_nv:-missing}"
+    fi
+fi
+
 # ── 12. Profile-specific: workstation ─────────────────────────────────────────
 if [ "$PROFILE" = "workstation" ]; then
     _hdr "Workstation tools"
     check_cmd nvim
+    # glibc < 2.34 hosts must get a neovim-releases build, not the v0.9.5 fallback.
+    nv_glibc=$(_glibc_version)
+    if [ "$(uname -m)" = x86_64 ] && _ver_older_than "$nv_glibc" "2.34"; then
+        nv_v=$(_cmd_version nvim --version) || nv_v=""
+        # A release string, not a dev build: neovim-releases' v0.12.5 tag ships a 0.13 nightly.
+        nv_line=$(nvim --version 2>/dev/null | head -1) || nv_line=""
+        nv_re='^NVIM v[0-9]+\.[0-9]+\.[0-9]+$'
+        if [ -n "$nv_v" ] && ! _ver_older_than "$nv_v" "0.10" && [[ $nv_line =~ $nv_re ]]; then
+            _ok "nvim $nv_v on glibc $nv_glibc (glibc 2.17 build)"
+        else
+            _fail "${nv_line:-nvim missing} on glibc $nv_glibc: expected a glibc 2.17 release build >= 0.10"
+        fi
+    else
+        _skip "nvim glibc 2.17 build" "glibc $nv_glibc >= 2.34 or not x86_64"
+    fi
     check_cmd uv
     check_cmd cheat
+    # tree-sitter release binaries need glibc >= 2.39; older hosts skip it by design.
+    ts_glibc=$(_glibc_version)
+    if _ver_older_than "$ts_glibc" "2.39"; then
+        _skip "tree-sitter" "glibc $ts_glibc < 2.39"
+    else
+        check_cmd tree-sitter
+        ts_v=$(_cmd_version tree-sitter --version) || ts_v=""
+        if [ -n "$ts_v" ] && ! _ver_older_than "$ts_v" "0.26.1"; then
+            _ok "tree-sitter $ts_v meets nvim-treesitter's 0.26.1 minimum"
+        else
+            _fail "tree-sitter ${ts_v:-missing} is older than 0.26.1 (nvim-treesitter minimum)"
+        fi
+    fi
 
     _hdr "Workstation config symlinks"
     check_link ~/.config/nvim
     check_link ~/.config/ripgrep/rc
     check_link ~/.config/yazi/yazi.toml
+
+    _hdr "Workstation nvim"
+    # init.lua errors leave nvim's exit code at 0, so read stderr; a non-zero code
+    # means a hang (timeout) or crash. Headless never fires VeryLazy, so fire it to run those configs.
+    # Deprecation notices count: lspconfig's stopped every nvim 0.10 start at "Press ENTER".
+    nvim_out=$(cd /tmp && timeout 300 nvim --headless +'doautocmd User VeryLazy' +qa 2>&1); nvim_rc=$?
+    if [ "$nvim_rc" -ne 0 ] || printf '%s\n' "$nvim_out" | grep -qE 'Error detected|E[0-9]+:|stack traceback|deprecated'; then
+        _fail "nvim starts without config errors"
+        printf '%s\n' "$nvim_out" | grep -E 'Error detected|E[0-9]+:|stack traceback|deprecated' | head -5 >&2
+    else
+        _ok "nvim starts without config errors"
+    fi
+    # Plugins that load on BufReadPost (gitsigns, vim-matchup) run only when a tracked file opens.
+    gr=$(mktemp -d); git -C "$gr" init -q && printf 'local x = 1\n' > "$gr/f.lua" && git -C "$gr" add f.lua \
+        && git -C "$gr" -c user.name=t -c user.email=t@t commit -qm t
+    fo_out=$(cd "$gr" && timeout 120 nvim --headless f.lua +'sleep 1500m' +qa 2>&1); fo_rc=$?
+    if [ "$fo_rc" -ne 0 ] || printf '%s\n' "$fo_out" | grep -qE 'Error detected|E[0-9]+:|stack traceback'; then
+        _fail "nvim opens a tracked file without errors"
+        printf '%s\n' "$fo_out" | grep -E 'Error detected|E[0-9]+:|stack traceback' | head -5 >&2
+    else
+        _ok "nvim opens a tracked file without errors"
+    fi
+    rm -rf "$gr"
+    # Starting nvim must not rewrite the tracked plugin pins (lazy did on git < 2.13).
+    if git -C "$DOTFILES_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        if git -C "$DOTFILES_DIR" diff --quiet -- nvim/.config/nvim/lazy-lock.json; then
+            _ok "tracked lazy-lock.json unchanged after starting nvim"
+        else
+            _fail "nvim rewrote the tracked lazy-lock.json (see: git -C $DOTFILES_DIR diff -- nvim/.config/nvim/lazy-lock.json)"
+        fi
+    else
+        _skip "tracked lazy-lock.json unchanged" "$DOTFILES_DIR is not a git work tree"
+    fi
+    # The runtime must match the binary: a 0.9.5 binary over a 0.10+ runtime fails here.
+    rt=$(mktemp -d); printf 'local x = 1\n' > "$rt/t.lua"; printf 'a,b\n1,2\n' > "$rt/t.csv"
+    rt_out=$(cd /tmp && timeout 60 nvim --clean --headless "$rt/t.lua" +"e $rt/t.csv" +qa 2>&1); rt_rc=$?
+    if [ "$rt_rc" -ne 0 ] || printf '%s\n' "$rt_out" | grep -qE 'E[0-9]+:|stack traceback'; then
+        _fail "nvim runtime matches its binary (lua + csv open cleanly)"
+        printf '%s\n' "$rt_out" | grep -E 'E[0-9]+:|stack traceback' | head -3 >&2
+    else
+        _ok "nvim runtime matches its binary (lua + csv open cleanly)"
+    fi
+    rm -rf "$rt"
+    # init.lua must start parser installs only when they can succeed: nvim 0.12, a tree-sitter
+    # CLI >= 0.26.1, a C compiler ($CC's first word), curl and tar. Otherwise every start failed.
+    ts_want=0
+    ts_nv=$(_cmd_version nvim --version) || ts_nv=""
+    ts_cli=$(_cmd_version tree-sitter --version) || ts_cli=""
+    read -r ts_cc _ <<< "${CC:-cc}"; ts_cc=${ts_cc:-cc}
+    if [ -n "$ts_nv" ] && ! _ver_older_than "$ts_nv" "0.12" && [ -n "$ts_cli" ] \
+        && ! _ver_older_than "$ts_cli" "0.26.1" && command -v "$ts_cc" >/dev/null 2>&1 \
+        && command -v curl >/dev/null 2>&1 && command -v tar >/dev/null 2>&1; then
+        ts_want=1
+    fi
+    ts_hook="lua local r=require; _G.require=function(m) local x=r(m); if m=='nvim-treesitter' and type(x)=='table' and not rawget(x,'_t') then local i=x.install; x.install=function(...) io.stderr:write('TS-INSTALL-CALLED\n'); return i(...) end; rawset(x,'_t',1) end; return x end"
+    ts_got=$(cd /tmp && timeout 120 nvim --headless --cmd "$ts_hook" +qa 2>&1 | grep -c TS-INSTALL-CALLED)
+    if [ "$ts_got" -eq "$ts_want" ]; then
+        _ok "parser install started only when it can build (expected $ts_want, got $ts_got)"
+    else
+        _fail "parser install started $ts_got time(s), expected $ts_want (nvim ${ts_nv:-?}, tree-sitter ${ts_cli:-none}, cc $(command -v "$ts_cc" || echo none), curl $(command -v curl || echo none), tar $(command -v tar || echo none))"
+    fi
+    # With them all present a parser must also build and load: ini, which init.lua's own startup
+    # install (same process) never builds, so they cannot race; force rebuilds it on a re-run.
+    if [ "$ts_want" -eq 1 ]; then
+        tb_out=$(cd /tmp && timeout 300 nvim --headless \
+            +"lua require('nvim-treesitter').install({'ini'}, {force = true}):wait(300000)" \
+            +"lua io.stderr:write('TS-INI=' .. tostring(vim.treesitter.language.add('ini')) .. '\n')" +qa 2>&1)
+        if [[ $tb_out == *TS-INI=true* ]]; then
+            _ok "tree-sitter builds and loads a parser (ini)"
+        else
+            _fail "tree-sitter could not build the ini parser: $(printf '%s\n' "$tb_out" | tail -3 | tr '\n' ' ')"
+        fi
+    else
+        _skip "tree-sitter builds a parser" "needs nvim 0.12, tree-sitter >= 0.26.1, a C compiler, curl and tar"
+    fi
+    # init.lua reads `git --version`; a missing git must not abort the config.
+    nogit=$(mktemp -d); ln -s "$(command -v nvim)" "$nogit/nvim"
+    nogit_out=$(cd /tmp && timeout 120 env PATH="$nogit" nvim --headless +qa 2>&1); nogit_rc=$?
+    if [ "$nogit_rc" -ne 0 ] || printf '%s\n' "$nogit_out" | grep -qE 'Error detected|E[0-9]+:'; then
+        _fail "nvim starts without git on PATH"
+    else
+        _ok "nvim starts without git on PATH"
+    fi
+    rm -rf "$nogit"
+    if timeout 60 zsh -ic 'whence -w vim' </dev/null 2>/dev/null | grep -q ': alias'; then
+        _ok "vim is an alias for nvim in interactive zsh"
+    else
+        _fail "vim is not an alias for nvim in interactive zsh"
+    fi
 
     _hdr "Workstation tmux plugins"
     check_dir ~/.tmux/plugins/tmux-fzf  "tmux-fzf"

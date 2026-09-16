@@ -1,7 +1,6 @@
 [core]
     attributesFile = ~/.gitattributes
 	pager = bat --paging=always
-	editor = nvim
 
 [diff "zip"]
     textconv = unzip -p
@@ -48,7 +47,10 @@
     line-numbers = true
 
 [merge]
-    conflictstyle = zdiff3
+    # zdiff3 needs git >= 2.35; older git (Ubuntu 20.04/22.04) aborts checkout and
+    # merge on it. install.sh adds zdiff3 to ~/.gitconfig.local where git supports it
+    # and that file sets no conflictstyle of its own.
+    conflictstyle = diff3
 
 [pull]
 	rebase = true

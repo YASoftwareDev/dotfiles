@@ -1,13 +1,33 @@
 -- ══════════════════════════════════════════════════════════════════════════════
 -- Bootstrap lazy.nvim
 -- ══════════════════════════════════════════════════════════════════════════════
+-- Partial clones (--filter) need git >= 2.19; older git (Ubuntu 16.04) failed the
+-- bootstrap, so nothing loaded. Such hosts get full clones instead.
+local git_out = vim.fn.executable('git') == 1 and vim.fn.system({ 'git', '--version' }) or ''
+local git_major, git_minor = git_out:match('(%d+)%.(%d+)')
+local git_partial = git_major ~= nil
+    and (tonumber(git_major) > 2 or (tonumber(git_major) == 2 and tonumber(git_minor) >= 19))
+-- nvim-treesitter (main) needs nvim 0.12, a tree-sitter CLI >= 0.26.1, a C compiler, curl
+-- and tar to build parsers; without them every start re-downloaded all parsers and failed.
+local cc = (vim.env.CC or ''):match('%S+') or 'cc'
+local ts_ok = false
+if vim.fn.has('nvim-0.12') == 1 and vim.fn.executable('tree-sitter') == 1 and vim.fn.executable(cc) == 1
+    and vim.fn.executable('curl') == 1 and vim.fn.executable('tar') == 1 then
+  local maj, min, pat = vim.fn.system({ 'tree-sitter', '--version' }):match('(%d+)%.(%d+)%.(%d+)')
+  maj, min, pat = tonumber(maj), tonumber(min), tonumber(pat)
+  ts_ok = maj ~= nil and (maj > 0 or min > 26 or (min == 26 and pat >= 1))
+end
 local lazypath = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
-  vim.fn.system({
-    'git', 'clone', '--filter=blob:none',
-    'https://github.com/folke/lazy.nvim.git',
-    '--branch=stable', lazypath,
-  })
+  local clone = { 'git', 'clone', 'https://github.com/folke/lazy.nvim.git', '--branch=stable', lazypath }
+  if git_partial then table.insert(clone, 3, '--filter=blob:none') end
+  vim.fn.system(clone)
+  -- Check out the lockfile's lazy.nvim pin, or lazy rewrites the tracked lockfile to `stable`.
+  local ok, lock = pcall(function()
+    return vim.json.decode(table.concat(vim.fn.readfile(vim.fn.stdpath('config') .. '/lazy-lock.json'), '\n'))
+  end)
+  local pin = ok and type(lock) == 'table' and lock['lazy.nvim'] and lock['lazy.nvim'].commit
+  if pin then vim.fn.system({ 'git', '-C', lazypath, 'checkout', '-q', pin }) end
 end
 vim.opt.rtp:prepend(lazypath)
 
@@ -52,6 +72,7 @@ require('lazy').setup({
   {
     'catppuccin/nvim',
     name = 'catppuccin',
+    cond = vim.fn.has('nvim-0.10') == 1, -- its config calls vim.iter; errored on every 0.9 start
     event = 'VeryLazy',
     opts = { flavour = 'mocha' }
   },                                                                                   -- mocha/macchiato/frappe
@@ -79,12 +100,11 @@ require('lazy').setup({
   }, -- darker/dark/palenight/oceanic
 
   -- ── LSP ──────────────────────────────────────────────────────────────────
-  -- nvim-lspconfig ≥ 2024-12 requires nvim 0.10 at the plugin level (not just
-  -- API level), so gate the entire block.  On nvim 0.9 the editor still works
-  -- fully; only LSP/completion is absent.
+  -- Gated to nvim 0.11, which the pinned lspconfig and mason-lspconfig target: on 0.10 every
+  -- start stopped at lspconfig's deprecation notice and mason installed no servers.
   {
     'neovim/nvim-lspconfig',
-    cond         = vim.fn.has('nvim-0.10') == 1,
+    cond         = vim.fn.has('nvim-0.11') == 1,
     lazy         = false,
     dependencies = {
       'williamboman/mason.nvim',
@@ -94,10 +114,7 @@ require('lazy').setup({
     config       = function()
       require('mason').setup()
 
-      -- blink.cmp requires nvim ≥ 0.10; fall back to plain capabilities on older.
-      local capabilities = vim.fn.has('nvim-0.10') == 1
-          and require('blink.cmp').get_lsp_capabilities()
-          or vim.lsp.protocol.make_client_capabilities()
+      local capabilities = require('blink.cmp').get_lsp_capabilities()
 
       -- Single LspAttach autocmd covers all servers - no per-server on_attach needed.
       vim.api.nvim_create_autocmd('LspAttach', {
@@ -117,19 +134,13 @@ require('lazy').setup({
           map('<leader>rn', vim.lsp.buf.rename, 'Rename symbol')
           map('<leader>ca', vim.lsp.buf.code_action, 'Code action')
           map('<leader>d', vim.diagnostic.open_float, 'Show diagnostics')
-          -- vim.diagnostic.jump() was added in nvim 0.10
-          if vim.fn.has('nvim-0.10') == 1 then
-            map('[d', function() vim.diagnostic.jump({ count = -1 }) end, 'Prev diagnostic')
-            map(']d', function() vim.diagnostic.jump({ count = 1 }) end, 'Next diagnostic')
-          else
-            map('[d', vim.diagnostic.goto_prev, 'Prev diagnostic')
-            map(']d', vim.diagnostic.goto_next, 'Next diagnostic')
-          end
+          map('[d', function() vim.diagnostic.jump({ count = -1 }) end, 'Prev diagnostic')
+          map(']d', function() vim.diagnostic.jump({ count = 1 }) end, 'Next diagnostic')
 
           -- LSP word highlight - replaces vim-illuminate (semantic, not regex)
           -- Use a buffer-keyed augroup so multiple servers attaching to the same
           -- buffer don't stack duplicate CursorHold autocmds (clear = true replaces).
-          if client and client.supports_method('textDocument/documentHighlight') then
+          if client and client:supports_method('textDocument/documentHighlight') then
             local hl_group = vim.api.nvim_create_augroup('UserDocHighlight_' .. bufnr, { clear = true })
             vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
               buffer   = bufnr,
@@ -145,9 +156,7 @@ require('lazy').setup({
         end,
       })
 
-      -- Server configs defined once; registration method differs by nvim version.
-      -- nvim 0.11+: vim.lsp.config/enable (new built-in API, no lspconfig on_attach)
-      -- nvim 0.9-0.10: lspconfig.server.setup() (classic API)
+      -- Servers register through vim.lsp.config/enable (no lspconfig setup()).
       -- pyright and bashls install via npm; skip ensure_installed on hosts without npm.
       local npm_servers = vim.fn.executable('npm') == 1 and {
         pyright = {
@@ -170,18 +179,12 @@ require('lazy').setup({
         },
       }, npm_servers)
 
-      if vim.fn.has('nvim-0.11') == 1 then
-        require('mason-lspconfig').setup({
-          ensure_installed = vim.tbl_keys(servers),
-          automatic_enable = false, -- we call vim.lsp.enable() below
-        })
-        for name, cfg in pairs(servers) do vim.lsp.config(name, cfg) end
-        vim.lsp.enable(vim.tbl_keys(servers))
-      else
-        require('mason-lspconfig').setup({ ensure_installed = vim.tbl_keys(servers) })
-        local lspconfig = require('lspconfig')
-        for name, cfg in pairs(servers) do lspconfig[name].setup(cfg) end
-      end
+      require('mason-lspconfig').setup({
+        ensure_installed = vim.tbl_keys(servers),
+        automatic_enable = false, -- we call vim.lsp.enable() below
+      })
+      for name, cfg in pairs(servers) do vim.lsp.config(name, cfg) end
+      vim.lsp.enable(vim.tbl_keys(servers))
 
       vim.diagnostic.config({
         severity_sort = true,
@@ -194,7 +197,10 @@ require('lazy').setup({
   {
     'saghen/blink.cmp',
     cond         = vim.fn.has('nvim-0.10') == 1, -- uses vim.snippet built-in (nvim 0.10+)
-    version      = '*',                          -- use release tags (pre-built Rust binary)
+    -- main is v2 (needs saghen/blink.lib + a different setup); a fresh clone that
+    -- missed the lockfile checkout landed there and failed every start.
+    branch       = 'v1',
+    version      = '1.*',                        -- use release tags (pre-built Rust binary)
     dependencies = { 'rafamadriz/friendly-snippets' },
     config       = function()
       require('blink.cmp').setup({
@@ -231,7 +237,7 @@ require('lazy').setup({
     'nvim-treesitter/nvim-treesitter',
     cond         = vim.fn.has('nvim-0.10') == 1, -- uses vim.fs.joinpath (nvim 0.10+)
     lazy         = false,
-    build        = ':TSUpdate',
+    build        = ts_ok and ':TSUpdate' or nil,
     dependencies = {
       'nvim-treesitter/nvim-treesitter-textobjects',
       {
@@ -243,12 +249,15 @@ require('lazy').setup({
       },
     },
     config       = function()
-      -- Ensure parsers are present on fresh installs (async, no-op if already installed).
-      require('nvim-treesitter').install({
-        'bash', 'c', 'cpp', 'css', 'go', 'html', 'javascript',
-        'json', 'lua', 'markdown', 'markdown_inline', 'python', 'rust', 'toml',
-        'typescript', 'vim', 'yaml',
-      })
+      -- Install missing parsers (async) only with a usable CLI (ts_ok, top of file);
+      -- other hosts get regex syntax highlighting.
+      if ts_ok then
+        require('nvim-treesitter').install({
+          'bash', 'c', 'cpp', 'css', 'go', 'html', 'javascript',
+          'json', 'lua', 'markdown', 'markdown_inline', 'python', 'rust', 'toml',
+          'typescript', 'vim', 'yaml',
+        })
+      end
 
       -- Highlighting: built-in vim.treesitter, enabled per filetype
       vim.api.nvim_create_autocmd('FileType', {
@@ -288,6 +297,7 @@ require('lazy').setup({
   -- ── Telescope ────────────────────────────────────────────────────────────
   {
     'nvim-telescope/telescope.nvim',
+    cond         = vim.fn.has('nvim-0.11') == 1, -- errors out on older nvim
     cmd          = 'Telescope',
     keys         = {
       { '<C-p>',      '<cmd>Telescope find_files<CR>',                      desc = 'Find files' },
@@ -393,6 +403,7 @@ require('lazy').setup({
   -- ── File tree ────────────────────────────────────────────────────────────
   {
     'nvim-tree/nvim-tree.lua',
+    cond   = vim.fn.has('nvim-0.10') == 1, -- needs nvim 0.10; <F6> errored on 0.9
     lazy   = true,
     keys   = { { '<F6>', '<cmd>NvimTreeToggle<CR>', desc = 'File tree' } },
     config = function()
@@ -406,6 +417,7 @@ require('lazy').setup({
   -- ── Git ──────────────────────────────────────────────────────────────────
   {
     'lewis6991/gitsigns.nvim',
+    cond   = vim.fn.has('nvim-0.11') == 1, -- main needs nvim 0.11 (README); older nvim errors on attach
     event  = 'BufReadPost',
     config = function()
       require('gitsigns').setup({
@@ -422,8 +434,8 @@ require('lazy').setup({
           local map  = function(key, fn, desc)
             vim.keymap.set('n', key, fn, vim.tbl_extend('force', opts, { desc = desc }))
           end
-          map(']h', gs.next_hunk, 'Next hunk')
-          map('[h', gs.prev_hunk, 'Prev hunk')
+          map(']h', function() gs.nav_hunk('next') end, 'Next hunk')
+          map('[h', function() gs.nav_hunk('prev') end, 'Prev hunk')
           map('<leader>hs', gs.stage_hunk, 'Stage hunk')
           map('<leader>hu', gs.undo_stage_hunk, 'Undo stage hunk')
           map('<leader>hp', gs.preview_hunk, 'Preview hunk')
@@ -451,6 +463,7 @@ require('lazy').setup({
   },
   {
     'stevearc/conform.nvim',
+    cond   = vim.fn.has('nvim-0.10') == 1, -- needs nvim 0.10; every :w errored on 0.9
     event  = 'BufWritePre',
     config = function()
       require('conform').setup({
@@ -476,7 +489,8 @@ require('lazy').setup({
   -- ── Editing helpers ──────────────────────────────────────────────────────
   { 'kylechui/nvim-surround', event = 'VeryLazy',   config = function() require('nvim-surround').setup() end },
   { 'tpope/vim-repeat',       event = 'VeryLazy' },
-  { 'andymass/vim-matchup',   event = 'BufReadPost' },
+  -- vim-matchup errors on file open below nvim 0.11 (0.9: list_contains; 0.10: missing parsers).
+  { 'andymass/vim-matchup', cond = vim.fn.has('nvim-0.11') == 1, event = 'BufReadPost' },
   {
     'echasnovski/mini.ai',
     cond   = vim.fn.has('nvim-0.10') == 1,
@@ -569,7 +583,7 @@ require('lazy').setup({
   -- checkboxes, code-block backgrounds, aligned tables, and concealed inline
   -- markup (**, `, links). Terminal-native - no browser, works over SSH. The line
   -- under the cursor un-renders in insert mode so editing stays unobstructed.
-  -- Needs the markdown + markdown_inline treesitter parsers (installed above).
+  -- Needs the markdown + markdown_inline treesitter parsers (installed above when ts_ok).
   {
     'MeanderingProgrammer/render-markdown.nvim',
     cond         = vim.fn.has('nvim-0.10') == 1, -- renders via extmarks (nvim 0.10+)
@@ -604,6 +618,11 @@ require('lazy').setup({
   },
 
 }, {
+  git = { filter = git_partial },
+  -- Pins need `git checkout --recurse-submodules` (git >= 2.13); older git would make lazy
+  -- rewrite the tracked lockfile to branch tips, so keep its lockfile out of the repo.
+  lockfile = not (git_major and (tonumber(git_major) > 2 or (tonumber(git_major) == 2 and tonumber(git_minor) >= 13)))
+      and (vim.fn.stdpath('state') .. '/lazy-lock.json') or nil,
   ui = { border = 'rounded' },
   performance = {
     rtp = {
@@ -648,9 +667,11 @@ opt.wildmode      = 'list:longest'
 opt.termguicolors = true
 
 opt.matchpairs:append('<:>')
--- Native word-level inline diff (nvim ≥ 0.11). inline:word highlights changed
--- words within a line; linematch realigns hunks for cleaner inline diffs.
-opt.diffopt = 'internal,filler,closeoff,indent-heuristic,algorithm:histogram,inline:word,linematch:60'
+-- linematch realigns hunks for cleaner inline diffs. inline:word (changed words
+-- highlighted within a line) exists only in nvim >= 0.12: older versions reject
+-- the whole value with E474, which aborted init.lua here on 0.9-0.11.
+opt.diffopt = 'internal,filler,closeoff,indent-heuristic,algorithm:histogram,linematch:60'
+if vim.fn.has('nvim-0.12') == 1 then opt.diffopt:append('inline:word') end
 
 if vim.fn.executable('rg') == 1 then
   opt.grepprg    = 'rg --vimgrep'

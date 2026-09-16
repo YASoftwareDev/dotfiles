@@ -35,10 +35,15 @@ matrix covering 3 Ubuntu versions × 3 install profiles + no-sudo variants
 - Every function variable must be declared `local` (or `local -a` for arrays).
 - Never construct GitHub release asset URLs manually - use `_gh_release_info` or
   `_gh_latest_release` from `lib/utils.sh`; asset names change between releases.
+  Exception: `releases/latest/download/<name>` for an asset whose name carries no
+  version (yazi, cheat, uv, tree-sitter) - no API call, no rate limit.
 - Never use `command -v` at install time to probe binary locations - use direct
   `[ -x /absolute/path ]` probes.
 - Never commit generated protobuf files (`*_pb2.py`, `*.pb.go`, etc.).
 - Logging: `log_step`, `log_info`, `log_ok`, `log_warn`, `log_error`, `die` - never bare `echo`.
+- Read the glibc version with `_glibc_version`, never `ldd --version | head -1 ... || echo 0.0`:
+  under pipefail ldd can take SIGPIPE and the fallback corrupts the value (measured 52/200
+  runs on Ubuntu 20.04), which installed nvim builds that cannot run there.
 
 ## Neovim config
 
@@ -55,6 +60,13 @@ Add new aliases to the `pairs({...})` table - one line, no boilerplate.
 They are wrapped in `vim.fn.executable('npm') == 1` so hosts without npm (e.g.
 GPU servers) skip them silently. Do not remove this guard or add new npm-dependent
 servers outside of it.
+
+**Version gates** - supported hosts run nvim 0.9-0.12. Options and plugins that need a
+newer nvim are gated (`vim.fn.has('nvim-0.X')`, lazy `cond`), because one invalid
+option value aborts the rest of init.lua. Parser installs are gated on nvim 0.12,
+a `tree-sitter` CLI >= 0.26.1, a C compiler (`$CC`'s first word), curl and tar (what
+nvim-treesitter needs to build them);
+nvim-treesitter itself still loads from 0.10, as on master.
 
 ## update.sh helpers
 

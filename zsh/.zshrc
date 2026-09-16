@@ -53,8 +53,14 @@ source "$ZSH/oh-my-zsh.sh"
 # ── Environment ───────────────────────────────────────────────────────────────
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
-export EDITOR=nvim
-export VISUAL=nvim
+# vim opens nvim wherever nvim is installed. git uses VISUAL, then EDITOR, so both are
+# set only to an installed editor; without nvim or vim inherited values are kept.
+if (( $+commands[nvim] )); then
+  export EDITOR=nvim VISUAL=nvim
+  alias vim=nvim
+elif (( $+commands[vim] )); then
+  export EDITOR=vim VISUAL=vim
+fi
 
 export RIPGREP_CONFIG_PATH="$HOME/.config/ripgrep/rc"
 

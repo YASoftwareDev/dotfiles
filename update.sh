@@ -9,7 +9,7 @@
 #
 # Available tools (pass one or more to update only those):
 #   apt  omz  tmux-plugins  zsh-plugins  fzf  rg  fd  shellcheck
-#   zoxide  delta  eza  yazi  uv  ruff  neovim  cheat  pre-commit  xcape
+#   zoxide  delta  eza  yazi  uv  ruff  neovim  tree-sitter  cheat  pre-commit  xcape
 #
 # A PATH shadow check always runs at the end (read-only). It detects older
 # binaries at higher-priority PATH locations that would hide managed versions
@@ -25,6 +25,8 @@ set -euo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${DOTFILES_DIR}/lib/utils.sh"
+# Shares _neovim_compat_binary (glibc 2.17 nvim builds) with install.sh.
+source "${DOTFILES_DIR}/modules/neovim.sh"
 
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 ARCH=$(uname -m)   # x86_64, aarch64, armv7l, ...
@@ -48,7 +50,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 _KNOWN_TOOLS=(apt omz tmux-plugins zsh-plugins fzf rg fd shellcheck
-              zoxide delta eza yazi uv ruff neovim cheat pre-commit xcape)
+              zoxide delta eza yazi uv ruff neovim tree-sitter cheat pre-commit xcape)
 
 # Validate SELECTED against known tool names.
 for _sel in "${SELECTED[@]+"${SELECTED[@]}"}"; do
@@ -140,37 +142,41 @@ _do_update_neovim() {
         aarch64) nvim_arch="linux-arm64"  ;;
         *)       log_warn "neovim: unsupported arch $ARCH - skipping"; return ;;
     esac
-    # Prebuilt binaries since v0.10.0 require glibc ≥ 2.32 (Ubuntu 22.04+).
-    # On older systems keep/restore the legacy v0.9.5 binary instead.
+    # Official binaries need glibc ≥ 2.34 (0.11.5 and 0.12.x, per objdump -T; Ubuntu 22.04+).
+    # On older systems use the glibc 2.17 rebuild from neovim/neovim-releases.
     local glibc_ver
-    glibc_ver=$(ldd --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+$' || echo "0.0")
-    if _ver_older_than "$glibc_ver" "2.32"; then
-        log_warn "neovim: system glibc $glibc_ver < 2.32 - pinned to legacy v0.9.5"
-        local nvim_dest
-        if $CAN_APT; then nvim_dest=/usr/local/bin/nvim; else nvim_dest=$HOME/.local/bin/nvim; fi
+    glibc_ver=$(_glibc_version)
+    if _ver_older_than "$glibc_ver" "2.34"; then
+        local prefix
+        if $CAN_APT; then prefix=/usr/local; else prefix=$HOME/.local; fi
+        local nvim_dest="$prefix/bin/nvim"
         if $CHECK_ONLY; then
-            local cur_leg; cur_leg=$(_cmd_version nvim --version) || cur_leg="none"
-            log_info "  neovim: $cur_leg (legacy; cannot upgrade on glibc $glibc_ver)"
+            local cur_c; cur_c=$(_cmd_version nvim --version) || cur_c="none"
+            log_info "  neovim: $cur_c (glibc $glibc_ver: updates come from the glibc 2.17 builds in neovim/neovim-releases)"
             return
         fi
-        # Remove any shadow binary in ~/.local/bin that is broken (GLIBC mismatch)
-        # and would mask a working /usr/local/bin/nvim.
-        local shadow="$HOME/.local/bin/nvim"
+        # A broken ~/.local/bin/nvim (GLIBC mismatch) shadows every other copy.
+        # Remove it; when it was the only install, reinstall user-local.
+        local shadow="$HOME/.local/bin/nvim" had_broken=false
         if [ -f "$shadow" ] && ! "$shadow" --version >/dev/null 2>&1; then
             rm -f "$shadow"
-            log_info "neovim: removed incompatible shadow binary at $shadow"
-        fi
-        if "$nvim_dest" --version >/dev/null 2>&1; then
-            local leg_v; leg_v=$("$nvim_dest" --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-            log_ok "neovim $leg_v already installed (glibc-compatible) - skipping"
-            return
+            log_info "neovim: removed incompatible binary at $shadow"
+            if [ ! -e "$nvim_dest" ]; then prefix=$HOME/.local; nvim_dest=$shadow; had_broken=true; fi
         fi
         # Skip if never installed - update.sh updates existing tools, not installs new ones.
-        if [ ! -e "$nvim_dest" ]; then
+        if [ ! -e "$nvim_dest" ] && ! $had_broken; then
             log_info "neovim: not installed on this host - skipping (run install.sh workstation to install)"
             return
         fi
-        # Binary exists but is broken (overwritten by a prior update run). Restore v0.9.5.
+        if _neovim_compat_binary "$prefix"; then
+            _verify_dest nvim "$nvim_dest"
+            return
+        fi
+        if "$nvim_dest" --version >/dev/null 2>&1; then
+            log_warn "neovim: no verified glibc 2.17 build - keeping $("$nvim_dest" --version 2>/dev/null | head -1)"
+            return
+        fi
+        # No verified build and no working binary: restore the legacy v0.9.5.
         if [ "$ARCH" != "x86_64" ]; then
             log_warn "neovim: legacy binary only available for x86_64 - skipping"
             return
@@ -186,7 +192,16 @@ _do_update_neovim() {
             || { log_warn "neovim: legacy download failed - skipping"; return; }; fi
         local leg_extracted; leg_extracted=$(find "$tmp" -maxdepth 1 -type d -name 'nvim-*' | head -1)
         [ -z "$leg_extracted" ] && { log_warn "neovim: unexpected archive layout - skipping"; return; }
-        if $CAN_APT; then $SUDO cp -r "$leg_extracted"/. /usr/local/; else cp -r "$leg_extracted"/. "$HOME/.local/"; fi
+        # v0.9.5 ships man/ at the top; Ubuntu's /usr/local/man is a symlink cp cannot overwrite.
+        if [ -d "$leg_extracted/man" ]; then mv "$leg_extracted/man" "$leg_extracted/share/man"; fi
+        # Clear a newer runtime first: under a 0.9.5 binary it breaks (E15, E5113).
+        if [ "$prefix" = /usr/local ]; then
+            $SUDO rm -rf /usr/local/share/nvim/runtime /usr/local/lib/nvim
+            $SUDO cp -r "$leg_extracted"/. /usr/local/
+        else
+            mkdir -p "$prefix"; rm -rf "$prefix/share/nvim/runtime" "$prefix/lib/nvim"
+            cp -r "$leg_extracted"/. "$prefix/"
+        fi
         log_ok "neovim restored → $("$nvim_dest" --version 2>/dev/null | head -1)"
         return
     fi
@@ -593,6 +608,50 @@ fi
 if _should_run neovim; then
     log_step "neovim"
     _do_update_neovim
+fi
+
+# ── tree-sitter CLI ────────────────────────────────────────────────────────────
+# Custom: single gzipped binary with a stable asset name (like cheat).
+if _should_run tree-sitter; then
+    log_step "tree-sitter"
+    if [ -x ~/.local/bin/tree-sitter ]; then
+        if $CHECK_ONLY; then
+            current=$(_cmd_version ~/.local/bin/tree-sitter --version) || current=""
+            latest=$(_gh_latest_tag_noapi "tree-sitter/tree-sitter") || latest=""
+            _report_version tree-sitter "$current" "${latest:-unknown}"
+        else
+            case "$ARCH" in
+                x86_64)  ts_arch="x64"   ;;
+                aarch64) ts_arch="arm64" ;;
+                *)       ts_arch=""      ;;
+            esac
+            if [ -z "$ts_arch" ]; then
+                log_warn "tree-sitter: unsupported arch $ARCH - skipping"
+            else
+                ts_url="https://github.com/tree-sitter/tree-sitter/releases/latest/download/tree-sitter-linux-${ts_arch}.gz"
+                ts_tmp=$(mktemp)
+                _ts_ok=true
+                if has curl; then curl -sfL "$ts_url" | gunzip > "$ts_tmp" || _ts_ok=false
+                else wget -qO- "$ts_url" | gunzip > "$ts_tmp" || _ts_ok=false; fi
+                chmod +x "$ts_tmp"
+                # Swap in only a binary that runs here: releases can raise the glibc floor.
+                if $_ts_ok && "$ts_tmp" --version >/dev/null 2>&1; then
+                    mv "$ts_tmp" ~/.local/bin/tree-sitter
+                    log_ok "tree-sitter updated ($(~/.local/bin/tree-sitter --version 2>/dev/null))"
+                    _verify_dest tree-sitter ~/.local/bin/tree-sitter
+                else
+                    log_warn "tree-sitter: download failed or the new binary does not run here - keeping the current one"
+                    rm -f "$ts_tmp"
+                fi
+            fi
+        fi
+    elif _ver_older_than "$(_glibc_version)" "2.39"; then
+        log_info "tree-sitter: not installed - its release binaries need glibc >= 2.39"
+    elif has tree-sitter && ! _ver_older_than "$(_cmd_version tree-sitter --version)" "0.26.1"; then
+        log_info "tree-sitter: $(command -v tree-sitter) is not managed by update.sh - skipping"
+    else
+        log_warn "tree-sitter not installed - run install.sh workstation first"
+    fi
 fi
 
 # ── cheat ──────────────────────────────────────────────────────────────────────
