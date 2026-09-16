@@ -101,6 +101,7 @@ _hdr "Symlinks"
 check_link ~/.zshrc
 check_link ~/.tmux.conf
 check_link ~/.tmux.conf.local
+check_link ~/.local/bin/tmux-status-rows
 check_link ~/.gitconfig
 check_link ~/.gitattributes
 
