@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.11.1] - 2026-09-17
 
+### Fixed
+- nvim: telescope survives `telescope-fzf-native` not building. It now needs `make` and a compiler, and `load_extension('fzf')` is skipped otherwise; every telescope key was dead on nvim 0.11+ hosts without build tools.
+
 ### Added
 - CI: cells running the tracked nvim config on nvim 0.10.4 and 0.11.5, the versions `init.lua`'s `cond` gates switch on. No other cell runs them, so those gates were untested.
 

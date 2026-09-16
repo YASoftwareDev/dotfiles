@@ -62,6 +62,13 @@ They are wrapped in `vim.fn.executable('npm') == 1` so hosts without npm (e.g.
 GPU servers) skip them silently. Do not remove this guard or add new npm-dependent
 servers outside of it.
 
+**`fzf_ok`** guards `telescope-fzf-native`, a C library: it gates that dependency's
+`cond` and the `load_extension('fzf')` call on `make` plus a compiler. Without it
+the failed load aborted telescope's whole `config`, so every telescope key was dead
+on an nvim 0.11+ host with no build tools. Telescope's own sorter is the fallback.
+Same rule as the npm guard - do not remove it, and keep optional native extensions
+behind it.
+
 **Version gates** - supported hosts run nvim 0.9-0.12. Options and plugins that need a
 newer nvim are gated (`vim.fn.has('nvim-0.X')`, lazy `cond`), because one invalid
 option value aborts the rest of init.lua. Parser installs are gated on nvim 0.12,

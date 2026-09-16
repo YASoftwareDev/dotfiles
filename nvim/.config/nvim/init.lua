@@ -17,6 +17,11 @@ if vim.fn.has('nvim-0.12') == 1 and vim.fn.executable('tree-sitter') == 1 and vi
   maj, min, pat = tonumber(maj), tonumber(min), tonumber(pat)
   ts_ok = maj ~= nil and (maj > 0 or min > 26 or (min == 26 and pat >= 1))
 end
+-- telescope-fzf-native is a C library. Without make and a compiler its build is skipped,
+-- and load_extension('fzf') then errored out of telescope's whole config - so every
+-- telescope key was dead on an nvim 0.11+ host with no build tools. Telescope's own
+-- sorter is the fallback.
+local fzf_ok = vim.fn.executable('make') == 1 and vim.fn.executable(cc) == 1
 local lazypath = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
   local clone = { 'git', 'clone', 'https://github.com/folke/lazy.nvim.git', '--branch=stable', lazypath }
@@ -314,7 +319,7 @@ require('lazy').setup({
     },
     dependencies = {
       'nvim-lua/plenary.nvim',
-      { 'nvim-telescope/telescope-fzf-native.nvim', build = 'make' },
+      { 'nvim-telescope/telescope-fzf-native.nvim', cond = fzf_ok, build = 'make' },
     },
     config       = function()
       local telescope = require('telescope')
@@ -339,7 +344,7 @@ require('lazy').setup({
           live_grep  = { additional_args = function() return { '--hidden' } end },
         },
       })
-      telescope.load_extension('fzf')
+      if fzf_ok then telescope.load_extension('fzf') end
     end,
   },
 
