@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.10.0] - 2026-09-16
+## [1.11.0] - 2026-09-16
 
 ### Fixed
 - git: `merge.conflictstyle` is `diff3` in the tracked config; `zdiff3` made git < 2.35 (Ubuntu 20.04/22.04) abort checkout and merge, breaking lazy.nvim tag checkouts. Re-run install.sh to add `zdiff3` to `~/.gitconfig.local` where git supports it and no local value exists.
@@ -24,6 +24,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `tree-sitter` CLI install (workstation) and `update.sh tree-sitter`; skipped below glibc 2.39, which its release binaries need.
 - nvim: `lazy-lock.json` is tracked, so installs on git >= 2.13 get the plugin commits CI tested; commit it after `:Lazy update`. Existing installs move to the pins with the README's `:Lazy restore` step.
 - zsh: `vim` is aliased to `nvim`, and `EDITOR`/`VISUAL` point at it, when nvim is installed; otherwise both are vim if installed, else .zshrc leaves them alone.
+## [1.10.0] - 2026-09-04
+
+### Added
+- Multi-row tmux window tabs: `tmux/tmux-status-rows` measures the rendered
+  width of every tab at the attached client's width and rebuilds
+  `status-format[]` so tabs that no longer fit continue on the next status row
+  instead of disappearing behind tmux's `<`/`>` overflow markers. Rows are
+  balanced rather than filled to the brim, `status-left` stays on the first row
+  and `status-right` on the last, and mouse click ranges, the window styles,
+  `status-justify` and any custom `window-status-format` are preserved - a row
+  that still cannot fit keeps tmux's own `<`/`>` markers rather than clipping a
+  label silently. A session's own `status` setting is never overwritten, so a
+  status bar turned off stays off. Wired in
+  `tmux/.tmux.conf.local` through nine hooks (window added, closed, renamed,
+  selected; client attached, resized, session changed) for instant reflow, plus
+  a hidden `#()` job in `status-format[0]` that re-runs it every
+  `status-interval` so labels that change width reflow on their own. Tunable
+  per session with `@status-rows` (on/off), `@status-rows-max` (1-5, default 5)
+  and `@status-rows-reserve` (default 4). Servers older than tmux 3.2 lack the
+  `#{w:}` width modifier, so the script no-ops there and a `%if` guard keeps the
+  config block out of their parser entirely - `%hidden` is a 3.1 syntax error
+  that would abort the rest of `.tmux.conf.local` on tmux 3.0 (Ubuntu 20.04).
+- `tests/tmux-status-rows.sh`: functional test for the above - it runs two
+  throwaway tmux servers, one attaching to the other, and asserts against the
+  captured screen that the tabs wrap, stay in reading order, are never
+  duplicated or hidden, never exceed the client width, reflow on resize, honour
+  the row ceiling, keep tmux's overflow markers when a row still cannot fit,
+  leave a status bar that is off alone, balance rows instead of filling them,
+  honour `@status-rows-reserve`, reflow from the shipped hooks with no manual
+  run, and restore the stock status on `--reset`. The packing arithmetic is
+  asserted directly by sourcing the script, so it is covered even where tmux is
+  too old for the rendering tests. It skips itself on
+  a tmux without the `#{w:}` width modifier, where the feature no-ops by design.
+  Runs in CI as the `tmux-status-rows` job.
+
+### Changed
+- `.github/workflows/install.yml`: the workflow can also be started by hand
+  (`workflow_dispatch`).
 
 ## [1.9.0] - 2026-07-08
 
@@ -734,7 +772,8 @@ Complete overhaul of the dotfiles infrastructure: modular profiles, Neovim, CI, 
 ### Added
 - Initial dotfiles: Zsh (oh-my-zsh + fzf), Tmux, Vim, and monolithic `install.sh`
 
-[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.10.0...HEAD
+[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.0...HEAD
+[1.11.0]: https://github.com/YASoftwareDev/dotfiles/compare/v1.10.0...v1.11.0
 [1.10.0]: https://github.com/YASoftwareDev/dotfiles/compare/v1.9.0...v1.10.0
 [1.4.0]: https://github.com/YASoftwareDev/dotfiles/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/YASoftwareDev/dotfiles/compare/v1.2.5...v1.3.0

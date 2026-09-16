@@ -5,6 +5,7 @@ on:
     branches: [master, main]
   pull_request:
     branches: [master, main]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -78,6 +79,31 @@ jobs:
 
       - name: Re-run test suite after update
         run: su -s /bin/bash -c 'HOME=/home/testuser; export HOME; export TERM=xterm-256color; cd ~/dotfiles && bash test.sh ${{ matrix.profile }}' testuser
+
+  tmux-status-rows:
+    name: "tmux multi-row tabs"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tmux
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get -yq update
+          sudo apt-get -yq install tmux
+          tmux -V
+
+      - name: Static checks
+        run: |
+          bash -n tmux/tmux-status-rows
+          bash -n tests/tmux-status-rows.sh
+          sudo apt-get -yq install shellcheck
+          shellcheck -S warning tmux/tmux-status-rows tests/tmux-status-rows.sh
+
+      - name: Functional test
+        run: TERM=xterm-256color bash tests/tmux-status-rows.sh
 
   install-nosudo:
     name: "nosudo-${{ matrix.variant }} @ Ubuntu ${{ matrix.ubuntu }}"

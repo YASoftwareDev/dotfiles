@@ -331,6 +331,7 @@ cd ~/.dotfiles && ./update.sh --check
 | `zsh/.zshrc` | `~/.zshrc` |
 | `tmux/.tmux.conf` | `~/.tmux.conf` |
 | `tmux/.tmux.conf.local` | `~/.tmux.conf.local` |
+| `tmux/tmux-status-rows` | `~/.local/bin/tmux-status-rows` |
 | `nvim/.config/nvim/` | `~/.config/nvim/` |
 | `git/.gitconfig` | `~/.gitconfig` |
 | `git/.gitattributes` | `~/.gitattributes` |
@@ -349,6 +350,14 @@ cd ~/.dotfiles && ./update.sh --check
 - **zsh** with **oh-my-zsh** + **powerlevel10k** prompt
 - **tmux** - terminal multiplexer (gpakosz/.tmux framework)
   - Plugins: `tmux-fzf`, `tmux-cpu`
+  - Multi-row window tabs: when the open tabs no longer fit on one status row
+    they continue on a second, third, ... row instead of being hidden behind
+    tmux's `<`/`>` markers. Driven by `tmux-status-rows`, which recomputes the
+    layout on every window and client change and once per `status-interval`.
+    Per-session options: `@status-rows` (`on`/`off`), `@status-rows-max` (1-5
+    rows, default 5), `@status-rows-reserve` (columns left free per row,
+    default 4). `tmux-status-rows --print` shows the computed layout,
+    `--reset` restores the stock single row.
 - Oh-my-zsh plugins: `git`, `vi-mode`, `history`, `history-substring-search`, `dircycle`, `dirhistory`, `last-working-dir`, `colored-man-pages`, `command-not-found`
 - External zsh plugins: `zsh-autosuggestions`, `fast-syntax-highlighting`, `fzf-tab`
 
