@@ -9,7 +9,8 @@ support via the user-local binary path: one-command install (`install.sh`),
 managed updates (`update.sh`), post-install test suite (`test.sh`), and CI
 matrix covering 3 Ubuntu versions × 3 install profiles + no-sudo variants
 (auto / forced / nonsudoer) on 3 Ubuntu + 2 AlmaLinux versions, plus the nvim
-config on pinned nvim 0.10 and 0.11 - 26 cells total.
+config on pinned nvim 0.10 and 0.11, the latter both with and without build
+tools - 27 cells total.
 
 ## Key files
 
