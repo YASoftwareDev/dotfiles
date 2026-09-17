@@ -425,4 +425,16 @@ jobs:
       - install-nosudo-alma
     runs-on: ubuntu-latest
     steps:
-      - run: echo ok
+      - name: Fail unless every required job succeeded
+        run: |
+          results="${{ join(needs.*.result, ' ') }}"
+          echo "dependency results: ${results:-<none>}"
+          if [ -z "$results" ]; then
+            echo "no dependency results - refusing to report success"; exit 1
+          fi
+          for r in $results; do
+            if [ "$r" != success ]; then
+              echo "a required job did not succeed: $r"; exit 1
+            fi
+          done
+          echo "all required jobs succeeded"
