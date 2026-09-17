@@ -10,7 +10,8 @@ managed updates (`update.sh`), post-install test suite (`test.sh`), and CI
 matrix covering 3 Ubuntu versions × 3 install profiles + no-sudo variants
 (auto / forced / nonsudoer) on 3 Ubuntu + 2 AlmaLinux versions, plus the nvim
 config on pinned nvim 0.10 and 0.11, the latter both with and without build
-tools - 27 cells total.
+tools, and one Ubuntu 16.04 cell whose git 2.7.4 exercises the full-clone
+fallback and the unapplied-pins path - 28 cells total.
 
 ## Key files
 

@@ -169,6 +169,69 @@ jobs:
       - name: Run test suite (minimal)
         run: su -s /bin/bash -c 'HOME=/home/testuser; export HOME; export TERM=xterm-256color; cd ~/dotfiles && bash test.sh minimal' testuser
 
+  git-partial-clone-gate:
+    name: "git without partial clone @ Ubuntu 16.04"
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    container:
+      image: "ubuntu:16.04"
+
+    steps:
+      - name: Bootstrap system tools
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get -yq update
+          echo "resolvconf resolvconf/linkify-resolvconf boolean false" | debconf-set-selections
+          apt-get -yq install apt-utils git sudo curl ca-certificates
+
+      - name: Assert this git actually rejects --filter
+        run: |
+          # This cell exists to exercise init.lua's full-clone fallback, which only
+          # runs where `git clone --filter=blob:none` does not work. Assert that
+          # CONDITION, not a version number: measured 2026-09-17, git 2.17.1 on
+          # 18.04 ACCEPTS --filter, so a `< 2.19` check passes while the fallback
+          # is never taken - green, and proving nothing. 16.04's git 2.7.4 rejects it.
+          echo "git $(git --version)"
+          if git clone --filter=blob:none --depth=1 \
+               https://github.com/folke/lazy.nvim /tmp/filter-probe >/tmp/fp.log 2>&1; then
+            echo "this git ACCEPTS --filter, so the fallback is never exercised here"; exit 1
+          fi
+          echo "rejects --filter as required:"; head -2 /tmp/fp.log
+
+      - name: Create non-root test user with passwordless sudo
+        run: |
+          useradd -m -s /bin/bash testuser
+          echo 'testuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+      - name: Checkout dotfiles
+        uses: actions/checkout@v4
+
+      - name: Copy dotfiles to test user home
+        run: |
+          cp -r . /home/testuser/dotfiles
+          chown -R testuser:testuser /home/testuser/dotfiles
+
+      - name: Configure curl auth (avoids GitHub API rate limit)
+        run: |
+          printf 'header = "Authorization: Bearer %s"\n' "${{ secrets.GITHUB_TOKEN }}" \
+            > /home/testuser/.curlrc
+          chown testuser:testuser /home/testuser/.curlrc
+          chmod 600 /home/testuser/.curlrc
+
+      - name: Install (minimal)
+        run: su -s /bin/bash -c 'HOME=/home/testuser; export HOME; cd ~/dotfiles && bash install.sh minimal' testuser
+
+      - name: Seed nvim v0.9.5 so test.sh's 0.9-0.11 config check actually runs
+        run: |
+          # 18.04's apt nvim is 0.2.2, below the check's floor, so it would skip and
+          # the plugin bootstrap would never be exercised on this git.
+          cd /home/testuser/dotfiles
+          DOTFILES_DIR=$PWD bash -c 'set -euo pipefail; source lib/utils.sh; detect_sudo; source modules/neovim.sh; _neovim_legacy_binary /usr/local'
+          v=$(/usr/local/bin/nvim --version | head -1); echo "$v"; [ "$v" = "NVIM v0.9.5" ]
+
+      - name: Run test suite (minimal)
+        run: su -s /bin/bash -c 'HOME=/home/testuser; export HOME; export TERM=xterm-256color; cd ~/dotfiles && bash test.sh minimal' testuser
+
   tmux-status-rows:
     name: "tmux multi-row tabs"
     runs-on: ubuntu-latest
