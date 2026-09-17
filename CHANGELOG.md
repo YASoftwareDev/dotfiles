@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.6] - 2026-09-17
+
+### Added
+- CI: the old-git cell now runs the full matrix flow - install, idempotency re-run, update.sh, re-test - on git 2.7.4 and bash 4.3. It also covers update.sh upgrading nvim on glibc 2.23, including the dev-build rejection.
+
 ## [1.11.5] - 2026-09-17
 
 ### Added
@@ -800,7 +805,8 @@ Complete overhaul of the dotfiles infrastructure: modular profiles, Neovim, CI, 
 ### Added
 - Initial dotfiles: Zsh (oh-my-zsh + fzf), Tmux, Vim, and monolithic `install.sh`
 
-[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.5...HEAD
+[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.6...HEAD
+[1.11.6]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.5...v1.11.6
 [1.11.5]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.4...v1.11.5
 [1.11.4]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.3...v1.11.4
 [1.11.3]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.2...v1.11.3
