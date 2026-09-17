@@ -413,8 +413,14 @@ jobs:
             'HOME=/home/user; export HOME; export PATH="$HOME/.local/bin:$PATH"; export TERM=xterm-256color; cd ~/dotfiles && bash test.sh nosudo' \
             user
 
+  # Required check for branch protection. Matrix cell names change whenever the
+  # matrix does, so requiring them individually means editing the protection rule
+  # in lockstep and silently losing coverage when a name drifts. Protection
+  # requires THIS job only, and it fails unless every other job succeeded.
   ci-gate:
     name: "CI gate"
+    # always(), so it still runs when a dependency fails: a required check that
+    # never reports leaves the PR hanging instead of failing.
     if: always()
     needs:
       - install
@@ -424,11 +430,26 @@ jobs:
       - install-nosudo
       - install-nosudo-alma
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+
     steps:
+      - name: Checkout dotfiles
+        uses: actions/checkout@v4
+
+      - name: Assert the gate requires every job
+        run: |
+          # A new job that nobody adds to `needs` above would sit OUTSIDE the gate
+          # while CI stayed green - coverage lost silently. Fail instead.
+          python3 -c 'import yaml' 2>/dev/null || pip install --quiet pyyaml
+          python3 tests/ci-gate-covers-all.py
+
       - name: Fail unless every required job succeeded
         run: |
+          # Single quotes inside ${{ }}: GitHub expressions reject double-quoted
+          # strings and the whole workflow becomes invalid.
           results="${{ join(needs.*.result, ' ') }}"
           echo "dependency results: ${results:-<none>}"
+          # No results at all must NOT pass: "cannot tell" is not "fine".
           if [ -z "$results" ]; then
             echo "no dependency results - refusing to report success"; exit 1
           fi
