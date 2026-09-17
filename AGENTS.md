@@ -36,6 +36,16 @@ fallback and the unapplied-pins path - 28 cells total.
   Also avoid `[ cond ] && var=true` - when the condition is false, the expression exits with 1 and
   trips `set -e`. Use `if [ cond ]; then var=true; fi` instead.
 - Every function variable must be declared `local` (or `local -a` for arrays).
+- **Run `bash tests/lint-workflows.sh` before pushing a workflow change.** An
+  invalid workflow runs nothing, so CI cannot report the fault, and with
+  `CI gate` required the PR blocks with no visible cause. It catches the two
+  that cost runs on PR #52: a double-quoted string inside an expression (only
+  single quotes are legal), and the expression delimiters written in a comment -
+  GitHub scans comments too, and an empty pair is itself a syntax error.
+- `CI gate` is the single required status check on `master`, and it `needs` every
+  other job. **Add any new job to its `needs`** - the gate asserts its own
+  completeness and fails when a job sits outside it, because a job nobody
+  required would lose coverage while CI stayed green.
 - Never let an apt call abort the install. A package name that does not exist on
   an older release makes apt exit 100, and `set -e` then kills the whole run -
   measured on Ubuntu 18.04, where `ripgrep`/`fd-find` are absent. Install a bulk

@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.7] - 2026-09-17
+
+### Added
+- CI: a single `CI gate` job requires every other job and is the one check branch protection needs, so matrix renames cannot silently drop coverage. It refuses to pass on empty results and asserts it requires every job.
+
 ## [1.11.6] - 2026-09-17
 
 ### Added
@@ -805,7 +810,8 @@ Complete overhaul of the dotfiles infrastructure: modular profiles, Neovim, CI, 
 ### Added
 - Initial dotfiles: Zsh (oh-my-zsh + fzf), Tmux, Vim, and monolithic `install.sh`
 
-[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.6...HEAD
+[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.7...HEAD
+[1.11.7]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.6...v1.11.7
 [1.11.6]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.5...v1.11.6
 [1.11.5]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.4...v1.11.5
 [1.11.4]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.3...v1.11.4
