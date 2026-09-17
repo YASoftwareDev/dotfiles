@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.5] - 2026-09-17
+
+### Added
+- CI: an Ubuntu 16.04 cell (git 2.7.4) exercises init.lua's full-clone fallback, the only path where `--filter` is unavailable. It asserts git rejects `--filter` first, since git 2.17 accepts it and a version check would pass while testing nothing.
+
 ## [1.11.4] - 2026-09-17
 
 ### Fixed
@@ -795,7 +800,8 @@ Complete overhaul of the dotfiles infrastructure: modular profiles, Neovim, CI, 
 ### Added
 - Initial dotfiles: Zsh (oh-my-zsh + fzf), Tmux, Vim, and monolithic `install.sh`
 
-[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.4...HEAD
+[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.5...HEAD
+[1.11.5]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.4...v1.11.5
 [1.11.4]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.3...v1.11.4
 [1.11.3]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.2...v1.11.3
 [1.11.2]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.1...v1.11.2

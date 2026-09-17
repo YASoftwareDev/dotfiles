@@ -1,8 +1,11 @@
 -- ══════════════════════════════════════════════════════════════════════════════
 -- Bootstrap lazy.nvim
 -- ══════════════════════════════════════════════════════════════════════════════
--- Partial clones (--filter) need git >= 2.19; older git (Ubuntu 16.04) failed the
--- bootstrap, so nothing loaded. Such hosts get full clones instead.
+-- Partial clones (--filter) are documented as git >= 2.19; older git (Ubuntu 16.04,
+-- git 2.7.4) failed the bootstrap, so nothing loaded. Such hosts get full clones.
+-- The 2.19 cutoff is deliberately conservative: measured 2026-09-17, git 2.17.1
+-- already accepts --filter, so the true floor is lower. Full clones cost only
+-- download size, and CI covers the fallback on 16.04.
 local git_out = vim.fn.executable('git') == 1 and vim.fn.system({ 'git', '--version' }) or ''
 local git_major, git_minor = git_out:match('(%d+)%.(%d+)')
 local git_partial = git_major ~= nil
