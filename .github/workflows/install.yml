@@ -445,8 +445,10 @@ jobs:
 
       - name: Fail unless every required job succeeded
         run: |
-          # Single quotes inside ${{ }}: GitHub expressions reject double-quoted
-          # strings and the whole workflow becomes invalid.
+          # String literals in a GitHub expression must be SINGLE-quoted; a
+          # double-quoted one makes the whole workflow invalid. Never write the
+          # expression delimiters in a comment either - GitHub scans comments too,
+          # and an empty pair is itself a syntax error (both cost a run on PR #52).
           results="${{ join(needs.*.result, ' ') }}"
           echo "dependency results: ${results:-<none>}"
           # No results at all must NOT pass: "cannot tell" is not "fine".
