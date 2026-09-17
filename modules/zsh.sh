@@ -125,6 +125,10 @@ _git_clone_if_missing() {
         return
     fi
     log_info "$name: installing latest → $dest"
-    git clone "${extra_flags[@]}" "$url" "$dest" --quiet
+    # bash <= 4.3 (Ubuntu 16.04) treats "${arr[@]}" on an EMPTY array as an unbound
+    # variable under `set -u`, which aborted the install at the first plugin clone.
+    # The +alternate form expands to nothing when the array is empty. bash 4.4+ is
+    # fine either way, so this is a no-op there.
+    git clone ${extra_flags[@]+"${extra_flags[@]}"} "$url" "$dest" --quiet
     log_ok "$name installed → $dest"
 }
