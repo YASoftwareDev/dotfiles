@@ -8,7 +8,8 @@ Personal dotfiles for Ubuntu/Debian, with RHEL-family (AlmaLinux/Rocky/Fedora)
 support via the user-local binary path: one-command install (`install.sh`),
 managed updates (`update.sh`), post-install test suite (`test.sh`), and CI
 matrix covering 3 Ubuntu versions × 3 install profiles + no-sudo variants
-(auto / forced / nonsudoer) on 3 Ubuntu + 2 AlmaLinux versions - 24 cells total.
+(auto / forced / nonsudoer) on 3 Ubuntu + 2 AlmaLinux versions, plus the nvim
+config on pinned nvim 0.10 and 0.11 - 26 cells total.
 
 ## Key files
 
@@ -60,6 +61,13 @@ Add new aliases to the `pairs({...})` table - one line, no boilerplate.
 They are wrapped in `vim.fn.executable('npm') == 1` so hosts without npm (e.g.
 GPU servers) skip them silently. Do not remove this guard or add new npm-dependent
 servers outside of it.
+
+**`fzf_ok`** guards `telescope-fzf-native`, a C library: it gates that dependency's
+`cond` and the `load_extension('fzf')` call on `make` plus a compiler. Without it
+the failed load aborted telescope's whole `config`, so every telescope key was dead
+on an nvim 0.11+ host with no build tools. Telescope's own sorter is the fallback.
+Same rule as the npm guard - do not remove it, and keep optional native extensions
+behind it.
 
 **Version gates** - supported hosts run nvim 0.9-0.12. Options and plugins that need a
 newer nvim are gated (`vim.fn.has('nvim-0.X')`, lazy `cond`), because one invalid

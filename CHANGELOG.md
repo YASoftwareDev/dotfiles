@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.1] - 2026-09-17
+
+### Fixed
+- nvim: telescope survives `telescope-fzf-native` not building. It now needs `make` and a compiler, and `load_extension('fzf')` is skipped otherwise; every telescope key was dead on nvim 0.11+ hosts without build tools.
+
+### Added
+- CI: cells running the tracked nvim config on nvim 0.10.4 and 0.11.5, the versions `init.lua`'s `cond` gates switch on. No other cell runs them, so those gates were untested.
+
 ## [1.11.0] - 2026-09-16
 
 ### Fixed
@@ -772,7 +780,8 @@ Complete overhaul of the dotfiles infrastructure: modular profiles, Neovim, CI, 
 ### Added
 - Initial dotfiles: Zsh (oh-my-zsh + fzf), Tmux, Vim, and monolithic `install.sh`
 
-[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.0...HEAD
+[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.1...HEAD
+[1.11.1]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.0...v1.11.1
 [1.11.0]: https://github.com/YASoftwareDev/dotfiles/compare/v1.10.0...v1.11.0
 [1.10.0]: https://github.com/YASoftwareDev/dotfiles/compare/v1.9.0...v1.10.0
 [1.4.0]: https://github.com/YASoftwareDev/dotfiles/compare/v1.3.0...v1.4.0

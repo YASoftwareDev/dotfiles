@@ -80,6 +80,74 @@ jobs:
       - name: Re-run test suite after update
         run: su -s /bin/bash -c 'HOME=/home/testuser; export HOME; export TERM=xterm-256color; cd ~/dotfiles && bash test.sh ${{ matrix.profile }}' testuser
 
+  nvim-version-gates:
+    name: "nvim ${{ matrix.nvim }} @ Ubuntu 22.04"
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    container:
+      image: "ubuntu:22.04"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # The two versions init.lua's `cond` gates switch on. Every other cell
+        # runs apt's nvim (0.4.3 / 0.6.1 / 0.9.5) or the newest release, so
+        # without these the 0.10 and 0.11 gates are never executed. Measured
+        # glibc floors are 2.29 and 2.34, both met by 22.04's 2.35.
+        nvim: ["0.10.4", "0.11.5"]
+
+    steps:
+      - name: Bootstrap system tools
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get -yq update
+          # Prevent resolvconf post-install from failing on Docker-bound /etc/resolv.conf
+          echo "resolvconf resolvconf/linkify-resolvconf boolean false" | debconf-set-selections
+          apt-get -yq install apt-utils git sudo curl ca-certificates
+
+      - name: Create non-root test user with passwordless sudo
+        run: |
+          useradd -m -s /bin/bash testuser
+          echo 'testuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+      - name: Checkout dotfiles
+        uses: actions/checkout@v4
+
+      - name: Copy dotfiles to test user home
+        run: |
+          cp -r . /home/testuser/dotfiles
+          chown -R testuser:testuser /home/testuser/dotfiles
+
+      - name: Configure curl auth (avoids GitHub API rate limit)
+        run: |
+          printf 'header = "Authorization: Bearer %s"\n' "${{ secrets.GITHUB_TOKEN }}" \
+            > /home/testuser/.curlrc
+          chown testuser:testuser /home/testuser/.curlrc
+          chmod 600 /home/testuser/.curlrc
+
+      - name: Install (minimal)
+        run: su -s /bin/bash -c 'HOME=/home/testuser; export HOME; cd ~/dotfiles && bash install.sh minimal' testuser
+
+      - name: Pin nvim to v${{ matrix.nvim }}
+        run: |
+          # /usr/local/bin precedes /usr/bin, so this shadows the apt nvim the
+          # minimal profile just installed. Both tags ship nvim-linux-x86_64.tar.gz
+          # with a bin/lib/share top level and no top-level man/, so copying into
+          # /usr/local cannot hit the symlink clash _neovim_legacy_binary works
+          # around for 0.9.5.
+          tag="v${{ matrix.nvim }}"
+          tmp=$(mktemp -d)
+          curl -sfL "https://github.com/neovim/neovim/releases/download/${tag}/nvim-linux-x86_64.tar.gz" \
+            | tar -xz -C "$tmp"
+          cp -r "$tmp/nvim-linux-x86_64/." /usr/local/
+          v=$(/usr/local/bin/nvim --version | head -1)
+          echo "$v"
+          # The tag must ship what it claims: neovim-releases' v0.12.5 shipped a 0.13 nightly.
+          [ "$v" = "NVIM ${tag}" ]
+
+      - name: Run test suite (minimal)
+        run: su -s /bin/bash -c 'HOME=/home/testuser; export HOME; export TERM=xterm-256color; cd ~/dotfiles && bash test.sh minimal' testuser
+
   tmux-status-rows:
     name: "tmux multi-row tabs"
     runs-on: ubuntu-latest
