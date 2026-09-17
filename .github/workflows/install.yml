@@ -116,7 +116,15 @@ jobs:
 
       - name: Install build tools (the fzf_ok=true path - fzf-native must build and load)
         if: matrix.tools == 'build'
-        run: DEBIAN_FRONTEND=noninteractive apt-get -yq install make gcc libc6-dev
+        run: |
+          DEBIAN_FRONTEND=noninteractive apt-get -yq install make gcc libc6-dev
+          # init.lua's fzf_ok needs make AND an executable `cc`; installing gcc
+          # provides /usr/bin/cc through alternatives (ubuntu:22.04 -> gcc-11).
+          # Assert both, or a base-image change would silently make fzf_ok false
+          # and turn this cell into a copy of the toolless one: green, proving nothing.
+          command -v make >/dev/null || { echo "make missing - fzf_ok would be false"; exit 1; }
+          [ -x /usr/bin/cc ]        || { echo "/usr/bin/cc missing - fzf_ok would be false and this cell would duplicate the toolless one"; exit 1; }
+          echo "build tools present: make=$(command -v make) cc=$(readlink -f /usr/bin/cc)"
 
       - name: Create non-root test user with passwordless sudo
         run: |
