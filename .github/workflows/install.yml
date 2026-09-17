@@ -81,7 +81,7 @@ jobs:
         run: su -s /bin/bash -c 'HOME=/home/testuser; export HOME; export TERM=xterm-256color; cd ~/dotfiles && bash test.sh ${{ matrix.profile }}' testuser
 
   nvim-version-gates:
-    name: "nvim ${{ matrix.nvim }} @ Ubuntu 22.04"
+    name: "nvim ${{ matrix.nvim }}, ${{ matrix.label }} @ Ubuntu 22.04"
     runs-on: ubuntu-latest
     timeout-minutes: 40
     container:
@@ -90,11 +90,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The two versions init.lua's `cond` gates switch on. Every other cell
-        # runs apt's nvim (0.4.3 / 0.6.1 / 0.9.5) or the newest release, so
-        # without these the 0.10 and 0.11 gates are never executed. Measured
-        # glibc floors are 2.29 and 2.34, both met by 22.04's 2.35.
-        nvim: ["0.10.4", "0.11.5"]
+        # `include` with no base matrix keys creates exactly these cells; a bare
+        # `nvim:` key would make include MERGE into those combinations instead.
+        # 0.10 and 0.11 are the versions init.lua's `cond` gates switch on, and
+        # the measured glibc floors (2.29, 2.34) are both met by 22.04's 2.35.
+        #
+        # The 0.11.5 pair covers both sides of the `fzf_ok` gate: with no build
+        # tools telescope-fzf-native cannot build and load_extension('fzf') must
+        # be skipped; with them it builds and the extension must load. Keep both -
+        # the toolless cell is what caught the dead-telescope bug fixed in 1.11.1,
+        # and only the build cell exercises the path nearly every dev box takes.
+        include:
+          - { nvim: "0.10.4", tools: none,  label: "no build tools" }
+          - { nvim: "0.11.5", tools: none,  label: "no build tools" }
+          - { nvim: "0.11.5", tools: build, label: "with build tools" }
 
     steps:
       - name: Bootstrap system tools
@@ -104,6 +113,18 @@ jobs:
           # Prevent resolvconf post-install from failing on Docker-bound /etc/resolv.conf
           echo "resolvconf resolvconf/linkify-resolvconf boolean false" | debconf-set-selections
           apt-get -yq install apt-utils git sudo curl ca-certificates
+
+      - name: Install build tools (the fzf_ok=true path - fzf-native must build and load)
+        if: matrix.tools == 'build'
+        run: |
+          DEBIAN_FRONTEND=noninteractive apt-get -yq install make gcc libc6-dev
+          # init.lua's fzf_ok needs make AND an executable `cc`; installing gcc
+          # provides /usr/bin/cc through alternatives (ubuntu:22.04 -> gcc-11).
+          # Assert both, or a base-image change would silently make fzf_ok false
+          # and turn this cell into a copy of the toolless one: green, proving nothing.
+          command -v make >/dev/null || { echo "make missing - fzf_ok would be false"; exit 1; }
+          [ -x /usr/bin/cc ]        || { echo "/usr/bin/cc missing - fzf_ok would be false and this cell would duplicate the toolless one"; exit 1; }
+          echo "build tools present: make=$(command -v make) cc=$(readlink -f /usr/bin/cc)"
 
       - name: Create non-root test user with passwordless sudo
         run: |
