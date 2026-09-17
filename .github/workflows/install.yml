@@ -455,7 +455,10 @@ jobs:
 
       - name: Fail unless every required job succeeded
         run: |
-          results='${{ join(needs.*.result, " ") }}'
+          # Single quotes inside ${{ }}: GitHub expressions reject double-quoted
+          # strings, and the whole workflow is then invalid - it fails in 0s with
+          # no jobs and no pull_request run at all (measured on PR #52).
+          results="${{ join(needs.*.result, ' ') }}"
           echo "dependency results: ${results:-<none>}"
           # No results at all must NOT pass: "cannot tell" is not "fine".
           if [ -z "$results" ]; then
