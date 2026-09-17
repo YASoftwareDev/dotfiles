@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.3] - 2026-09-17
+
+### Fixed
+- install.sh no longer aborts where apt lacks a package (no ripgrep/fd-find before Ubuntu 19.10, no `gpg` on 16.04): the bulk install retries per package and the GitHub fallbacks cover the rest. On 18.04 this turns rc=100 into a green test.sh.
+
 ## [1.11.2] - 2026-09-17
 
 ### Added
@@ -785,7 +790,8 @@ Complete overhaul of the dotfiles infrastructure: modular profiles, Neovim, CI, 
 ### Added
 - Initial dotfiles: Zsh (oh-my-zsh + fzf), Tmux, Vim, and monolithic `install.sh`
 
-[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.2...HEAD
+[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.3...HEAD
+[1.11.3]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.2...v1.11.3
 [1.11.2]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.1...v1.11.2
 [1.11.1]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.0...v1.11.1
 [1.11.0]: https://github.com/YASoftwareDev/dotfiles/compare/v1.10.0...v1.11.0

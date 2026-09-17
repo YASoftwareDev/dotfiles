@@ -22,7 +22,17 @@ install_base() {
         )
         log_info "Installing via apt: ${_pkgs[*]} (versions resolved by apt)"
         $SUDO apt-get -yq update
-        apt_install "${_pkgs[@]}"
+        # Releases before 19.10 carry no ripgrep and no fd-find, and a single
+        # unknown name makes apt exit 100 - which under `set -e` killed the whole
+        # install. Retry one at a time so the rest still lands; the GitHub
+        # installers below then cover whatever apt could not provide.
+        if ! apt_install "${_pkgs[@]}"; then
+            local _p
+            log_warn "apt rejected the set - installing individually"
+            for _p in "${_pkgs[@]}"; do
+                apt_install "$_p" || log_warn "apt has no '$_p' on this release - skipping"
+            done
+        fi
 
         # Ensure en_US.UTF-8 locale is generated - without this, Perl (and tools
         # that shell out to it) will warn whenever LANG=en_US.UTF-8 is set but the
@@ -37,6 +47,13 @@ install_base() {
             ln -sf "$(command -v fdfind)" ~/.local/bin/fd
             log_ok "Created fd → fdfind shim in ~/.local/bin"
         fi
+
+        # Cover what apt could not supply (no ripgrep/fd-find before 19.10).
+        # Each installer returns early when the binary is already present, so
+        # this is a no-op on releases where apt carried them.
+        _install_ripgrep
+        _install_fd
+        _install_jq
     else
         if $CAN_SUDO; then
             log_warn "No apt on this system - skipping system packages; fetching tools as local binaries"
@@ -78,7 +95,15 @@ install_base_docker() {
         )
         log_info "Installing via apt: ${_pkgs[*]} (versions resolved by apt)"
         $SUDO apt-get -yq update
-        apt_install "${_pkgs[@]}"
+        # As in install_base: one package this release does not have would
+        # otherwise abort the whole run (apt exit 100).
+        if ! apt_install "${_pkgs[@]}"; then
+            local _p
+            log_warn "apt rejected the set - installing individually"
+            for _p in "${_pkgs[@]}"; do
+                apt_install "$_p" || log_warn "apt has no '$_p' on this release - skipping"
+            done
+        fi
         log_info "Generating locale: en_US.UTF-8"
         $SUDO locale-gen en_US.UTF-8
         $SUDO update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
@@ -86,6 +111,11 @@ install_base_docker() {
         if ! has fd && has fdfind; then
             ln -sf "$(command -v fdfind)" ~/.local/bin/fd
         fi
+
+        # Cover what apt could not supply; each installer self-skips when present.
+        _install_ripgrep
+        _install_fd
+        _install_jq
     else
         log_warn "No apt - skipping system packages; fetching tools as local binaries"
         local _hint tool; _hint=$(_pkg_install_hint)
@@ -272,7 +302,10 @@ _install_eza() {
     if $CAN_APT; then
         log_step "eza (official PPA)"
         log_info "eza: installing latest → system (via PPA)"
-        apt_install gpg  # needed for dearmor; may already be present
+        # `gpg` is a package name only on newer releases - 16.04 ships the binary in
+        # gnupg - and a missing candidate makes apt exit 100, which aborted the whole
+        # install. An optional tool must never do that.
+        has gpg || apt_install gpg || { log_warn "eza: no gpg for dearmor - skipping"; return; }
         $SUDO mkdir -p /etc/apt/keyrings
         if has curl; then
             curl -fsSL https://raw.githubusercontent.com/eza-community/eza/main/deb.asc \
@@ -286,8 +319,10 @@ _install_eza() {
         echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" \
             | $SUDO tee /etc/apt/sources.list.d/gierens.list > /dev/null
         $SUDO chmod 644 /etc/apt/keyrings/gierens.gpg /etc/apt/sources.list.d/gierens.list
-        $SUDO apt-get update -yq
-        apt_install eza
+        $SUDO apt-get update -yq \
+            || { log_warn "eza: PPA index unavailable - skipping"; return; }
+        apt_install eza \
+            || { log_warn "eza: PPA carries no package for this release - skipping"; return; }
         log_ok "eza installed via PPA ($(eza --version 2>/dev/null | head -1))"
     else
         log_step "eza (GitHub binary)"

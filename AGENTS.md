@@ -35,6 +35,12 @@ tools - 27 cells total.
   Also avoid `[ cond ] && var=true` - when the condition is false, the expression exits with 1 and
   trips `set -e`. Use `if [ cond ]; then var=true; fi` instead.
 - Every function variable must be declared `local` (or `local -a` for arrays).
+- Never let an apt call abort the install. A package name that does not exist on
+  an older release makes apt exit 100, and `set -e` then kills the whole run -
+  measured on Ubuntu 18.04, where `ripgrep`/`fd-find` are absent. Install a bulk
+  list with a per-package retry, keep an optional tool's apt steps non-fatal
+  (`|| { log_warn ...; return; }`), and let the `_install_*` GitHub fallbacks
+  cover whatever apt cannot supply.
 - Never construct GitHub release asset URLs manually - use `_gh_release_info` or
   `_gh_latest_release` from `lib/utils.sh`; asset names change between releases.
   Exception: `releases/latest/download/<name>` for an asset whose name carries no
