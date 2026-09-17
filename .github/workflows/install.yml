@@ -412,3 +412,58 @@ jobs:
           su -s /bin/bash -c \
             'HOME=/home/user; export HOME; export PATH="$HOME/.local/bin:$PATH"; export TERM=xterm-256color; cd ~/dotfiles && bash test.sh nosudo' \
             user
+
+  # ── Required check for branch protection ──────────────────────────────────────
+  # Matrix cell names change whenever the matrix does, so requiring them
+  # individually means editing the protection rule in lockstep and silently
+  # losing coverage when a name drifts. Protection requires THIS job only, and
+  # it fails unless every other job succeeded.
+  ci-gate:
+    name: "CI gate"
+    if: always()          # must run even when a dependency failed, or the
+                          # required check never reports and the PR hangs
+    needs:
+      - install
+      - nvim-version-gates
+      - git-partial-clone-gate
+      - tmux-status-rows
+      - install-nosudo
+      - install-nosudo-alma
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout dotfiles
+        uses: actions/checkout@v4
+
+      - name: Assert the gate requires every job
+        run: |
+          # A new job that nobody adds to `needs` above would sit OUTSIDE the gate
+          # while CI stayed green - coverage lost silently. Fail instead.
+          python3 -c 'import yaml' 2>/dev/null || pip install --quiet pyyaml
+          python3 - <<'PY'
+          import sys, yaml
+          d = yaml.safe_load(open('.github/workflows/install.yml'))
+          jobs = [j for j in d['jobs'] if j != 'ci-gate']
+          needs = d['jobs']['ci-gate'].get('needs') or []
+          missing = [j for j in jobs if j not in needs]
+          if missing:
+              print('jobs not required by the gate: %s' % ', '.join(missing))
+              sys.exit(1)
+          print('gate requires all %d jobs: %s' % (len(jobs), ', '.join(jobs)))
+          PY
+
+      - name: Fail unless every required job succeeded
+        run: |
+          results='${{ join(needs.*.result, " ") }}'
+          echo "dependency results: ${results:-<none>}"
+          # No results at all must NOT pass: "cannot tell" is not "fine".
+          if [ -z "$results" ]; then
+            echo "no dependency results - refusing to report success"; exit 1
+          fi
+          for r in $results; do
+            if [ "$r" != success ]; then
+              echo "a required job did not succeed: $r"; exit 1
+            fi
+          done
+          echo "all required jobs succeeded"
