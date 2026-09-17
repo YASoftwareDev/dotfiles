@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.2] - 2026-09-17
+
+### Added
+- CI: a third nvim cell runs 0.11.5 with `make` and a compiler, so `telescope-fzf-native` is built and loaded; the other 0.11.5 cell keeps the toolless path that caught the 1.11.1 bug.
+
 ## [1.11.1] - 2026-09-17
 
 ### Fixed
@@ -780,7 +785,8 @@ Complete overhaul of the dotfiles infrastructure: modular profiles, Neovim, CI, 
 ### Added
 - Initial dotfiles: Zsh (oh-my-zsh + fzf), Tmux, Vim, and monolithic `install.sh`
 
-[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.1...HEAD
+[Unreleased]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.2...HEAD
+[1.11.2]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.1...v1.11.2
 [1.11.1]: https://github.com/YASoftwareDev/dotfiles/compare/v1.11.0...v1.11.1
 [1.11.0]: https://github.com/YASoftwareDev/dotfiles/compare/v1.10.0...v1.11.0
 [1.10.0]: https://github.com/YASoftwareDev/dotfiles/compare/v1.9.0...v1.10.0
