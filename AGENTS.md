@@ -87,6 +87,15 @@ on an nvim 0.11+ host with no build tools. Telescope's own sorter is the fallbac
 Same rule as the npm guard - do not remove it, and keep optional native extensions
 behind it.
 
+**`truecolor_ok`** gates `termguicolors` and the colorscheme choice. nightfly, like
+most modern schemes, sets only gui colours - measured 2026-09-18, its `Normal` and
+`Comment` carry no `ctermfg`/`ctermbg` at all - so forcing `termguicolors` on a
+terminal that cannot parse `38;2;R;G;B` left nothing readable and rendered near-black
+on near-black (#53). The gate fires only on positive evidence of a low-colour terminal,
+so 256-colour hosts are unchanged. **Keep any truecolor-only scheme behind it**, and
+keep the fallback list to schemes that really define cterm colours (habamax, desert -
+`default` and gruvbox do not). `tests/nvim-colour-fallback.sh` asserts both arms.
+
 **Version gates** - supported hosts run nvim 0.9-0.12. Options and plugins that need a
 newer nvim are gated (`vim.fn.has('nvim-0.X')`, lazy `cond`), because one invalid
 option value aborts the rest of init.lua. Parser installs are gated on nvim 0.12,
