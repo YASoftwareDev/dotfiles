@@ -169,6 +169,13 @@ jobs:
       - name: Run test suite (minimal)
         run: su -s /bin/bash -c 'HOME=/home/testuser; export HOME; export TERM=xterm-256color; cd ~/dotfiles && bash test.sh minimal' testuser
 
+      - name: Readable colours on a terminal without truecolor (#53)
+        run: |
+          # The probe needs a PTY, so `script` must exist or the test would skip
+          # on every cell and prove nothing while still reporting a pass.
+          command -v script >/dev/null || { echo "script(1) missing - the colour test cannot run"; exit 1; }
+          su -s /bin/bash -c 'HOME=/home/testuser; export HOME; cd ~/dotfiles && bash tests/nvim-colour-fallback.sh' testuser
+
   git-partial-clone-gate:
     name: "git without partial clone @ Ubuntu 16.04"
     runs-on: ubuntu-latest

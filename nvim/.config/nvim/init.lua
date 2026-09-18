@@ -25,6 +25,19 @@ end
 -- telescope key was dead on an nvim 0.11+ host with no build tools. Telescope's own
 -- sorter is the fallback.
 local fzf_ok = vim.fn.executable('make') == 1 and vim.fn.executable(cc) == 1
+-- nightfly, like most modern schemes, defines ONLY gui colours: measured 2026-09-18,
+-- its Normal and Comment carry no ctermfg/ctermbg at all. So forcing termguicolors on
+-- a terminal that cannot parse `38;2;R;G;B` leaves nothing readable behind, which is
+-- the near-black-on-near-black report (#53).
+-- This gate only fires on POSITIVE evidence of a low-colour terminal, so every host
+-- reporting 256 colours keeps nightfly and truecolor exactly as before. A capable
+-- terminal that advertises neither (ssh does not forward COLORTERM by default) lands
+-- on the readable fallback - visible and overridable, which is the safe direction.
+local _term         = (vim.env.TERM or ''):lower()
+local _colorterm    = (vim.env.COLORTERM or ''):lower()
+local truecolor_ok  = _colorterm == 'truecolor' or _colorterm == '24bit'
+    or _term:find('256', 1, true) ~= nil
+    or _term:find('direct', 1, true) ~= nil
 local lazypath = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
   local clone = { 'git', 'clone', 'https://github.com/folke/lazy.nvim.git', '--branch=stable', lazypath }
@@ -66,7 +79,16 @@ require('lazy').setup({
     lazy     = false,
     priority = 1000,
     config   = function()
-      vim.cmd.colorscheme('nightfly')
+      if truecolor_ok then
+        vim.cmd.colorscheme('nightfly')
+      else
+        -- Low-colour terminal: pick the first scheme that actually sets ctermfg/ctermbg.
+        -- Measured 2026-09-18 under notermguicolors: habamax Normal ctermfg=251/ctermbg=234,
+        -- desert 231/236, while nightfly, gruvbox and `default` set none at all.
+        for _, s in ipairs({ 'habamax', 'desert', 'default' }) do
+          if pcall(vim.cmd.colorscheme, s) then break end
+        end
+      end
     end,
   },
   -- Installed (available via <leader>cs - all load at VeryLazy):
@@ -672,7 +694,7 @@ opt.undofile      = true
 opt.undodir       = undodir
 opt.visualbell    = true
 opt.wildmode      = 'list:longest'
-opt.termguicolors = true
+opt.termguicolors = truecolor_ok -- see the truecolor_ok gate at the top of this file
 
 opt.matchpairs:append('<:>')
 -- linematch realigns hunks for cleaner inline diffs. inline:word (changed words
