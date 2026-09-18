@@ -87,14 +87,25 @@ on an nvim 0.11+ host with no build tools. Telescope's own sorter is the fallbac
 Same rule as the npm guard - do not remove it, and keep optional native extensions
 behind it.
 
-**`truecolor_ok`** gates `termguicolors` and the colorscheme choice. nightfly, like
-most modern schemes, sets only gui colours - measured 2026-09-18, its `Normal` and
-`Comment` carry no `ctermfg`/`ctermbg` at all - so forcing `termguicolors` on a
-terminal that cannot parse `38;2;R;G;B` left nothing readable and rendered near-black
-on near-black (#53). The gate fires only on positive evidence of a low-colour terminal,
-so 256-colour hosts are unchanged. **Keep any truecolor-only scheme behind it**, and
-keep the fallback list to schemes that really define cterm colours (habamax, desert -
-`default` and gruvbox do not). `tests/nvim-colour-fallback.sh` asserts both arms.
+**`truecolor_ok`** gates `termguicolors` and NOTHING else - it must never switch the
+colorscheme. nightfly sets only gui colours, so forcing `termguicolors` on a chain
+that cannot deliver 24-bit colour left nothing readable (#53).
+
+Two rules, both measured 2026-09-18 and both easy to get wrong:
+
+- **Judge the chain, not `$TERM`.** Inside tmux `$TERM` is always tmux's own
+  (`tmux-256color`) and says nothing about the client; tmux quantizes whatever nvim
+  emits down to the attached client's palette. So `_chain_colors()` asks tmux for
+  `#{client_termname}` and counts that terminal's colours with `tput -T`. Counting
+  beats name-matching: alacritty and xterm-kitty are truecolor terminals whose names
+  carry no `256`.
+- **Do not "improve" the fallback by switching scheme.** habamax and retrobox set
+  256-colour greys (`ctermfg=251`/`ctermbg=234`) which BOTH collapse to black when
+  quantized to 8 colours - measured 67% of the screen black-on-black, far worse than
+  the bug. Leaving nightfly with `termguicolors` off renders in the terminal's own
+  fg/bg: 0.4% unreadable against 9.8% before the fix.
+
+`tests/nvim-colour-fallback.sh` pins all four arms, including the tmux one.
 
 **Version gates** - supported hosts run nvim 0.9-0.12. Options and plugins that need a
 newer nvim are gated (`vim.fn.has('nvim-0.X')`, lazy `cond`), because one invalid

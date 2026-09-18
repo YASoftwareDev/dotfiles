@@ -1,15 +1,22 @@
 #!/usr/bin/env bash
 # Assert the nvim config stays readable on a terminal that cannot carry truecolor.
 #
-# Issue #53: nightfly defines only gui colours (measured: Normal and Comment carry
-# no ctermfg/ctermbg at all), while init.lua forced `termguicolors` on. A terminal
-# that cannot parse `38;2;R;G;B` was then left with nothing to fall back to, which
-# renders as near-black text on a near-black background.
+# Issue #53: nightfly defines only gui colours, so forcing `termguicolors` on a
+# chain that cannot deliver 24-bit colour left nothing readable. Two distinct
+# chains produce that, and the second is the one a first attempt missed:
 #
-# Two arms, because a fix that made every host readable by downgrading everyone
-# would be a regression for the hosts that were fine:
-#   low colour  (TERM=xterm)          -> some scheme with real ctermfg AND ctermbg
-#   256 colour  (TERM=xterm-256color) -> nightfly and termguicolors, unchanged
+#   direct   - $TERM itself is a low-colour terminal.
+#   via tmux - $TERM inside tmux is ALWAYS tmux's own (tmux-256color) and says
+#              nothing about the client; tmux quantizes whatever nvim emits down
+#              to the attached client's palette. Measured 2026-09-18 with an
+#              8-colour client, nightfly's truecolor arrived as blue-on-black
+#              across 9.8% of the screen.
+#
+# The fix gates ONLY `termguicolors`; it must not switch colorscheme. Switching
+# was measured actively harmful: habamax and retrobox set 256-colour greys
+# (ctermfg=251/ctermbg=234) which both collapse to black once quantized to 8
+# colours - 67% of the screen black-on-black, far worse than the bug. Arm 4 pins
+# that, because it is the trap a future change is most likely to walk back into.
 set -euo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -17,11 +24,16 @@ INIT="$DOTFILES_DIR/nvim/.config/nvim/init.lua"
 
 _fail=0
 _ran=0
+_skipped=""
 _err() { printf '  ERROR: %s\n' "$1"; _fail=1; _ran=$(( _ran + 1 )); }
 _ok()  { printf '  OK: %s\n' "$1"; _ran=$(( _ran + 1 )); }
 
 if ! command -v nvim >/dev/null 2>&1; then
     echo "RESULT: SKIPPED and not verified - nvim is not installed"
+    exit 0
+fi
+if ! command -v script >/dev/null 2>&1; then
+    echo "RESULT: SKIPPED and not verified - script(1) is needed to give nvim a PTY"
     exit 0
 fi
 
@@ -32,65 +44,100 @@ trap "rm -rf '$tmp'" EXIT
 cat > "$tmp/probe.lua" <<'LUA'
 local f = io.open(os.getenv('NVCOLOUR_OUT'), 'w')
 local h = vim.api.nvim_get_hl(0, { name = 'Normal' })
-f:write(string.format('scheme=%s tgc=%s ctermfg=%s ctermbg=%s\n',
-  tostring(vim.g.colors_name), tostring(vim.o.termguicolors),
+f:write(string.format('tgc=%s scheme=%s ctermfg=%s ctermbg=%s\n',
+  tostring(vim.o.termguicolors), tostring(vim.g.colors_name),
   tostring(h.ctermfg), tostring(h.ctermbg)))
 f:close()
 LUA
 
-# A PTY is required: without one nvim takes a different startup path entirely.
-_probe() { # $1 = TERM value, prints the probe line
+_probe() { # $1 = TERM; echoes the probe line
     local out="$tmp/out.$1"
-    NVCOLOUR_OUT="$out" TERM="$1" COLORTERM='' timeout 180 script -qec \
+    NVCOLOUR_OUT="$out" TERM="$1" COLORTERM='' TMUX='' timeout 180 script -qec \
         "nvim --clean -u '$INIT' -c 'luafile $tmp/probe.lua' -c 'qa!'" /dev/null \
         >/dev/null 2>&1 || true
-    [ -f "$out" ] && cat "$out" || echo "scheme=NONE tgc=? ctermfg=? ctermbg=?"
+    if [ -f "$out" ]; then cat "$out"; else echo "tgc=? scheme=NONE ctermfg=? ctermbg=?"; fi
 }
 
-echo "arm 1: low-colour terminal (TERM=xterm)"
+# ── arm 1: a low-colour terminal, no tmux ────────────────────────────────────
+echo "arm 1: direct low-colour terminal (TERM=xterm)"
 low=$(_probe xterm)
 echo "  $low"
 case "$low" in
-    *"ctermbg=nil"*|*"ctermbg=?"*)
-        _err "no ctermbg on a low-colour terminal - the buffer has no readable background" ;;
-    *"ctermfg=nil"*)
-        _err "no ctermfg on a low-colour terminal - text falls back to the terminal default" ;;
-    *) _ok "low-colour terminal gets a scheme with real cterm colours" ;;
-esac
-case "$low" in
-    *"tgc=true"*) _err "termguicolors still on for a low-colour terminal - RGB it cannot parse" ;;
-    *)            _ok "termguicolors off for a low-colour terminal" ;;
+    *"tgc=false"*) _ok "termguicolors off - nvim will not emit RGB it cannot deliver" ;;
+    *"tgc=?"*)     _err "probe produced no result - cannot tell, which is not a pass" ;;
+    *)             _err "termguicolors still on for a low-colour terminal" ;;
 esac
 
-echo "arm 2: 256-colour terminal (TERM=xterm-256color) - must be unchanged"
+# ── arm 2: a 256-colour terminal must be completely unchanged ────────────────
+echo "arm 2: direct 256-colour terminal (TERM=xterm-256color) - must be unchanged"
 hi=$(_probe xterm-256color)
 echo "  $hi"
-_skipped=""
-_data=$(nvim --headless -c 'lua io.write(vim.fn.stdpath("data"))' -c 'qa!' 2>/dev/null || true)
-if [ -z "$_data" ]; then
-    # Never let a failed probe read as "nothing to check": that would skip arm 2
-    # on every run while the verdict still said PASSED.
-    _err "could not resolve nvim's data dir - cannot tell whether nightfly is installed"
-elif [ ! -d "$_data/lazy/nightfly" ]; then
-    # Arm 2 asserts the scheme is still nightfly, which needs the plugin on disk.
-    # Without it this arm would fail for a reason that is not the defect under test.
-    _skipped="arm 2 (the nightfly plugin is not installed)"
+case "$hi" in
+    *"tgc=true"*) _ok "termguicolors kept for a 256-colour terminal" ;;
+    *)            _err "a 256-colour terminal lost termguicolors - that is a regression" ;;
+esac
+
+# ── arm 3: inside tmux with an 8-colour CLIENT ───────────────────────────────
+# The case a first fix missed entirely, because $TERM inside tmux carries '256'.
+echo "arm 3: inside tmux, 8-colour client (the case \$TERM cannot reveal)"
+if ! command -v tmux >/dev/null 2>&1; then
+    _skipped="arm 3 (tmux is not installed)"
     echo "  SKIP: $_skipped"
 else
-    case "$hi" in
-        *"scheme=nightfly"*) _ok "256-colour terminal keeps nightfly" ;;
-        *)                   _err "256-colour terminal no longer gets nightfly - this is a regression" ;;
-    esac
-    case "$hi" in
-        *"tgc=true"*) _ok "256-colour terminal keeps termguicolors" ;;
-        *)            _err "256-colour terminal lost termguicolors - this is a regression" ;;
-    esac
+    sock=$(mktemp -u /tmp/nvcolXXXX)   # short path: a UNIX socket dies past ~107 chars
+    dec="$tmp/tmuxdec"
+    tmux -S "$sock" kill-server 2>/dev/null || true
+    TERM=xterm-256color tmux -S "$sock" new-session -d -x 100 -y 30 >/dev/null 2>&1 || true
+    TERM=xterm timeout 90 script -qec "tmux -S $sock attach" /dev/null >/dev/null 2>&1 </dev/null &
+    _sp=$!
+    _client=""
+    for _ in $(seq 1 20); do
+        _client=$(tmux -S "$sock" display-message -p '#{client_termname}' 2>/dev/null || true)
+        [ -n "$_client" ] && break
+        sleep 1
+    done
+    if [ "$_client" != xterm ]; then
+        _skipped="arm 3 (no 8-colour tmux client attached; saw '${_client:-none}')"
+        echo "  SKIP: $_skipped"
+    else
+        tmux -S "$sock" send-keys "exec nvim --clean -u '$INIT' -c 'set nomore'" Enter
+        for _ in $(seq 1 60); do
+            [ "$(tmux -S "$sock" display-message -p '#{pane_current_command}' 2>/dev/null)" = nvim ] && break
+            sleep 1
+        done
+        sleep 4
+        tmux -S "$sock" send-keys Escape
+        tmux -S "$sock" send-keys ":call writefile([&termguicolors], '$dec')" Enter
+        sleep 3
+        if [ ! -s "$dec" ]; then
+            _err "arm 3 produced no result - cannot tell, which is not a pass"
+        elif [ "$(cat "$dec")" = 0 ]; then
+            _ok "termguicolors off for an 8-colour tmux client"
+        else
+            _err "termguicolors still on inside tmux with an 8-colour client - \$TERM was trusted"
+        fi
+    fi
+    tmux -S "$sock" kill-server 2>/dev/null || true
+    wait "$_sp" 2>/dev/null || true
+fi
+
+# ── arm 4: the low-colour path must not adopt a 232-255 grey scheme ──────────
+# Both halves of a Normal in that ramp quantize to black on an 8-colour chain.
+echo "arm 4: the low-colour path must not land on a 256-grey colorscheme"
+_cf=$(printf '%s' "$low" | sed -n 's/.*ctermfg=\([0-9]*\).*/\1/p')
+_cb=$(printf '%s' "$low" | sed -n 's/.*ctermbg=\([0-9]*\).*/\1/p')
+if [ -n "$_cf" ] && [ -n "$_cb" ] \
+        && [ "$_cf" -ge 232 ] && [ "$_cf" -le 255 ] \
+        && [ "$_cb" -ge 232 ] && [ "$_cb" -le 255 ]; then
+    _err "Normal is ctermfg=$_cf/ctermbg=$_cb - both in the 232-255 grey ramp, which collapses to black on black"
+else
+    _ok "Normal does not sit entirely in the 232-255 grey ramp (ctermfg=${_cf:-unset} ctermbg=${_cb:-unset})"
 fi
 
 echo
 _verdict=$([ "$_fail" -eq 0 ] && echo PASSED || echo FAILED)
 if [ -n "$_skipped" ]; then
-    printf 'RESULT: %s (%d checks ran), 2 checks SKIPPED and not verified - %s\n' \
+    printf 'RESULT: %s (%d checks ran), 1 check SKIPPED and not verified - %s\n' \
         "$_verdict" "$_ran" "$_skipped"
 else
     printf 'RESULT: %s (%d checks ran, none skipped)\n' "$_verdict" "$_ran"

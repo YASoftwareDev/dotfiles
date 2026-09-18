@@ -5,12 +5,11 @@
 -- Override colorscheme
 -- vim.cmd.colorscheme('catppuccin')
 
--- Force truecolor on a terminal that supports it but does not say so. init.lua
--- drops to a 256-colour scheme unless TERM carries `256`/`direct` or COLORTERM is
--- set, because a scheme with no cterm colours is unreadable when RGB does not
--- arrive. ssh does not forward COLORTERM, so a capable remote host can land here.
+-- Force truecolor on a terminal that supports it but does not advertise it.
+-- init.lua turns termguicolors OFF when the rendering chain reports fewer than
+-- 256 colours (inside tmux it asks tmux which client is attached, since $TERM
+-- there is always tmux's own). The colorscheme is never changed - only this flag.
 -- vim.o.termguicolors = true
--- vim.cmd.colorscheme('nightfly')
 
 -- Machine-specific LSP extras (e.g. rust-analyzer only on dev machines)
 -- require('lspconfig').rust_analyzer.setup({})
