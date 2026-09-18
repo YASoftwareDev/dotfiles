@@ -87,8 +87,27 @@ else
     sock=$(mktemp -u /tmp/nvcolXXXX)   # short path: a UNIX socket dies past ~107 chars
     dec="$tmp/tmuxdec"
     tmux -S "$sock" kill-server 2>/dev/null || true
-    TERM=xterm-256color tmux -S "$sock" new-session -d -x 100 -y 30 >/dev/null 2>&1 || true
-    TERM=xterm timeout 90 script -qec "tmux -S $sock attach" /dev/null >/dev/null 2>&1 </dev/null &
+    # No interactive shell and no send-keys. The pane runs a script that waits for a
+    # flag file and then starts nvim, so the arm never depends on what the login
+    # shell is or does. That mattered: the default shell after this repo's install is
+    # zsh, and on a host with no ~/.p10k.zsh it opens powerlevel10k's configuration
+    # wizard, so send-keys typed into the wizard - measured in CI, and impossible to
+    # reproduce on a box that already has ~/.p10k.zsh.
+    cat > "$tmp/pane.sh" <<SH
+while [ ! -f '$tmp/go' ]; do sleep 0.2; done
+nvim --clean -u '$INIT' -c "lua io.open('$dec','w'):write(tostring(vim.o.termguicolors))" -c 'qa!'
+sleep 5
+SH
+    TERM=xterm-256color tmux -S "$sock" new-session -d -x 100 -y 30 \
+        "bash '$tmp/pane.sh'" >/dev/null 2>&1 || true
+    # Hold the client attached. With stdin on /dev/null, script hits EOF at once,
+    # detaches, and the pane's command then sees EOF too - measured: the session was
+    # destroyed about two seconds in. A fifo with a writer parked on it never EOFs.
+    mkfifo "$tmp/fifo"
+    sleep 300 > "$tmp/fifo" &
+    _writer=$!
+    TERM=xterm timeout 150 script -qec "tmux -S $sock attach" /dev/null \
+        >/dev/null 2>&1 < "$tmp/fifo" &
     _sp=$!
     _client=""
     for _ in $(seq 1 20); do
@@ -100,16 +119,10 @@ else
         _skipped="arm 3 (no 8-colour tmux client attached; saw '${_client:-none}')"
         echo "  SKIP: $_skipped"
     else
-        # nvim writes the answer itself from `-c`, so nothing depends on keystroke
-        # timing: typing `:call ...` after a fixed sleep raced a cold start in CI.
-        # The command goes through a script file to keep the quoting readable.
-        # Use the same lua io.open form as probe.lua, which is already proven to work
-        # in CI on nvim 0.10.4: writefile() takes a List of STRINGS, and passing the
-        # number &termguicolors is version-dependent.
-        cat > "$tmp/arm3.sh" <<SH
-nvim --clean -u '$INIT' -c "lua io.open('$dec','w'):write(tostring(vim.o.termguicolors))" -c 'qa!'
-SH
-        tmux -S "$sock" send-keys "bash '$tmp/arm3.sh'" Enter
+        # The client is confirmed attached, so release the pane into nvim now - which
+        # is the whole point: nvim must start while a client exists, or tmux reports
+        # no client_termname and the gate under test cannot fire.
+        : > "$tmp/go"
         # Poll for the answer rather than sleeping a guessed amount: a cold nvim
         # may bootstrap plugins first.
         for _ in $(seq 1 120); do
@@ -133,7 +146,9 @@ SH
         fi
     fi
     tmux -S "$sock" kill-server 2>/dev/null || true
+    kill "$_writer" 2>/dev/null || true
     wait "$_sp" 2>/dev/null || true
+    wait "$_writer" 2>/dev/null || true
 fi
 
 # ── arm 4: the low-colour path must not adopt a 232-255 grey scheme ──────────
