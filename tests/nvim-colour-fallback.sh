@@ -103,8 +103,11 @@ else
         # nvim writes the answer itself from `-c`, so nothing depends on keystroke
         # timing: typing `:call ...` after a fixed sleep raced a cold start in CI.
         # The command goes through a script file to keep the quoting readable.
+        # Use the same lua io.open form as probe.lua, which is already proven to work
+        # in CI on nvim 0.10.4: writefile() takes a List of STRINGS, and passing the
+        # number &termguicolors is version-dependent.
         cat > "$tmp/arm3.sh" <<SH
-nvim --clean -u '$INIT' -c "call writefile([&termguicolors], '$dec')" -c 'qa!'
+nvim --clean -u '$INIT' -c "lua io.open('$dec','w'):write(tostring(vim.o.termguicolors))" -c 'qa!'
 SH
         tmux -S "$sock" send-keys "bash '$tmp/arm3.sh'" Enter
         # Poll for the answer rather than sleeping a guessed amount: a cold nvim
@@ -114,11 +117,19 @@ SH
             sleep 1
         done
         if [ ! -s "$dec" ]; then
+            # Say WHY, or the next reader has to guess the way this one did.
+            printf '  diagnostics: panes=[%s] alive=[%s]\n' \
+                "$(tmux -S "$sock" list-panes -F '#{pane_current_command}' 2>&1 | tr '\n' ' ')" \
+                "$(tmux -S "$sock" has-session 2>&1 && echo yes || echo no)"
+            echo "  last pane output:"
+            tmux -S "$sock" capture-pane -p 2>&1 | sed -n '1,25p' | sed 's/^/    | /'
             _err "arm 3 produced no result - cannot tell, which is not a pass"
-        elif [ "$(cat "$dec")" = 0 ]; then
-            _ok "termguicolors off for an 8-colour tmux client"
         else
-            _err "termguicolors still on inside tmux with an 8-colour client - \$TERM was trusted"
+            case "$(cat "$dec")" in
+                false) _ok "termguicolors off for an 8-colour tmux client" ;;
+                true)  _err "termguicolors still on inside tmux with an 8-colour client - \$TERM was trusted" ;;
+                *)     _err "arm 3 wrote an unexpected value '$(cat "$dec")' - cannot tell, which is not a pass" ;;
+            esac
         fi
     fi
     tmux -S "$sock" kill-server 2>/dev/null || true
