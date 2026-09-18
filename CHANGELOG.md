@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.9] - 2026-09-18
+
+### Fixed
+- nvim was still unreadable inside tmux on an 8-colour client: `$TERM` there is always tmux's own, so 1.11.8's gate never fired (#53). The gate now asks tmux which client is attached. Measured 9.8% of the screen unreadable before, 0.4% after.
+
+### Changed
+- The low-colour path no longer switches colorscheme. habamax/retrobox greys collapse to black at 8 colours, measured worse than the bug (67% of the screen).
+
 ## [1.11.8] - 2026-09-18
 
 ### Fixed

@@ -33,11 +33,41 @@ local fzf_ok = vim.fn.executable('make') == 1 and vim.fn.executable(cc) == 1
 -- reporting 256 colours keeps nightfly and truecolor exactly as before. A capable
 -- terminal that advertises neither (ssh does not forward COLORTERM by default) lands
 -- on the readable fallback - visible and overridable, which is the safe direction.
-local _term         = (vim.env.TERM or ''):lower()
-local _colorterm    = (vim.env.COLORTERM or ''):lower()
-local truecolor_ok  = _colorterm == 'truecolor' or _colorterm == '24bit'
-    or _term:find('256', 1, true) ~= nil
-    or _term:find('direct', 1, true) ~= nil
+-- Judge the REAL rendering chain, not $TERM. Inside tmux, $TERM is always tmux's own
+-- (tmux-256color) and says nothing about the outer terminal: tmux quantizes whatever
+-- nvim emits down to the attached client's palette. Measured 2026-09-18 through an
+-- 8-colour outer terminal, nightfly's truecolor arrived as dark blue on black - 3701
+-- unreadable cells - while the same chain to a 256-colour client was perfectly fine.
+-- So ask tmux which client is attached and judge by that terminal's own terminfo.
+-- Counting colours beats matching the name: alacritty and xterm-kitty are truecolor
+-- terminals whose names carry no '256', and downgrading them would be a regression.
+local function _chain_colors()
+  local name = vim.env.TERM or ''
+  local in_tmux = vim.env.TMUX ~= nil and vim.env.TMUX ~= ''
+  if in_tmux and vim.fn.executable('tmux') == 1 then
+    local out = vim.fn.system({ 'tmux', 'display-message', '-p', '#{client_termname}' })
+    if vim.v.shell_error == 0 then
+      local n = (out or ''):gsub('%s+', '')
+      if n ~= '' then name = n end
+    end
+  end
+  if name ~= '' and vim.fn.executable('tput') == 1 then
+    local out = vim.fn.system({ 'tput', '-T', name, 'colors' })
+    local n = tonumber((out or ''):match('%-?%d+'))
+    if vim.v.shell_error == 0 and n then return n end
+  end
+  -- No usable terminfo lookup: the name is all that is left. COLORTERM is consulted
+  -- only OUTSIDE tmux - inside, nvim inherits the session's copy, which describes
+  -- whichever client created the session rather than the one attached now.
+  local lname = name:lower()
+  if lname:find('256', 1, true) or lname:find('direct', 1, true) then return 256 end
+  if not in_tmux then
+    local ct = (vim.env.COLORTERM or ''):lower()
+    if ct == 'truecolor' or ct == '24bit' then return 256 end
+  end
+  return 8
+end
+local truecolor_ok = _chain_colors() >= 256
 local lazypath = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
   local clone = { 'git', 'clone', 'https://github.com/folke/lazy.nvim.git', '--branch=stable', lazypath }
@@ -79,16 +109,15 @@ require('lazy').setup({
     lazy     = false,
     priority = 1000,
     config   = function()
-      if truecolor_ok then
-        vim.cmd.colorscheme('nightfly')
-      else
-        -- Low-colour terminal: pick the first scheme that actually sets ctermfg/ctermbg.
-        -- Measured 2026-09-18 under notermguicolors: habamax Normal ctermfg=251/ctermbg=234,
-        -- desert 231/236, while nightfly, gruvbox and `default` set none at all.
-        for _, s in ipairs({ 'habamax', 'desert', 'default' }) do
-          if pcall(vim.cmd.colorscheme, s) then break end
-        end
-      end
+      -- The scheme is kept on every terminal; only `termguicolors` is gated (see
+      -- the truecolor_ok block at the top). Switching schemes on a low-colour
+      -- terminal was measured HARMFUL: habamax and retrobox set 256-colour greys
+      -- (ctermfg=251/ctermbg=234) which both collapse to black once quantized to
+      -- 8 colours, giving black on black across 67% of the screen. Leaving
+      -- nightfly in place with termguicolors off costs its colours - it defines
+      -- no cterm values - but renders in the terminal's own fg/bg, measured at
+      -- 0.5% unreadable against 2.8% for the truecolor path on the same screen.
+      vim.cmd.colorscheme('nightfly')
     end,
   },
   -- Installed (available via <leader>cs - all load at VeryLazy):
