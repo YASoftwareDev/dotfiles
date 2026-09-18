@@ -100,15 +100,19 @@ else
         _skipped="arm 3 (no 8-colour tmux client attached; saw '${_client:-none}')"
         echo "  SKIP: $_skipped"
     else
-        tmux -S "$sock" send-keys "exec nvim --clean -u '$INIT' -c 'set nomore'" Enter
-        for _ in $(seq 1 60); do
-            [ "$(tmux -S "$sock" display-message -p '#{pane_current_command}' 2>/dev/null)" = nvim ] && break
+        # nvim writes the answer itself from `-c`, so nothing depends on keystroke
+        # timing: typing `:call ...` after a fixed sleep raced a cold start in CI.
+        # The command goes through a script file to keep the quoting readable.
+        cat > "$tmp/arm3.sh" <<SH
+nvim --clean -u '$INIT' -c "call writefile([&termguicolors], '$dec')" -c 'qa!'
+SH
+        tmux -S "$sock" send-keys "bash '$tmp/arm3.sh'" Enter
+        # Poll for the answer rather than sleeping a guessed amount: a cold nvim
+        # may bootstrap plugins first.
+        for _ in $(seq 1 120); do
+            [ -s "$dec" ] && break
             sleep 1
         done
-        sleep 4
-        tmux -S "$sock" send-keys Escape
-        tmux -S "$sock" send-keys ":call writefile([&termguicolors], '$dec')" Enter
-        sleep 3
         if [ ! -s "$dec" ]; then
             _err "arm 3 produced no result - cannot tell, which is not a pass"
         elif [ "$(cat "$dec")" = 0 ]; then
