@@ -449,6 +449,12 @@ jobs:
       - name: Checkout dotfiles
         uses: actions/checkout@v4
 
+      - name: Assert no fixture pre-installs what install.sh provides
+        run: |
+          # The no-sudo tmux gap hid behind a root prerequisite: `has tmux` was
+          # true before install.sh ran, so 15 green cells proved nothing.
+          python3 tests/no-fixture-masking.py
+
       - name: Assert the gate requires every job
         run: |
           # A new job that nobody adds to `needs` above would sit OUTSIDE the gate

@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.1] - 2026-09-19
+
+### Added
+- `tests/no-fixture-masking.py`, run by the CI gate: fails when a no-sudo fixture pre-installs a tool `install.sh` claims to provide. That masking is why the tmux gap survived 15 green cells - measured, the existing tests caught it the moment the prerequisite was removed.
+
 ## [1.13.0] - 2026-09-19
 
 ### Added
