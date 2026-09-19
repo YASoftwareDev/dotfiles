@@ -72,16 +72,20 @@ ARG NOSUDO_INSTALL=
 # RHEL family). The dnf list adds what Ubuntu images already carry: tar/gzip/xz
 # (binary extraction), findutils (_download_tar_bin uses find), shadow-utils
 # (useradd below), glibc-langpack-en (en_US.UTF-8 locale data).
+# tmux is deliberately NOT here. Pre-installing it made `has tmux` true before
+# install.sh ran, which is why a no-sudo host getting tmux CONFIG but no tmux
+# BINARY went unnoticed - the image supplied the thing under test. install.sh
+# must provide it (_install_tmux in modules/base.sh).
 RUN if command -v apt-get >/dev/null 2>&1; then \
         apt-get -yq update && \
         apt-get -yq install --no-install-recommends \
-            apt-utils git curl wget ca-certificates zsh tmux python3 && \
+            apt-utils git curl wget ca-certificates zsh python3 && \
         rm -rf /var/lib/apt/lists/*; \
     else \
         # --allowerasing: EL9+ images ship curl-minimal, which conflicts with
         # the full curl package - allow dnf to swap it out.
         dnf -yq install --allowerasing \
-            git curl wget ca-certificates zsh tmux python3 \
+            git curl wget ca-certificates zsh python3 \
             tar gzip xz findutils shadow-utils glibc-langpack-en && \
         dnf clean all; \
     fi

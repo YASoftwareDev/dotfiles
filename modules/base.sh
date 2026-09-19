@@ -60,13 +60,17 @@ install_base() {
         else
             log_warn "No sudo - skipping system packages; fetching tools as local binaries"
         fi
+        # git, zsh and python3 have no practical single-binary fallback, so they
+        # stay a hint. tmux does (see _install_tmux), and this repo ships tmux
+        # config and clones tmux plugins, so it is fetched rather than mentioned.
         local _hint tool; _hint=$(_pkg_install_hint)
-        for tool in git zsh tmux python3; do
+        for tool in git zsh python3; do
             has "$tool" || log_warn "$tool not found - install it: ${_hint} $tool"
         done
         _install_ripgrep
         _install_fd
         _install_jq
+        _install_tmux
     fi
 
     _install_fzf
@@ -118,13 +122,17 @@ install_base_docker() {
         _install_jq
     else
         log_warn "No apt - skipping system packages; fetching tools as local binaries"
+        # git, zsh and python3 have no practical single-binary fallback, so they
+        # stay a hint. tmux does (see _install_tmux), and this repo ships tmux
+        # config and clones tmux plugins, so it is fetched rather than mentioned.
         local _hint tool; _hint=$(_pkg_install_hint)
-        for tool in git zsh tmux python3; do
+        for tool in git zsh python3; do
             has "$tool" || log_warn "$tool not found - install it: ${_hint} $tool"
         done
         _install_ripgrep
         _install_fd
         _install_jq
+        _install_tmux
     fi
 
     _install_fzf
@@ -450,6 +458,56 @@ _install_ripgrep() {
         log_ok "ripgrep installed → ~/.local/bin/rg ($(~/.local/bin/rg --version 2>/dev/null | head -1))"
     else
         log_warn "ripgrep: download failed - skipping"
+    fi
+}
+
+# tmux: only reachable here as a static AppImage.
+#
+# This repo ships .tmux.conf, .tmux.conf.local and clones tmux plugins, so a host
+# that gets the configs but no tmux is incoherent - and that is exactly what a
+# non-sudoer on a box without tmux got, measured 2026-09-19 on a fleet host.
+# Upstream tmux publishes SOURCE ONLY (checked: the latest release carries just
+# tmux-<ver>.tar.gz), and building it needs libevent and ncurses built locally
+# too, so a prebuilt static binary is the only one-command option.
+#
+# The build is THIRD PARTY (nelsonenzo/tmux-appimage), which is why this verifies
+# the binary runs before linking it and says plainly where it came from, rather
+# than installing it silently. apt is always preferred when it is available.
+_install_tmux() {
+    if has tmux; then
+        log_ok "tmux already installed - skipping"
+        return
+    fi
+    log_step "tmux (static AppImage - third-party build)"
+    local arch; arch=$(uname -m)
+    if [ "$arch" != x86_64 ]; then
+        log_warn "tmux: the AppImage is x86_64 only, this is $arch - install it with your package manager"
+        return
+    fi
+    local url="https://github.com/nelsonenzo/tmux-appimage/releases/latest/download/tmux.appimage"
+    local optdir="$HOME/.local/opt"
+    mkdir -p "$optdir" ~/.local/bin
+    log_info "tmux: fetching the static AppImage from nelsonenzo/tmux-appimage"
+    if has curl; then
+        curl -sfLo "$optdir/tmux.appimage" "$url" || { log_warn "tmux: download failed - skipping"; return; }
+    else
+        wget -qO "$optdir/tmux.appimage" "$url" || { log_warn "tmux: download failed - skipping"; return; }
+    fi
+    chmod +x "$optdir/tmux.appimage"
+
+    # An AppImage mounts itself through FUSE, which many containers and hardened
+    # hosts do not have - measured on a fleet host, where the direct run failed and
+    # this fallback is what actually installed it. --appimage-extract needs no FUSE.
+    if "$optdir/tmux.appimage" -V >/dev/null 2>&1; then
+        ln -sf "$optdir/tmux.appimage" ~/.local/bin/tmux
+        log_ok "tmux installed → ~/.local/bin/tmux ($("$optdir/tmux.appimage" -V 2>/dev/null)) [AppImage]"
+    elif ( cd "$optdir" && "$optdir/tmux.appimage" --appimage-extract >/dev/null 2>&1 ) \
+            && [ -x "$optdir/squashfs-root/usr/bin/tmux" ]; then
+        ln -sf "$optdir/squashfs-root/usr/bin/tmux" ~/.local/bin/tmux
+        log_ok "tmux installed → ~/.local/bin/tmux ($("$optdir/squashfs-root/usr/bin/tmux" -V 2>/dev/null)) [extracted, no FUSE]"
+    else
+        log_warn "tmux: the AppImage neither ran nor extracted - skipping"
+        return
     fi
 }
 

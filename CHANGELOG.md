@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0] - 2026-09-19
+
+### Added
+- tmux is now installed without sudo, as a static AppImage, with an extract fallback for hosts without FUSE. The repo shipped tmux config and cloned tmux plugins while a non-sudoer could end up with no tmux binary at all.
+
+### Changed
+- The no-sudo CI jobs and `Dockerfile.nosudo` no longer pre-install tmux. Doing so made `has tmux` true before install.sh ran, which is why the gap stayed invisible across 15 cells.
+
 ## [1.11.9] - 2026-09-18
 
 ### Fixed

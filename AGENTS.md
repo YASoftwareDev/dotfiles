@@ -52,6 +52,12 @@ fallback and the unapplied-pins path - 28 cells total.
   list with a per-package retry, keep an optional tool's apt steps non-fatal
   (`|| { log_warn ...; return; }`), and let the `_install_*` GitHub fallbacks
   cover whatever apt cannot supply.
+- **Never let a test environment supply the thing under test.** The no-sudo CI jobs
+  and `Dockerfile.nosudo` pre-installed tmux as a root prerequisite, so `has tmux`
+  was true before install.sh ran. A non-sudoer therefore got tmux CONFIG and tmux
+  PLUGINS but no tmux BINARY, and 15 green cells said nothing about it for months -
+  found on a real host, not in CI. When adding a prerequisite to a test image, ask
+  whether the install is supposed to provide it; if it is, leave it out.
 - Never construct GitHub release asset URLs manually - use `_gh_release_info` or
   `_gh_latest_release` from `lib/utils.sh`; asset names change between releases.
   Exception: `releases/latest/download/<name>` for an asset whose name carries no
