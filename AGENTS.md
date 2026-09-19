@@ -36,6 +36,12 @@ fallback and the unapplied-pins path - 28 cells total.
   Also avoid `[ cond ] && var=true` - when the condition is false, the expression exits with 1 and
   trips `set -e`. Use `if [ cond ]; then var=true; fi` instead.
 - Every function variable must be declared `local` (or `local -a` for arrays).
+- A tool whose Debian package renames the binary needs a SHIM, or the installer
+  skips it forever: `has bat` is false when apt supplied `batcat`, exactly as with
+  `fd`/`fdfind`. Add the shim in the same change as the installer, in BOTH
+  `install_base` and `install_base_docker` - and note the docker branch needs it
+  even though its apt list does not ask for the package, since a base image may
+  already carry the renamed binary.
 - **Run `bash tests/lint-workflows.sh` before pushing a workflow change.** An
   invalid workflow runs nothing, so CI cannot report the fault, and with
   `CI gate` required the PR blocks with no visible cause. It catches the two

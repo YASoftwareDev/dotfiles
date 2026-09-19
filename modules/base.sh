@@ -17,7 +17,7 @@ install_base() {
             jq
             man-db gnupg
             python3 python3-venv
-            ripgrep fd-find tig
+            ripgrep fd-find tig bat
             parallel shellcheck
         )
         log_info "Installing via apt: ${_pkgs[*]} (versions resolved by apt)"
@@ -48,12 +48,19 @@ install_base() {
             log_ok "Created fd → fdfind shim in ~/.local/bin"
         fi
 
+        # Same story for bat: Debian/Ubuntu install the binary as 'batcat'.
+        if ! has bat && has batcat; then
+            ln -sf "$(command -v batcat)" ~/.local/bin/bat
+            log_ok "Created bat → batcat shim in ~/.local/bin"
+        fi
+
         # Cover what apt could not supply (no ripgrep/fd-find before 19.10).
         # Each installer returns early when the binary is already present, so
         # this is a no-op on releases where apt carried them.
         _install_ripgrep
         _install_fd
         _install_jq
+        _install_bat
     else
         if $CAN_SUDO; then
             log_warn "No apt on this system - skipping system packages; fetching tools as local binaries"
@@ -70,6 +77,7 @@ install_base() {
         _install_ripgrep
         _install_fd
         _install_jq
+        _install_bat
         _install_tmux
     fi
 
@@ -115,11 +123,18 @@ install_base_docker() {
         if ! has fd && has fdfind; then
             ln -sf "$(command -v fdfind)" ~/.local/bin/fd
         fi
+        # Needed even though this list does not ask apt for bat: a base image may
+        # already carry batcat, and _install_bat treats that as installed - without
+        # the shim there would then be no `bat` on PATH at all.
+        if ! has bat && has batcat; then
+            ln -sf "$(command -v batcat)" ~/.local/bin/bat
+        fi
 
         # Cover what apt could not supply; each installer self-skips when present.
         _install_ripgrep
         _install_fd
         _install_jq
+        _install_bat
     else
         log_warn "No apt - skipping system packages; fetching tools as local binaries"
         # git, zsh and python3 have no practical single-binary fallback, so they
@@ -132,6 +147,7 @@ install_base_docker() {
         _install_ripgrep
         _install_fd
         _install_jq
+        _install_bat
         _install_tmux
     fi
 
@@ -458,6 +474,40 @@ _install_ripgrep() {
         log_ok "ripgrep installed → ~/.local/bin/rg ($(~/.local/bin/rg --version 2>/dev/null | head -1))"
     else
         log_warn "ripgrep: download failed - skipping"
+    fi
+}
+
+# bat: GitHub tarball - binary is 'bat'.
+# Debian/Ubuntu ship the binary as 'batcat' (the name 'bat' was already taken),
+# exactly like fd/fdfind, so both names count as installed and the shim in
+# install_base puts a 'bat' on PATH when apt supplied batcat.
+_install_bat() {
+    if has bat || has batcat; then
+        log_ok "bat already installed - skipping"
+        return
+    fi
+    log_step "bat (GitHub binary)"
+    local arch; arch=$(uname -m)
+    local bat_arch
+    case "$arch" in
+        x86_64)  bat_arch="x86_64-unknown-linux-musl" ;;
+        aarch64) bat_arch="aarch64-unknown-linux-gnu"  ;;
+        *)
+            log_warn "bat: unsupported arch $arch - skipping"
+            return
+            ;;
+    esac
+    local tag="" url=""
+    read -r tag url < <(_gh_release_info "sharkdp/bat" "${bat_arch}.tar.gz") || true
+    if [ -z "$url" ]; then
+        log_warn "bat: could not find release URL - skipping"
+        return
+    fi
+    log_info "bat: installing ${tag:-unknown} → ~/.local/bin/bat"
+    if _download_tar_bin "$url" "bat" ~/.local/bin/bat; then
+        log_ok "bat installed → ~/.local/bin/bat ($(~/.local/bin/bat --version 2>/dev/null))"
+    else
+        log_warn "bat: download failed - skipping"
     fi
 }
 

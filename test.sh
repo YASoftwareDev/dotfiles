@@ -127,6 +127,15 @@ else
     _fail "fd / fdfind not found"
 fi
 
+# bat has the same Debian/Ubuntu rename as fd: the binary ships as 'batcat'.
+if command -v bat &>/dev/null; then
+    _ok "bat  →  $(command -v bat)  ($(bat --version 2>&1 | head -1))"
+elif command -v batcat &>/dev/null; then
+    _ok "bat (as batcat)  →  $(command -v batcat)"
+else
+    _fail "bat / batcat not found"
+fi
+
 # ── 4. fzf shell integration ───────────────────────────────────────────────────
 _hdr "fzf shell integration"
 # fzf is installed via git clone to ~/.fzf; the installer generates ~/.fzf.zsh
@@ -393,10 +402,12 @@ if [ "$PROFILE" = "nosudo" ]; then
     _hdr "No-sudo: ~/.local/bin binaries"
 
     check_local_bin() {
-        local cmd="$1" label="${2:-$1}"
+        # $3 is the version flag: tmux answers -V and prints its usage for
+        # --version, which would otherwise be reported as the "version".
+        local cmd="$1" label="${2:-$1}" vflag="${3:---version}"
         local p="$HOME/.local/bin/$cmd"
         if [ -x "$p" ]; then
-            _ok "$label  →  $p  ($("$p" --version 2>&1 | head -1))"
+            _ok "$label  →  $p  ($("$p" "$vflag" 2>&1 | head -1))"
         else
             # Strict: must be in ~/.local/bin - not just anywhere on PATH.
             # For nosudo-forced this verifies NOSUDO=1 was respected (sudo was
@@ -407,12 +418,15 @@ if [ "$PROFILE" = "nosudo" ]; then
 
     check_local_bin rg   "ripgrep"
     check_local_bin fd   "fd"
+    check_local_bin bat  "bat"
     check_local_bin jq   "jq"
     check_local_bin fzf  "fzf"
     check_local_bin zoxide "zoxide"
     check_local_bin delta  "git-delta"
     check_local_bin eza    "eza"
     check_local_bin yazi   "yazi"
+    # tmux is a no-sudo install too since 1.12.0 (static AppImage).
+    check_local_bin tmux   "tmux" -V
 
     _hdr "No-sudo: sudo availability"
     # nosudo-auto:      sudo binary absent -> detect_sudo() auto-detected CAN_SUDO=false
