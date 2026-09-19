@@ -8,7 +8,7 @@
 #   --help,  -h    Show this message
 #
 # Available tools (pass one or more to update only those):
-#   apt  omz  tmux-plugins  zsh-plugins  fzf  rg  fd  shellcheck
+#   apt  omz  tmux-plugins  zsh-plugins  fzf  rg  fd  bat  shellcheck
 #   zoxide  delta  eza  yazi  uv  ruff  neovim  tree-sitter  cheat  pre-commit  xcape
 #
 # A PATH shadow check always runs at the end (read-only). It detects older
@@ -49,7 +49,7 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-_KNOWN_TOOLS=(apt omz tmux-plugins zsh-plugins fzf rg fd shellcheck
+_KNOWN_TOOLS=(apt omz tmux-plugins zsh-plugins fzf rg fd bat shellcheck
               zoxide delta eza yazi uv ruff neovim tree-sitter cheat pre-commit xcape)
 
 # Validate SELECTED against known tool names.
@@ -491,6 +491,22 @@ if _should_run fd; then
         esac
     else
         log_warn "fd not installed - skipping"
+    fi
+fi
+
+# ── bat ────────────────────────────────────────────────────────────────────────
+# Same special case as fd: Debian/Ubuntu install the binary as 'batcat', so both
+# names count as present and the updated binary always lands at ~/.local/bin/bat.
+if _should_run bat; then
+    log_step "bat"
+    if has bat || has batcat; then
+        case "$ARCH" in
+            x86_64)  _gh_update_binary bat "sharkdp/bat" "x86_64-unknown-linux-musl.tar.gz" bat ~/.local/bin/bat || true ;;
+            aarch64) _gh_update_binary bat "sharkdp/bat" "aarch64-unknown-linux-gnu.tar.gz"  bat ~/.local/bin/bat || true ;;
+            *)       log_warn "bat: unsupported arch $ARCH - skipping" ;;
+        esac
+    else
+        log_warn "bat not installed - skipping"
     fi
 fi
 
