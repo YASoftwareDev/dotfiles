@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.2] - 2026-09-19
+
+### Fixed
+- install.sh no longer links tmux config or clones tmux plugins when tmux is absent. It configured a tmux that was not there whenever the installer came up empty - a non-x86_64 host, a download failure, an AppImage that neither runs nor extracts - which is the incoherence that hid the original no-sudo gap. Matches how zsh is already handled.
+
 ## [1.13.1] - 2026-09-19
 
 ### Added
