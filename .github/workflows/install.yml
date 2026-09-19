@@ -245,10 +245,15 @@ jobs:
 
     steps:
       - name: Bootstrap prerequisites (as root - mirrors a shared host)
+        # tmux is deliberately NOT pre-installed. It used to be, and that is
+        # exactly why the no-sudo gap stayed invisible across 15 cells: `has tmux`
+        # was always true, so the missing installer never mattered while the repo
+        # still shipped tmux config and cloned tmux plugins. The environment was
+        # supplying the thing under test. install.sh must provide it now.
         run: |
           export DEBIAN_FRONTEND=noninteractive
           apt-get -yq update
-          apt-get -yq install apt-utils git curl wget ca-certificates zsh tmux python3
+          apt-get -yq install apt-utils git curl wget ca-certificates zsh python3
 
       - name: Install sudo binary (forced + nonsudoer)
         if: matrix.variant == 'forced' || matrix.variant == 'nonsudoer'
@@ -345,7 +350,8 @@ jobs:
         # --allowerasing: EL9+ images ship curl-minimal, which conflicts with
         # the full curl package - allow dnf to swap it out.
         run: |
-          dnf -yq install --allowerasing git curl wget ca-certificates zsh tmux python3 \
+          # tmux deliberately absent here too - see the Ubuntu no-sudo job.
+          dnf -yq install --allowerasing git curl wget ca-certificates zsh python3 \
             tar gzip xz findutils shadow-utils glibc-langpack-en
 
       - name: Install sudo binary (forced + nonsudoer)
