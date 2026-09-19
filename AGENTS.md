@@ -58,6 +58,12 @@ fallback and the unapplied-pins path - 28 cells total.
   list with a per-package retry, keep an optional tool's apt steps non-fatal
   (`|| { log_warn ...; return; }`), and let the `_install_*` GitHub fallbacks
   cover whatever apt cannot supply.
+- **Do not configure what is not installed.** `install_zsh` and `install_tmux` both
+  return early with an actionable warning when their binary is absent; a host that
+  looks configured while nothing can use it is how the no-sudo tmux gap stayed
+  invisible. Guard EVERY entry point, not just the first: install.sh chains
+  `install_tmux && _install_tmux_plugins`, and the early return must exit 0 or
+  `set -e` kills the run - so the chained function needs its own guard.
 - **Never let a test environment supply the thing under test** (`tests/no-fixture-masking.py` enforces this for tools with an `_install_*` function; it cannot see a tool the repo ships config for but never installs, which is what the original gap was). The no-sudo CI jobs
   and `Dockerfile.nosudo` pre-installed tmux as a root prerequisite, so `has tmux`
   was true before install.sh ran. A non-sudoer therefore got tmux CONFIG and tmux
