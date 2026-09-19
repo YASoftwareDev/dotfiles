@@ -29,9 +29,11 @@ _hdr()  { echo -e "\n${BOLD}── $* ──${NC}"; }
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 check_cmd() {
-    local cmd="$1" label="${2:-$1}"
+    # $3 is the version flag, for tools that do not answer --version: tmux prints
+    # its usage instead, which was being reported as the version string.
+    local cmd="$1" label="${2:-$1}" vflag="${3:---version}"
     if command -v "$cmd" &>/dev/null; then
-        _ok "$label  →  $(command -v "$cmd")  ($(${cmd} --version 2>&1 | head -1))"
+        _ok "$label  →  $(command -v "$cmd")  ($("$cmd" "$vflag" 2>&1 | head -1))"
     else
         _fail "$label not found"
     fi
@@ -109,7 +111,7 @@ check_link ~/.gitattributes
 # ── 3. Core tools ──────────────────────────────────────────────────────────────
 _hdr "Core tools"
 check_cmd zsh
-check_cmd tmux
+check_cmd tmux "tmux" -V
 check_cmd git
 check_cmd python3
 check_cmd fzf
