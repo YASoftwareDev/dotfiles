@@ -455,6 +455,12 @@ jobs:
           # true before install.sh ran, so 15 green cells proved nothing.
           python3 tests/no-fixture-masking.py
 
+      - name: Assert every linked config belongs to a tool
+        run: |
+          # The tmux bug was linking config for a tool that was not installed.
+          # no-fixture-masking.py cannot see that class; this is the other half.
+          python3 tests/config-needs-tool.py
+
       - name: Assert the gate requires every job
         run: |
           # A new job that nobody adds to `needs` above would sit OUTSIDE the gate
