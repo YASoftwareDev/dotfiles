@@ -58,6 +58,9 @@ fallback and the unapplied-pins path - 28 cells total.
   list with a per-package retry, keep an optional tool's apt steps non-fatal
   (`|| { log_warn ...; return; }`), and let the `_install_*` GitHub fallbacks
   cover whatever apt cannot supply.
+- **Do not configure what is not installed** (`tests/config-needs-tool.py` enforces
+  it: every linked config dir must declare `installer`, `guarded`, or `prerequisite`
+  with a reason, and an undeclared one fails).
 - **Do not configure what is not installed.** `install_zsh` and `install_tmux` both
   return early with an actionable warning when their binary is absent; a host that
   looks configured while nothing can use it is how the no-sudo tmux gap stayed
