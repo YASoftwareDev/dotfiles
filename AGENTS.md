@@ -58,6 +58,11 @@ fallback and the unapplied-pins path - 28 cells total.
   list with a per-package retry, keep an optional tool's apt steps non-fatal
   (`|| { log_warn ...; return; }`), and let the `_install_*` GitHub fallbacks
   cover whatever apt cannot supply.
+- **`~/.gitconfig` is a SYMLINK to the tracked `git/.gitconfig`.** Never run a command
+  that writes global git config (`git lfs install`, `git config --global`) from the
+  install: it edits a tracked file and leaves every host's checkout dirty, which then
+  blocks its own next update. Machine-specific git settings go to `~/.gitconfig.local`
+  conditionally, as the zdiff3 and git-lfs branches in `_link_git_config` do.
 - **Do not configure what is not installed** (`tests/config-needs-tool.py` enforces
   it: every linked config dir must declare `installer`, `guarded`, or `prerequisite`
   with a reason, and an undeclared one fails).

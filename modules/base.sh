@@ -17,7 +17,7 @@ install_base() {
             jq
             man-db gnupg
             python3 python3-venv
-            ripgrep fd-find tig bat
+            ripgrep fd-find tig bat git-lfs
             parallel shellcheck
         )
         log_info "Installing via apt: ${_pkgs[*]} (versions resolved by apt)"
@@ -61,6 +61,7 @@ install_base() {
         _install_fd
         _install_jq
         _install_bat
+        _install_git_lfs
     else
         if $CAN_SUDO; then
             log_warn "No apt on this system - skipping system packages; fetching tools as local binaries"
@@ -78,6 +79,7 @@ install_base() {
         _install_fd
         _install_jq
         _install_bat
+        _install_git_lfs
         _install_tmux
     fi
 
@@ -135,6 +137,7 @@ install_base_docker() {
         _install_fd
         _install_jq
         _install_bat
+        _install_git_lfs
     else
         log_warn "No apt - skipping system packages; fetching tools as local binaries"
         # git, zsh and python3 have no practical single-binary fallback, so they
@@ -148,6 +151,7 @@ install_base_docker() {
         _install_fd
         _install_jq
         _install_bat
+        _install_git_lfs
         _install_tmux
     fi
 
@@ -160,15 +164,8 @@ install_base_docker() {
 
 # ── Per-tool installers with apt-first / fallback strategy ────────────────────
 
-# Debian/Ubuntu architecture string (amd64, arm64, armhf, ...)
-_deb_arch() {
-    dpkg --print-architecture 2>/dev/null || case "$(uname -m)" in
-        x86_64)  echo "amd64" ;;
-        aarch64) echo "arm64" ;;
-        armv7l)  echo "armhf" ;;
-        *)       uname -m ;;
-    esac
-}
+# _deb_arch lives in lib/utils.sh - update.sh needs it too and does not
+# source this module.
 
 # zoxide: apt on Ubuntu 24.04 (≥0.8); GitHub binary on 20.04/22.04
 # The 22.04 apt package is 0.4.3 - too old; our .zshrc uses `zi` (needs ≥0.8).
@@ -474,6 +471,38 @@ _install_ripgrep() {
         log_ok "ripgrep installed → ~/.local/bin/rg ($(~/.local/bin/rg --version 2>/dev/null | head -1))"
     else
         log_warn "ripgrep: download failed - skipping"
+    fi
+}
+
+# git-lfs: GitHub tarball. Its assets use DEBIAN arch names (git-lfs-linux-amd64-*),
+# not the Rust triples bat/fd/rg use, so this maps through _deb_arch instead of
+# copying their case statement. The binary sits one level down in the tarball,
+# which _download_tar_bin handles.
+_install_git_lfs() {
+    if has git-lfs; then
+        log_ok "git-lfs already installed - skipping"
+        return
+    fi
+    log_step "git-lfs (GitHub binary)"
+    local lfs_arch; lfs_arch=$(_deb_arch)
+    case "$lfs_arch" in
+        amd64|arm64|arm) ;;
+        *)
+            log_warn "git-lfs: unsupported arch $lfs_arch - skipping"
+            return
+            ;;
+    esac
+    local tag="" url=""
+    read -r tag url < <(_gh_release_info "git-lfs/git-lfs" "linux-${lfs_arch}-") || true
+    if [ -z "$url" ]; then
+        log_warn "git-lfs: could not find release URL - skipping"
+        return
+    fi
+    log_info "git-lfs: installing ${tag:-unknown} → ~/.local/bin/git-lfs"
+    if _download_tar_bin "$url" "git-lfs" ~/.local/bin/git-lfs; then
+        log_ok "git-lfs installed → ~/.local/bin/git-lfs ($(~/.local/bin/git-lfs version 2>/dev/null))"
+    else
+        log_warn "git-lfs: download failed - skipping"
     fi
 }
 

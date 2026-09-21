@@ -129,6 +129,8 @@ else
     _fail "fd / fdfind not found"
 fi
 
+check_cmd git-lfs "git-lfs" version
+
 # bat has the same Debian/Ubuntu rename as fd: the binary ships as 'batcat'.
 if command -v bat &>/dev/null; then
     _ok "bat  →  $(command -v bat)  ($(bat --version 2>&1 | head -1))"
@@ -421,6 +423,7 @@ if [ "$PROFILE" = "nosudo" ]; then
     check_local_bin rg   "ripgrep"
     check_local_bin fd   "fd"
     check_local_bin bat  "bat"
+    check_local_bin git-lfs "git-lfs" version
     check_local_bin jq   "jq"
     check_local_bin fzf  "fzf"
     check_local_bin zoxide "zoxide"
