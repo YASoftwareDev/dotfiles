@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `git-lfs` is installed and updated like the other tools: apt where available, GitHub binary otherwise. Its filters are written to `~/.gitconfig.local` only when the binary is actually present - never by `git lfs install`, which would edit the tracked `git/.gitconfig` that `~/.gitconfig` symlinks to and leave every checkout dirty.
 
+### Fixed
+- tmux config was skipped on no-sudo hosts since 1.13.2. Its guard used `command -v`, which cannot see `~/.local/bin` during install, so it reported tmux missing right after installing it there - the hosts 1.12.0 exists to serve lost `.tmux.conf`, `.tmux.conf.local` and `tmux-status-rows`. Re-run `install.sh` on any host installed with 1.13.2 or 1.13.3.
+
 ## [1.13.3] - 2026-09-20
 
 ### Added
