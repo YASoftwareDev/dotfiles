@@ -8,7 +8,7 @@
 #   --help,  -h    Show this message
 #
 # Available tools (pass one or more to update only those):
-#   apt  omz  tmux-plugins  zsh-plugins  fzf  rg  fd  bat  shellcheck
+#   apt  omz  tmux-plugins  zsh-plugins  fzf  rg  fd  bat  git-lfs  shellcheck
 #   zoxide  delta  eza  yazi  uv  ruff  neovim  tree-sitter  cheat  pre-commit  xcape
 #
 # A PATH shadow check always runs at the end (read-only). It detects older
@@ -49,7 +49,7 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-_KNOWN_TOOLS=(apt omz tmux-plugins zsh-plugins fzf rg fd bat shellcheck
+_KNOWN_TOOLS=(apt omz tmux-plugins zsh-plugins fzf rg fd bat git-lfs shellcheck
               zoxide delta eza yazi uv ruff neovim tree-sitter cheat pre-commit xcape)
 
 # Validate SELECTED against known tool names.
@@ -507,6 +507,24 @@ if _should_run bat; then
         esac
     else
         log_warn "bat not installed - skipping"
+    fi
+fi
+
+# ── git-lfs ────────────────────────────────────────────────────────────────────
+# Debian-style arch in the asset name (linux-amd64), not a Rust triple, so this
+# cannot use _update_std_tool.
+if _should_run git-lfs; then
+    log_step "git-lfs"
+    if has git-lfs; then
+        _lfs_arch=$(_deb_arch)
+        case "$_lfs_arch" in
+            amd64|arm64|arm)
+                _gh_update_binary git-lfs "git-lfs/git-lfs" "linux-${_lfs_arch}-" git-lfs \
+                    "$(_resolve_dest git-lfs ~/.local/bin/git-lfs)" || true ;;
+            *) log_warn "git-lfs: unsupported arch $_lfs_arch - skipping" ;;
+        esac
+    else
+        log_warn "git-lfs not installed - skipping"
     fi
 fi
 

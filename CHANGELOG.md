@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0] - 2026-09-21
+
+### Added
+- `git-lfs` is installed and updated like the other tools: apt where available, GitHub binary otherwise. Its filters are written to `~/.gitconfig.local` only when the binary is actually present - never by `git lfs install`, which would edit the tracked `git/.gitconfig` that `~/.gitconfig` symlinks to and leave every checkout dirty.
+
 ## [1.13.3] - 2026-09-20
 
 ### Added

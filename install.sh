@@ -83,6 +83,39 @@ _link_git_config() {
         git config -f ~/.gitconfig.local merge.conflictstyle zdiff3
         log_ok "git $git_v: merge.conflictstyle zdiff3 set in ~/.gitconfig.local"
     fi
+    _enable_git_lfs
+}
+
+# git-lfs filters, written the same way as zdiff3 above: into ~/.gitconfig.local,
+# and only when the binary is actually present.
+#
+# NOT `git lfs install`, and NOT a section in the tracked git/.gitconfig. Two
+# reasons, both measured:
+#   - `git lfs install` writes to the GLOBAL config, and ~/.gitconfig is a symlink
+#     to the tracked git/.gitconfig here - so it would edit a tracked file and
+#     leave every host's checkout dirty, which then blocks its own next update.
+#   - the filters carry `required = true`, so shipping them where git-lfs is absent
+#     makes every LFS checkout fail. Config must follow the tool, not precede it.
+# A value the user already set is left alone, exactly as the zdiff3 branch does.
+_enable_git_lfs() {
+    # Probe the absolute path as well as PATH. install.sh runs non-interactively, so
+    # ~/.local/bin is usually NOT on PATH here - `has git-lfs` alone returned false
+    # immediately after _install_git_lfs had put the binary there, and the filters
+    # were silently never written. This is the repo's standing rule: never trust
+    # `command -v` at install time when PATH order matters, probe the file.
+    if ! has git-lfs && [ ! -x "$HOME/.local/bin/git-lfs" ]; then
+        return 0
+    fi
+    if git config -f ~/.gitconfig.local --get filter.lfs.process >/dev/null 2>&1; then
+        log_ok "git-lfs filters already configured in ~/.gitconfig.local"
+        return 0
+    fi
+    git config -f ~/.gitconfig.local filter.lfs.clean  'git-lfs clean -- %f'
+    git config -f ~/.gitconfig.local filter.lfs.smudge 'git-lfs smudge -- %f'
+    git config -f ~/.gitconfig.local filter.lfs.process 'git-lfs filter-process'
+    git config -f ~/.gitconfig.local filter.lfs.required true
+    local _lfs_bin; _lfs_bin=$(command -v git-lfs 2>/dev/null || echo "$HOME/.local/bin/git-lfs")
+    log_ok "git-lfs filters set in ~/.gitconfig.local ($("$_lfs_bin" version 2>/dev/null | head -1))"
 }
 
 # ── Post-install state detection ──────────────────────────────────────────────

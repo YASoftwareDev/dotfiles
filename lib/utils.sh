@@ -281,6 +281,16 @@ _cmd_version() {
 # Download a tarball from URL and extract a single binary by name.
 # Auto-detects .tar.gz vs .tar.xz from the URL.
 # Usage: _download_tar_bin URL BINARY_NAME DEST
+# Debian/Ubuntu architecture string (amd64, arm64, armhf, ...)
+_deb_arch() {
+    dpkg --print-architecture 2>/dev/null || case "$(uname -m)" in
+        x86_64)  echo "amd64" ;;
+        aarch64) echo "arm64" ;;
+        armv7l)  echo "armhf" ;;
+        *)       uname -m ;;
+    esac
+}
+
 _download_tar_bin() {
     local url="$1" binname="$2" dest="$3"
     mkdir -p "$(dirname "$dest")"
