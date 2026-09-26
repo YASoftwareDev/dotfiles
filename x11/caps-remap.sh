@@ -41,8 +41,10 @@ xmodmap -e "add Control = Hyper_L" || true
 
 # (Re)start xcape.  -t 200: taps shorter than 200 ms produce Escape; anything
 # longer is treated as a Ctrl hold.  Raise to 300-500 if taps feel missed.
+# Only our own instance is replaced: other tools may run xcape for other keys
+# (xcape rewrites its argv in place, so '=' shows up as a space).
 if command -v xcape >/dev/null 2>&1; then
-    pkill -x xcape 2>/dev/null || true
+    pkill -f '^xcape .*-e Hyper_L' 2>/dev/null || true
     xcape -t 200 -e 'Hyper_L=Escape'
 else
     echo "caps-remap: xcape not found - tap-to-Escape will not work" >&2
