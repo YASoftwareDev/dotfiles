@@ -229,7 +229,7 @@ tmux_conf_theme_right_separator_sub="|"
 #     - #{username}
 #     - #{username_ssh}
 tmux_conf_theme_status_left=" #S "
-tmux_conf_theme_status_right=" #{prefix}#{synchronized} %R | #{loadavg} | #{username}#{root}@#{hostname} "
+tmux_conf_theme_status_right=" #{prefix}#{synchronized} %R | #{loadavg} | #{user}@#{host_short} "
 
 # status left style
 tmux_conf_theme_status_left_fg="$tmux_conf_theme_colour_6,$tmux_conf_theme_colour_7,$tmux_conf_theme_colour_8"
@@ -328,8 +328,10 @@ tmux_conf_copy_to_os_clipboard=true
 # -- user customizations -------------------------------------------------------
 # this is the place to override or undo settings
 
-# increase history size (overrides base 5000000 with a larger value)
-set -g history-limit 10000000
+# cap scrollback: the server holds every pane's history in one process, and at
+# 10M lines it reached 1.3 GB (352k lines over 19 panes, 8 days up), and every
+# fork for a status job or run-shell hook copies page tables of that size.
+set -g history-limit 20000
 
 # start with mouse mode enabled
 set -g mouse on
