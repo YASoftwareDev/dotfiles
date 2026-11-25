@@ -480,3 +480,6 @@ run '~/.tmux/plugins/tmux-cpu/cpu.tmux'
 # Machine-specific settings (not tracked in git — safe across git pull).
 # Put server customisations in ~/.tmux.conf.server instead of editing this file.
 if-shell '[ -f ~/.tmux.conf.server ]' 'source-file ~/.tmux.conf.server'
+
+# #369: panes start as child subreapers, so a ppid-climbing kill stops at one pane (claude-config scripts/subreaper-shell)
+set -g default-command "/home/devuser/.claude/scripts/subreaper-shell"
