@@ -482,4 +482,4 @@ run '~/.tmux/plugins/tmux-cpu/cpu.tmux'
 if-shell '[ -f ~/.tmux.conf.server ]' 'source-file ~/.tmux.conf.server'
 
 # #369: panes start as child subreapers, so a ppid-climbing kill stops at one pane (claude-config scripts/subreaper-shell)
-set -g default-command "/home/devuser/.claude/scripts/subreaper-shell"
+set -g default-command "$HOME/.claude/scripts/subreaper-shell"
